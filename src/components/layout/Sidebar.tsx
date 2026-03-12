@@ -5,6 +5,8 @@ import { Calendar, Home, Settings, ChevronLeft, ChevronRight, LogOut, Building2 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useAuth } from "@/contexts/AuthContext"
+import { useInstituicao } from "@/contexts/InstituicaoContext"
 
 const routes = [
   {
@@ -27,6 +29,8 @@ const routes = [
 export function Sidebar({ className }: { className?: string }) {
   const location = useLocation()
   const [isExpanded, setIsExpanded] = useState(true)
+  const { usuario, logout } = useAuth()
+  const { configuracoes } = useInstituicao()
 
   return (
     <div
@@ -40,13 +44,17 @@ export function Sidebar({ className }: { className?: string }) {
         {/* Header / Logo Area */}
         <div className="flex h-14 lg:h-[60px] items-center border-b px-4 justify-between">
           <Link to="/" className={cn("flex items-center gap-3 overflow-hidden", !isExpanded && "justify-center w-full")}>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shrink-0">
-              <Building2 className="h-4 w-4" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg overflow-hidden bg-primary text-primary-foreground shrink-0 border border-gray-200 shadow-inner">
+              {configuracoes?.logo_url ? (
+                <img src={configuracoes.logo_url} alt="Logo da Instituição" className="w-full h-full object-contain bg-white" />
+              ) : (
+                <Building2 className="h-4 w-4" />
+              )}
             </div>
             {isExpanded && (
               <div className="flex flex-col">
-                <span className="font-bold text-sm leading-tight break-words whitespace-normal line-clamp-2">
-                  EEMTI Antonieta Siqueira
+                <span className="font-bold text-sm leading-tight break-words whitespace-normal line-clamp-2" style={{ color: configuracoes?.cor_principal }}>
+                  {configuracoes?.nome_instituicao || "Minha Instituição"}
                 </span>
                 <span className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider">
                   App Escolar
@@ -106,17 +114,19 @@ export function Sidebar({ className }: { className?: string }) {
             {/* User Info */}
             <div className={cn("flex items-center gap-3 w-full", !isExpanded && "justify-center")}>
               <Avatar className="h-8 w-8 rounded-full border shrink-0">
-                <AvatarImage src="" alt="Avatar do usuário" />
-                <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">NM</AvatarFallback>
+                <AvatarImage src={usuario?.foto_url || ''} alt="Avatar do usuário" />
+                <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                  {usuario?.nome_completo ? usuario.nome_completo.charAt(0).toUpperCase() : 'U'}
+                </AvatarFallback>
               </Avatar>
               
               {isExpanded && (
                 <div className="flex flex-col overflow-hidden">
-                  <span className="text-sm font-medium leading-none truncate" title="Neylor Farias Magalhães">
-                    Neylor Farias Magalhães
+                  <span className="text-sm font-medium leading-none truncate" title={usuario?.nome_completo || 'Sem Nome'}>
+                    {usuario?.nome_completo || 'Sem Nome'}
                   </span>
-                  <span className="text-xs text-muted-foreground truncate" title="neylor">
-                    neylor
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground truncate rounded-md mt-1" title={usuario?.papel}>
+                    {usuario?.papel}
                   </span>
                 </div>
               )}
@@ -127,7 +137,7 @@ export function Sidebar({ className }: { className?: string }) {
               variant="outline"
               size={isExpanded ? "sm" : "icon"}
               className={cn("w-full mt-2 border-border/50 text-muted-foreground hover:text-foreground", !isExpanded && "h-8 w-8")}
-              onClick={() => console.log("Sair clicado")}
+              onClick={logout}
               title={!isExpanded ? "Sair" : undefined}
             >
               <LogOut className={cn("h-4 w-4 text-muted-foreground", isExpanded && "mr-2")} />

@@ -1,5 +1,21 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom"
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import { Layout } from "./components/layout/Layout"
+import { ConfiguracoesLayout } from "./pages/configuracoes/ConfiguracoesLayout"
+import { AuthProvider, useAuth } from "./contexts/AuthContext"
+import { InstituicaoProvider } from "./contexts/InstituicaoContext"
+import { Login } from "./pages/login/Login"
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { usuario, loading } = useAuth()
+  
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
+  
+  if (!usuario) {
+    return <Navigate to="/login" replace />
+  }
+  
+  return <>{children}</>
+}
 
 function Dashboard() {
   return (
@@ -22,13 +38,23 @@ function DefaultPage({ title }: { title: string }) {
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="agendamentos" element={<DefaultPage title="Agendamentos" />} />
-          <Route path="configuracoes" element={<DefaultPage title="Configurações" />} />
-        </Route>
-      </Routes>
+      <InstituicaoProvider>
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            
+            <Route path="/" element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }>
+              <Route index element={<Dashboard />} />
+              <Route path="agendamentos" element={<DefaultPage title="Agendamentos" />} />
+              <Route path="configuracoes" element={<ConfiguracoesLayout />} />
+            </Route>
+          </Routes>
+        </AuthProvider>
+      </InstituicaoProvider>
     </BrowserRouter>
   )
 }
