@@ -48,3 +48,14 @@ export default tseslint.config({
   },
 })
 ```
+
+## Deploy no Cloudflare Pages
+
+Para configurar o deploy contínuo do painel no Cloudflare Pages, siga estas configurações exatas ao criar no painel da Cloudflare ("Workers & Pages"):
+
+- **Conta e Conexão**: Conecte ao seu repositório Git (`appEscolar`).
+- **Ramificação de produção**: `main`
+- **Predefinição da estrutura**: `Nenhum`
+- **Comando da build**: `npm run build`
+- **Diretório de saída da build**: `dist`
+- **Diretório raiz**: `/` (Em branco/padrão)
