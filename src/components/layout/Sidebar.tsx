@@ -84,6 +84,11 @@ export function Sidebar({ className }: { className?: string }) {
         <div className="flex-1 overflow-auto py-4">
           <nav className="grid gap-1 px-2">
             {routes.map((route) => {
+              // Only Administrador can see Settings
+              if (route.path === "/configuracoes" && usuario?.papel !== 'Administrador') {
+                return null
+              }
+
               const isActive = location.pathname === route.path
               return (
                 <Link

@@ -17,6 +17,16 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { usuario } = useAuth()
+  
+  if (usuario?.papel !== 'Administrador') {
+    return <Navigate to="/" replace />
+  }
+  
+  return <>{children}</>
+}
+
 function Dashboard() {
   return (
     <div className="flex flex-col gap-4">
@@ -50,7 +60,11 @@ function App() {
             }>
               <Route index element={<Dashboard />} />
               <Route path="agendamentos" element={<DefaultPage title="Agendamentos" />} />
-              <Route path="configuracoes" element={<ConfiguracoesLayout />} />
+              <Route path="configuracoes" element={
+                <AdminRoute>
+                  <ConfiguracoesLayout />
+                </AdminRoute>
+              } />
             </Route>
           </Routes>
         </AuthProvider>
