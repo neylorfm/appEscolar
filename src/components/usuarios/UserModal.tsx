@@ -91,15 +91,8 @@ export function UserModal({ isOpen, onClose, onSuccess, usuario }: UserModalProp
           await atualizarSenhaUsuario(usuario.id, senha)
         }
       } else {
-        const result = await convidarUsuario(nome, email, apelido, papel)
+        const result = await convidarUsuario(nome, email, apelido, papel, senha)
         savedUserId = result.user?.id
-        
-        // Se a senha foi informada na criação, não existe API direto no invite para admin.
-        // O Supabase enviará o email para o usuário definir a senha, 
-        // ou nós atualizamos a senha do usuário recém criado logo após:
-        if (senha && savedUserId) {
-           await atualizarSenhaUsuario(savedUserId, senha)
-        }
       }
 
       // Upload de foto se houver uma nova

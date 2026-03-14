@@ -8,6 +8,8 @@ interface AuthContextType {
   usuario: Usuario | null
   loading: boolean
   logout: () => Promise<void>
+  inactiveError: boolean
+  clearInactiveError: () => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -15,6 +17,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [usuario, setUsuario] = useState<Usuario | null>(null)
   const [loading, setLoading] = useState(true)
+  const [inactiveError, setInactiveError] = useState(false)
   const { configuracoes } = useInstituicao()
   const navigate = useNavigate()
   
@@ -99,7 +102,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
            
         if (data) {
-           setUsuario(data as Usuario)
+           const u = data as Usuario
+           if (u.ativo === false) {
+             console.warn('Usuário inativo, deslogando...')
+             setInactiveError(true)
+             logout()
+           } else {
+             setUsuario(u)
+           }
         }
         setLoading(false)
     }
@@ -122,8 +132,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [navigate])
 
+  const clearInactiveError = () => {
+    setInactiveError(false)
+  }
+
   return (
-    <AuthContext.Provider value={{ usuario, loading, logout }}>
+    <AuthContext.Provider value={{ usuario, loading, logout, inactiveError, clearInactiveError }}>
       {children}
     </AuthContext.Provider>
   )

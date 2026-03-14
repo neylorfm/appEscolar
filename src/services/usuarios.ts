@@ -9,6 +9,7 @@ export interface Usuario {
   apelido: string | null
   foto_url: string | null
   papel: PapelUsuario
+  ativo: boolean
   created_at: string
 }
 
@@ -26,7 +27,7 @@ export async function getUsuarios() {
   return data as Usuario[]
 }
 
-export async function convidarUsuario(nomeCompleto: string, email: string, apelido: string, papel: PapelUsuario) {
+export async function convidarUsuario(nomeCompleto: string, email: string, apelido: string, papel: PapelUsuario, password?: string) {
   // Chamada para a Edge Function
   const { data: { session } } = await supabase.auth.getSession()
   
@@ -45,7 +46,8 @@ export async function convidarUsuario(nomeCompleto: string, email: string, apeli
       email,
       nome_completo: nomeCompleto,
       apelido,
-      papel
+      papel,
+      password
     })
   })
 
@@ -107,6 +109,80 @@ export async function atualizarSenhaUsuario(id: string, novaSenha: string) {
   }
 
   return responseData
+}
+
+export async function deletarUsuario(id: string) {
+  const { data: { session } } = await supabase.auth.getSession()
+  
+  if (!session?.access_token) {
+    throw new Error('Você precisa estar logado para realizar esta ação.')
+  }
+
+  const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-users`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`
+    },
+    body: JSON.stringify({
+      action: 'delete',
+      id
+    })
+  })
+
+  const responseData = await response.json()
+
+  if (!response.ok) {
+    console.error('Erro ao excluir usuário:', responseData)
+    throw new Error(responseData.error || 'Falha ao excluir o usuário.')
+  }
+
+  return responseData
+}
+
+export async function alternarStatusUsuario(id: string, ativo: boolean) {
+  const { data, error } = await supabase
+    .from('usuarios')
+    .update({ ativo })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Erro ao alterar status:', error)
+    throw new Error('Não foi possível alterar o status do usuário.')
+  }
+
+  return data as Usuario
+}
+
+export async function alternarDesejoSerChamado(id: string, apelido: string) {
+  const { data, error } = await supabase
+    .from('usuarios')
+    .update({ apelido: apelido })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Erro ao alterar apelido:', error)
+    throw new Error('Não foi possível salvar como você deseja ser chamado.')
+  }
+
+  return data as Usuario
+}
+
+export async function atualizarSenhaUsuarioLocal(novaSenha: string) {
+  const { data, error } = await supabase.auth.updateUser({
+    password: novaSenha
+  })
+
+  if (error) {
+    console.error('Erro ao atualizar senha local:', error)
+    throw new Error(error.message || 'Falha ao atualizar a senha.')
+  }
+
+  return data
 }
 
 export async function fazerUploadFoto(file: File, usuarioId: string) {

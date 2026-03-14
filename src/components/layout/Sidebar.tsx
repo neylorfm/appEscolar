@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from "@/contexts/AuthContext"
 import { useInstituicao } from "@/contexts/InstituicaoContext"
+import { UserProfileModal } from "@/components/usuarios/UserProfileModal"
 
 const routes = [
   {
@@ -29,6 +30,7 @@ const routes = [
 export function Sidebar({ className }: { className?: string }) {
   const location = useLocation()
   const [isExpanded, setIsExpanded] = useState(true)
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
   const { usuario, logout } = useAuth()
   const { configuracoes } = useInstituicao()
 
@@ -116,8 +118,15 @@ export function Sidebar({ className }: { className?: string }) {
         {/* Footer / Profile Area */}
         <div className="border-t p-2">
           <div className={cn("flex flex-col gap-2 p-2", isExpanded ? "items-start" : "items-center")}>
-            {/* User Info */}
-            <div className={cn("flex items-center gap-3 w-full", !isExpanded && "justify-center")}>
+            {/* User Info (Clickable for Profile Edit) */}
+            <div 
+              className={cn(
+                "flex items-center gap-3 w-full rounded-md p-1.5 transition-colors cursor-pointer hover:bg-slate-100", 
+                !isExpanded && "justify-center"
+              )}
+              onClick={() => setIsProfileModalOpen(true)}
+              title={isExpanded ? "Editar Perfil" : usuario?.nome_completo || 'Perfil'}
+            >
               <Avatar className="h-8 w-8 rounded-full border shrink-0">
                 <AvatarImage src={usuario?.foto_url || ''} alt="Avatar do usuário" />
                 <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
@@ -130,8 +139,8 @@ export function Sidebar({ className }: { className?: string }) {
                   <span className="text-sm font-medium leading-none truncate" title={usuario?.nome_completo || 'Sem Nome'}>
                     {usuario?.nome_completo || 'Sem Nome'}
                   </span>
-                  <span className="text-[10px] uppercase font-bold text-muted-foreground truncate rounded-md mt-1" title={usuario?.papel}>
-                    {usuario?.papel}
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground truncate mt-1" title={usuario?.papel}>
+                    {usuario?.apelido || usuario?.papel}
                   </span>
                 </div>
               )}
@@ -151,6 +160,11 @@ export function Sidebar({ className }: { className?: string }) {
           </div>
         </div>
       </div>
+      
+      <UserProfileModal 
+         isOpen={isProfileModalOpen} 
+         onClose={() => setIsProfileModalOpen(false)} 
+      />
     </div>
   )
 }

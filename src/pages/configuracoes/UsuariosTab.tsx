@@ -9,8 +9,11 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Usuario, getUsuarios } from '@/services/usuarios'
+import { Usuario, getUsuarios, alternarStatusUsuario } from '@/services/usuarios'
 import { UserModal } from '@/components/usuarios/UserModal'
+import { DeleteUserModal } from '@/components/usuarios/DeleteUserModal'
+import { useAuth } from '@/contexts/AuthContext'
+import { Ban, CheckCircle, Trash2, Edit2 } from 'lucide-react'
 
 export function UsuariosTab() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
@@ -19,6 +22,11 @@ export function UsuariosTab() {
   
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<Usuario | null>(null)
+  
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [userToDelete, setUserToDelete] = useState<Usuario | null>(null)
+  
+  const { usuario: currentUser } = useAuth()
 
   const fetchUsers = async () => {
     try {
@@ -45,6 +53,20 @@ export function UsuariosTab() {
   const handleOpenEdit = (usuario: Usuario) => {
     setSelectedUser(usuario)
     setIsModalOpen(true)
+  }
+
+  const handleOpenDelete = (usuario: Usuario) => {
+    setUserToDelete(usuario)
+    setIsDeleteModalOpen(true)
+  }
+
+  const handleToggleStatus = async (usuario: Usuario) => {    
+    try {
+      await alternarStatusUsuario(usuario.id, !usuario.ativo)
+      fetchUsers()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao alterar status do usuário.')
+    }
   }
 
   const getRoleBadgeStyle = (papel: string) => {
@@ -86,6 +108,7 @@ export function UsuariosTab() {
               <TableHead>Email</TableHead>
               <TableHead>Como deseja ser chamado</TableHead>
               <TableHead>Papel</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -127,14 +150,44 @@ export function UsuariosTab() {
                       {usuario.papel}
                     </span>
                   </TableCell>
+                  <TableCell>
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${usuario.ativo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                      {usuario.ativo ? 'Ativo' : 'Inativo'}
+                    </span>
+                  </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenEdit(usuario)}
-                    >
-                      Editar
-                    </Button>
+                    <div className="flex justify-end gap-2">
+                       <Button
+                         variant="outline"
+                         size="icon"
+                         title="Editar usuário"
+                         onClick={() => handleOpenEdit(usuario)}
+                       >
+                         <Edit2 className="w-4 h-4 text-muted-foreground" />
+                       </Button>
+                       
+                       {currentUser?.id !== usuario.id && (
+                         <>
+                           <Button
+                             variant="outline"
+                             size="icon"
+                             title={usuario.ativo ? "Inativar usuário" : "Ativar usuário"}
+                             onClick={() => handleToggleStatus(usuario)}
+                           >
+                             {usuario.ativo ? <Ban className="w-4 h-4 text-orange-500" /> : <CheckCircle className="w-4 h-4 text-green-600" />}
+                           </Button>
+                           <Button
+                             variant="outline"
+                             size="icon"
+                             title="Excluir usuário"
+                             className="hover:bg-destructive hover:text-destructive-foreground"
+                             onClick={() => handleOpenDelete(usuario)}
+                           >
+                             <Trash2 className="w-4 h-4" />
+                           </Button>
+                         </>
+                       )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -149,6 +202,13 @@ export function UsuariosTab() {
         onClose={() => setIsModalOpen(false)}
         onSuccess={fetchUsers}
         usuario={selectedUser}
+      />
+
+      <DeleteUserModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onSuccess={fetchUsers}
+        usuario={userToDelete}
       />
     </div>
   )

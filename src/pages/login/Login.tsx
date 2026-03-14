@@ -6,6 +6,15 @@ import { useInstituicao } from '@/contexts/InstituicaoContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from '@/components/ui/dialog'
+import { AlertCircle } from 'lucide-react'
 
 export function Login() {
   const [email, setEmail] = useState('')
@@ -15,13 +24,19 @@ export function Login() {
   
   const navigate = useNavigate()
   const { configuracoes } = useInstituicao()
-  const { usuario } = useAuth()
+  const { usuario, inactiveError, clearInactiveError } = useAuth()
 
   useEffect(() => {
     if (usuario) {
       navigate('/')
     }
   }, [usuario, navigate])
+
+  useEffect(() => {
+    if (inactiveError) {
+      setLoading(false)
+    }
+  }, [inactiveError])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -131,6 +146,35 @@ export function Login() {
           </Button>
         </form>
       </div>
+
+      <Dialog open={inactiveError} onOpenChange={(open) => {
+         if (!open) clearInactiveError()
+      }}>
+        <DialogContent className="sm:max-w-[425px] flex flex-col items-center text-center">
+           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4 text-red-600">
+             <AlertCircle size={32} />
+           </div>
+           
+           <DialogHeader>
+             <DialogTitle className="text-xl text-center">Acesso Suspenso</DialogTitle>
+             <DialogDescription className="text-center pt-2 text-base">
+               Sua conta foi inativada ou suspensa pela administração e você não pode acessar o painel no momento.
+               <br/><br/>
+               Por favor, entre em contato imediatamente com a coordenação ou a administração da escola para regularizar o seu acesso.
+             </DialogDescription>
+           </DialogHeader>
+           
+           <DialogFooter className="mt-6 w-full flex-col sm:flex-col items-center gap-2">
+              <Button 
+                variant="default" 
+                onClick={() => clearInactiveError()} 
+                className="w-full h-11"
+              >
+                 Entendi, voltar ao login
+              </Button>
+           </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
