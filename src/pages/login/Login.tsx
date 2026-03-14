@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/contexts/AuthContext'
 import { useInstituicao } from '@/contexts/InstituicaoContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,6 +15,13 @@ export function Login() {
   
   const navigate = useNavigate()
   const { configuracoes } = useInstituicao()
+  const { usuario } = useAuth()
+
+  useEffect(() => {
+    if (usuario) {
+      navigate('/')
+    }
+  }, [usuario, navigate])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,8 +45,7 @@ export function Login() {
         return
       }
 
-      // Successful login, redirection is handled by AuthContext but we can gently push to home
-      navigate('/')
+      // Successful login, redirection is handled by the useEffect above once usuario is loaded
     } catch {
       setError('Ocorreu um erro ao tentar fazer login.')
       setLoading(false)

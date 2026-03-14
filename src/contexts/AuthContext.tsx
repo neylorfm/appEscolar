@@ -108,9 +108,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
+        setLoading(true)
         fetchUserProfile(session.user.id)
       } else {
         setUsuario(null)
+        setLoading(false)
         navigate('/login') // Redirect to login when unauthenticated
       }
     })
