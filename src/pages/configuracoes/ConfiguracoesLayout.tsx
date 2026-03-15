@@ -2,6 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { UsuariosTab } from './UsuariosTab'
 import { InstituicaoTab } from './InstituicaoTab'
 import { TurmasTab } from './TurmasTab'
+import { EnturmacaoTab } from './EnturmacaoTab'
 import { AreasTab } from './AreasTab'
 import { DisciplinasTab } from './DisciplinasTab'
 import { HorariosTab } from './HorariosTab'
@@ -22,6 +23,7 @@ export function ConfiguracoesLayout() {
           <TabsTrigger value="usuarios">Usuários</TabsTrigger>
           <TabsTrigger value="instituicao">Instituição</TabsTrigger>
           <TabsTrigger value="turmas">Turmas</TabsTrigger>
+          <TabsTrigger value="enturmacao">Enturmação</TabsTrigger>
           <TabsTrigger value="areas">Áreas (Matriz)</TabsTrigger>
           <TabsTrigger value="disciplinas">Disciplinas</TabsTrigger>
           <TabsTrigger value="horarios">Horários</TabsTrigger>
@@ -36,6 +38,9 @@ export function ConfiguracoesLayout() {
         </TabsContent>
         <TabsContent value="turmas" className="mt-0">
           <TurmasTab />
+        </TabsContent>
+        <TabsContent value="enturmacao" className="mt-0">
+          <EnturmacaoTab />
         </TabsContent>
         <TabsContent value="areas" className="mt-0">
           <AreasTab />
