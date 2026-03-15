@@ -1,6 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { UsuariosTab } from './UsuariosTab'
 import { InstituicaoTab } from './InstituicaoTab'
+import { TurmasTab } from './TurmasTab'
 
 export function ConfiguracoesLayout() {
   return (
@@ -16,7 +17,7 @@ export function ConfiguracoesLayout() {
         <TabsList className="mb-4">
           <TabsTrigger value="usuarios">Usuários</TabsTrigger>
           <TabsTrigger value="instituicao">Instituição</TabsTrigger>
-          {/* Future tabs will go here */}
+          <TabsTrigger value="turmas">Turmas</TabsTrigger>
         </TabsList>
         
         <TabsContent value="usuarios" className="mt-0">
@@ -25,7 +26,9 @@ export function ConfiguracoesLayout() {
         <TabsContent value="instituicao" className="mt-0">
           <InstituicaoTab />
         </TabsContent>
-        {/* Future TabContents will go here */}
+        <TabsContent value="turmas" className="mt-0">
+          <TurmasTab />
+        </TabsContent>
       </Tabs>
     </div>
   )
