@@ -2,6 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { UsuariosTab } from './UsuariosTab'
 import { InstituicaoTab } from './InstituicaoTab'
 import { TurmasTab } from './TurmasTab'
+import { HorariosTab } from './HorariosTab'
 
 export function ConfiguracoesLayout() {
   return (
@@ -18,6 +19,7 @@ export function ConfiguracoesLayout() {
           <TabsTrigger value="usuarios">Usuários</TabsTrigger>
           <TabsTrigger value="instituicao">Instituição</TabsTrigger>
           <TabsTrigger value="turmas">Turmas</TabsTrigger>
+          <TabsTrigger value="horarios">Horários</TabsTrigger>
         </TabsList>
         
         <TabsContent value="usuarios" className="mt-0">
@@ -28,6 +30,9 @@ export function ConfiguracoesLayout() {
         </TabsContent>
         <TabsContent value="turmas" className="mt-0">
           <TurmasTab />
+        </TabsContent>
+        <TabsContent value="horarios" className="mt-0">
+          <HorariosTab />
         </TabsContent>
       </Tabs>
     </div>
