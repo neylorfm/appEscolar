@@ -3,6 +3,7 @@ import { UsuariosTab } from './UsuariosTab'
 import { InstituicaoTab } from './InstituicaoTab'
 import { TurmasTab } from './TurmasTab'
 import { HorariosTab } from './HorariosTab'
+import { RecursosTab } from './RecursosTab'
 
 export function ConfiguracoesLayout() {
   return (
@@ -20,6 +21,7 @@ export function ConfiguracoesLayout() {
           <TabsTrigger value="instituicao">Instituição</TabsTrigger>
           <TabsTrigger value="turmas">Turmas</TabsTrigger>
           <TabsTrigger value="horarios">Horários</TabsTrigger>
+          <TabsTrigger value="recursos">Recursos</TabsTrigger>
         </TabsList>
         
         <TabsContent value="usuarios" className="mt-0">
@@ -33,6 +35,9 @@ export function ConfiguracoesLayout() {
         </TabsContent>
         <TabsContent value="horarios" className="mt-0">
           <HorariosTab />
+        </TabsContent>
+        <TabsContent value="recursos" className="mt-0">
+          <RecursosTab />
         </TabsContent>
       </Tabs>
     </div>
