@@ -4,6 +4,7 @@ import { ConfiguracoesLayout } from "./pages/configuracoes/ConfiguracoesLayout"
 import { AuthProvider, useAuth } from "./contexts/AuthContext"
 import { InstituicaoProvider } from "./contexts/InstituicaoContext"
 import { Login } from "./pages/login/Login"
+import Agendamentos from "./pages/agendamentos/Agendamentos"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { usuario, loading } = useAuth()
@@ -36,14 +37,6 @@ function Dashboard() {
   )
 }
 
-function DefaultPage({ title }: { title: string }) {
-  return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
-      <p className="text-muted-foreground">Página em construção.</p>
-    </div>
-  )
-}
 
 function App() {
   return (
@@ -59,7 +52,7 @@ function App() {
               </ProtectedRoute>
             }>
               <Route index element={<Dashboard />} />
-              <Route path="agendamentos" element={<DefaultPage title="Agendamentos" />} />
+              <Route path="agendamentos" element={<Agendamentos />} />
               <Route path="configuracoes" element={
                 <AdminRoute>
                   <ConfiguracoesLayout />

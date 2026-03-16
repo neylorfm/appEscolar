@@ -10,4 +10,7 @@ export interface ConfiguracoesInstituicao {
   timeout_professor_min: number
   timeout_coordenador_min: number
   timeout_administrador_min: number
+  semanas_limite_agendamento: number
+  tipo_limite_agendamento: string
+  data_limite_agendamento: string | null
 }

@@ -7,6 +7,9 @@ import { cn } from "@/lib/utils"
 
 const routes = [
   { path: "/", name: "Dashboard", icon: Home },
+  { path: "/turmas", name: "Turmas", icon: Calendar },
+  { path: "/professores", name: "Professores", icon: Calendar },
+  { path: "/enturmacoes", name: "Enturmações", icon: Calendar },
   { path: "/agendamentos", name: "Agendamentos", icon: Calendar },
   { path: "/configuracoes", name: "Configurações", icon: Settings },
 ]

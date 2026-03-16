@@ -143,7 +143,7 @@ export function AreasTab() {
     
     return pcaIds.map(id => {
       const prof = professores.find(p => p.id === id)
-      return prof ? prof.nome : 'Desconhecido'
+      return prof ? prof.nome_completo : 'Desconhecido'
     }).join(', ')
   }
 
@@ -162,7 +162,7 @@ export function AreasTab() {
                      : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
                 }`}
              >
-                {prof.nome}
+                {prof.nome_completo}
              </span>
           )
        })}
