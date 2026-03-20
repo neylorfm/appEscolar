@@ -5,7 +5,7 @@ export type Agendamento = Database['public']['Tables']['agendamentos']['Row'];
 export type AgendamentoInsert = Database['public']['Tables']['agendamentos']['Insert'];
 
 export type AgendamentoComDetalhes = Agendamento & {
-  usuarios?: { nome_completo: string | null; foto_url: string | null } | null;
+  usuarios?: { nome_completo: string | null; apelido: string | null; foto_url: string | null } | null;
   agendado_por_usuario?: { nome_completo: string | null } | null;
   recursos?: { nome: string; icone: string } | null;
   horarios?: { inicio: string; fim: string; label: string; tipo: string } | null;
@@ -23,16 +23,18 @@ export type FilaPreReserva = {
 };
 
 // 1. Buscar todos os agendamentos de uma semana (com detalhes)
-export async function getAgendamentosPorPeriodo(dataInicio: string, dataFim: string) {
+export async function getAgendamentosPorPeriodo(dataInicio: string, dataFim: string, recursoId: string) {
   const { data, error } = await supabase
     .from('agendamentos')
     .select(`
       *,
-      usuarios ( nome_completo, foto_url ),
+      usuarios:usuarios!agendamentos_usuario_id_fkey ( nome_completo, apelido, foto_url ),
       agendado_por_usuario:usuarios!agendamentos_agendado_por_fkey ( nome_completo ),
       recursos ( nome, icone ),
       horarios ( inicio, fim, label, tipo )
     `)
+    .eq('recurso_id', recursoId)
+    .neq('tipo', 'Fixo')
     .gte('data_agendamento', dataInicio)
     .lte('data_agendamento', dataFim);
   
@@ -43,11 +45,12 @@ export async function getAgendamentosPorPeriodo(dataInicio: string, dataFim: str
     .from('agendamentos')
     .select(`
       *,
-      usuarios ( nome_completo, foto_url ),
+      usuarios:usuarios!agendamentos_usuario_id_fkey ( nome_completo, apelido, foto_url ),
       agendado_por_usuario:usuarios!agendamentos_agendado_por_fkey ( nome_completo ),
       recursos ( nome, icone ),
       horarios ( inicio, fim, label, tipo )
     `)
+    .eq('recurso_id', recursoId)
     .eq('tipo', 'Fixo')
     .eq('status', 'Ativo')
     .or(`data_fim_fixo.gte.${dataInicio},data_fim_fixo.is.null`)
@@ -84,7 +87,8 @@ export async function criarAgendamento(agendamento: AgendamentoInsert) {
 
 // 4. Cancelar/Excluir Agendamento
 // Se Confirmado -> vira Cancelado (para o Score 'C')
-// Se Pre-Reserva ou Fixo -> Excluído fisicamente
+// Se Pre-Reserva -> Excluído fisicamente
+// Se Fixo -> Pode ser excluído fisicamente ou arquivado via atualizarDataFimFixo
 export async function cancelarOuExcluirAgendamento(agendamentoId: string, tipo: string) {
   if (tipo === 'Confirmado') {
     const { error } = await supabase
@@ -94,7 +98,7 @@ export async function cancelarOuExcluirAgendamento(agendamentoId: string, tipo: 
     if (error) throw error;
     return true;
   } else {
-    // Pre-reserva ou Fixo é só deletar
+    // Pre-reserva ou Fixo (exclusão física total se solicitado assim)
     const { error } = await supabase
       .from('agendamentos')
       .delete()
@@ -102,6 +106,50 @@ export async function cancelarOuExcluirAgendamento(agendamentoId: string, tipo: 
     if (error) throw error;
     return true;
   }
+}
+
+export async function atualizarDataFimFixo(id: string, novaDataFim: string) {
+  const { error } = await supabase
+    .from('agendamentos')
+    .update({ data_fim_fixo: novaDataFim })
+    .eq('id', id);
+
+  if (error) throw error;
+  return true;
+}
+
+export async function verificarConflitoProfessor(usuarioId: string, dataAgendamento: string, horarioId: string) {
+  const { data, error } = await supabase
+    .from('agendamentos')
+    .select('id, recursos(nome), tipo')
+    .eq('usuario_id', usuarioId)
+    .eq('data_agendamento', dataAgendamento)
+    .eq('horario_id', horarioId)
+    .neq('status', 'Cancelado')
+    .neq('tipo', 'Fixo'); // Fixos checamos separado devido a regra de dia_semana
+
+  if (error) throw error;
+  
+  const targetDate = new Date(dataAgendamento + 'T12:00:00');
+  let diaDaSemana = targetDate.getDay();
+  // No banco, se 1=Seg e 5=Sex, temos que ajustar, pois getDay() 0=Dom, 1=Seg...
+  // Nosso backend salva 1=Segunda, 2=Terca...
+  diaDaSemana = diaDaSemana === 0 ? 7 : diaDaSemana; 
+
+  const { data: fixos, error: errFixo } = await supabase
+    .from('agendamentos')
+    .select('id, recursos(nome), tipo')
+    .eq('usuario_id', usuarioId)
+    .eq('dia_semana_fixo', diaDaSemana)
+    .eq('horario_id', horarioId)
+    .eq('tipo', 'Fixo')
+    .eq('status', 'Ativo')
+    .or(`data_fim_fixo.gte.${dataAgendamento},data_fim_fixo.is.null`)
+    .or(`data_inicio_fixo.lte.${dataAgendamento},data_inicio_fixo.is.null`);
+
+  if (errFixo) throw errFixo;
+
+  return [...(data || []), ...(fixos || [])];
 }
 
 // Atualiza o status de pré-reservas se a data já passou (Auto confirmação sexta)

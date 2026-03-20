@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext"
 import { InstituicaoProvider } from "./contexts/InstituicaoContext"
 import { Login } from "./pages/login/Login"
 import Agendamentos from "./pages/agendamentos/Agendamentos"
+import { Toaster } from "./components/ui/sonner"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { usuario, loading } = useAuth()
@@ -60,6 +61,7 @@ function App() {
               } />
             </Route>
           </Routes>
+          <Toaster position="top-right" richColors />
         </AuthProvider>
       </InstituicaoProvider>
     </BrowserRouter>

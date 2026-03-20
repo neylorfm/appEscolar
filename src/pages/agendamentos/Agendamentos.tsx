@@ -1,19 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useInstituicao } from '../../contexts/InstituicaoContext';
 import { Card, CardContent } from '../../components/ui/card';
-import { ScrollArea } from '../../components/ui/scroll-area';
-import { Calendar, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+
+import { Calendar, ChevronLeft, ChevronRight, Clock, Trash2 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../../components/ui/alert-dialog";
+import { toast } from "sonner";
 import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
 import { Label } from '../../components/ui/label';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { criarAgendamento, getAgendamentosPorPeriodo, AgendamentoComDetalhes } from '../../services/agendamentos';
+import { criarAgendamento, getAgendamentosPorPeriodo, AgendamentoComDetalhes, cancelarOuExcluirAgendamento, atualizarDataFimFixo, getFilaPreReserva, FilaPreReserva, verificarConflitoProfessor } from '../../services/agendamentos';
 import { getRecursos } from '../../services/recursos';
 import { getHorarios, Horario } from '../../services/horarios';
+import { getUsuarios } from '../../services/usuarios';
 
 const getBaseMonday = () => {
   const d = new Date();
@@ -40,11 +43,21 @@ export default function Agendamentos() {
   const [semanaOffset, setSemanaOffset] = useState(0); 
   const [recursos, setRecursos] = useState<{ id: string; nome: string }[]>([]);
   const [horarios, setHorarios] = useState<Horario[]>([]);
+  const [professores, setProfessores] = useState<{ id: string; nome: string }[]>([]);
   const [agendamentos, setAgendamentos] = useState<AgendamentoComDetalhes[]>([]);
   const [selectedRecurso, setSelectedRecurso] = useState<string>('');
   
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'queue' | 'edit'>('create');
+  const [selectedAgendamento, setSelectedAgendamento] = useState<AgendamentoComDetalhes | null>(null);
+  
+  const [isEditingDataFim, setIsEditingDataFim] = useState(false);
+  
+  const [filaPreReserva, setFilaPreReserva] = useState<FilaPreReserva[]>([]);
+  const [isLoadingFila, setIsLoadingFila] = useState(false);
+  const [rankCache, setRankCache] = useState<{ [key: string]: number }>({});
+  
   const [selectedHorarioId, setSelectedHorarioId] = useState<string>('');
   const [selectedDateStr, setSelectedDateStr] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,15 +66,17 @@ export default function Agendamentos() {
   const [agendarPara, setAgendarPara] = useState<string>(''); // Vazio = professor logado
   const [agendarEscola, setAgendarEscola] = useState(false);
   const [agendamentoFixo, setAgendamentoFixo] = useState(false);
+  const [dataFimFixo, setDataFimFixo] = useState<string>('');
   // Para fins de simplificacao visual na criação inicial
   const diasSemanas = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'];
 
   useEffect(() => {
     async function loadFiltros() {
       try {
-        const [recs, hrs] = await Promise.all([
+        const [recs, hrs, usuariosList] = await Promise.all([
           getRecursos(),
-          getHorarios()
+          getHorarios(),
+          getUsuarios()
         ]);
         setRecursos(recs.filter(r => r.ativo));
         if (recs.length > 0) setSelectedRecurso(recs[0].id);
@@ -69,6 +84,9 @@ export default function Agendamentos() {
         // Ordenar os horarios
         const sortedHrs = hrs.sort((a, b) => a.inicio.localeCompare(b.inicio));
         setHorarios(sortedHrs);
+
+        // Filtrar professores
+        setProfessores(usuariosList.filter(u => u.papel === 'Professor').map(u => ({ id: u.id, nome: u.nome_completo || u.email })));
       } catch (e) {
         console.error("Erro ao carregar filtros", e);
       }
@@ -92,8 +110,30 @@ export default function Agendamentos() {
       const fimStr = toLocalYYYYMMDD(sextaFeira);
 
       try {
-        const ags = await getAgendamentosPorPeriodo(inicioStr, fimStr);
+        const ags = await getAgendamentosPorPeriodo(inicioStr, fimStr, selectedRecurso);
         setAgendamentos(ags);
+
+        if (usuario) {
+          const dict: { [key: string]: number } = {};
+          const myPreReservas = ags.filter(a => a.tipo === 'Pre-Reserva' && a.usuario_id === usuario.id);
+          const uniqueCells = Array.from(new Set(myPreReservas.map(a => `${a.horario_id}_${a.data_agendamento}`)));
+          
+          await Promise.all(uniqueCells.map(async (key) => {
+             const [horId, dt] = key.split('_');
+             try {
+                const fila = await getFilaPreReserva(selectedRecurso, horId, dt);
+                const myRankIndex = fila.findIndex(f => f.usuario_id === usuario.id);
+                if (myRankIndex >= 0) {
+                   dict[key] = myRankIndex + 1;
+                }
+             } catch(err) {
+                console.error("Erro ao buscar fila para rank cache", err);
+             }
+          }));
+          
+          setRankCache(dict);
+        }
+
       } catch (e) {
         console.error("Erro ao puxar agendamentos", e);
       }
@@ -119,7 +159,7 @@ export default function Agendamentos() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [semanaOffset, selectedRecurso]);
+  }, [semanaOffset, selectedRecurso, usuario]);
 
   const getWeekText = () => {
     if (semanaOffset === 0) return 'Semana Atual';
@@ -127,6 +167,40 @@ export default function Agendamentos() {
     if (semanaOffset === -1) return 'Semana Passada';
     if (semanaOffset > 1) return `${semanaOffset} Semanas à frente`;
     return `${Math.abs(semanaOffset)} Semanas atrás`;
+  };
+
+  const handleDateJump = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.value) return;
+    const selectedDate = new Date(e.target.value + 'T12:00:00');
+    
+    const today = new Date();
+    const currentMonday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    currentMonday.setDate(currentMonday.getDate() - (currentMonday.getDay() === 0 ? 6 : currentMonday.getDay() - 1));
+    
+    const pickedMonday = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+    pickedMonday.setDate(pickedMonday.getDate() - (pickedMonday.getDay() === 0 ? 6 : pickedMonday.getDay() - 1));
+    
+    const diffTime = pickedMonday.getTime() - currentMonday.getTime();
+    const diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
+    
+    setSemanaOffset(diffWeeks);
+  };
+
+  const handleUpdateDataLimite = async (val: string) => {
+    setDataLimiteUI(val);
+    if (!configuracoes) return;
+    try {
+      const { error } = await supabase
+        .from('configuracoes_instituicao')
+        .update({ data_limite_agendamento: val || null })
+        .eq('id', configuracoes.id);
+      
+      if (error) throw error;
+      toast.success("Data limite de visualização atualizada.");
+      refreshConfiguracoes();
+    } catch (err: any) {
+      toast.error("Erro ao atualizar data limite.");
+    }
   };
 
   const getAgendamentosPorCelula = (horarioId: string, indiceDiaSemana: number) => {
@@ -152,22 +226,127 @@ export default function Agendamentos() {
     });
   };
 
-  const openModal = (horarioId: string, indiceDiaSemana: number) => {
-    // Calcular a data exata
+  const isCoordenadorOuAdmin = usuario?.papel === 'Coordenador' || usuario?.papel === 'Administrador';
+
+  const carregarFila = async (recursoId: string, horarioId: string, dataStr: string) => {
+    setIsLoadingFila(true);
+    try {
+      const fila = await getFilaPreReserva(recursoId, horarioId, dataStr);
+      setFilaPreReserva(fila);
+    } catch (e) {
+      console.error("Erro ao carregar fila:", e);
+    } finally {
+      setIsLoadingFila(false);
+    }
+  };
+
+  const handleCellClick = async (horarioId: string, indiceDiaSemana: number) => {
     const targetDate = getBaseMonday();
     targetDate.setDate(targetDate.getDate() + (semanaOffset * 7) + indiceDiaSemana);
     
     // Validacao basica de passado 
-    // (a API tbm vai bloquear no backend mas é bom no front tbm)
     if (targetDate < new Date() && targetDate.toDateString() !== new Date().toDateString()) {
-       // Não deixa agendar dia que passou
-       alert("Não é possível agendar em datas passadas.");
+       toast.error("Atenção", { description: "Não é possível agendar ou entrar na fila de datas passadas." });
        return;
     }
 
-    setSelectedDateStr(toLocalYYYYMMDD(targetDate));
+    const dateStr = toLocalYYYYMMDD(targetDate);
+    setSelectedDateStr(dateStr);
     setSelectedHorarioId(horarioId);
-    setIsModalOpen(true);
+    setAgendamentoFixo(false);
+    setDataFimFixo('');
+    setIsEditingDataFim(false);
+    setAgendarEscola(false);
+    setAgendarPara('');
+    setSelectedAgendamento(null);
+
+    let isPreReservaCell = false;
+    if (semanaOffset === 1 && new Date().getDay() !== 5) isPreReservaCell = true;
+    if (semanaOffset > 1) isPreReservaCell = true;
+
+    const cellAgs = getAgendamentosPorCelula(horarioId, indiceDiaSemana);
+    const hasFixo = cellAgs.some(a => a.tipo === 'Fixo');
+    const isConfirmado = cellAgs.some(a => a.tipo === 'Confirmado');
+
+    if (isPreReservaCell && !hasFixo && !isConfirmado) {
+       setModalMode('queue');
+       setIsModalOpen(true);
+       setAgendarPara('');
+       await carregarFila(selectedRecurso, horarioId, dateStr);
+    } else {
+       setModalMode('create');
+       setIsModalOpen(true);
+    }
+  };
+
+  const handleEditClick = async (agendamento: AgendamentoComDetalhes, clickedDate: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (agendamento.tipo === 'Pre-Reserva') {
+       setSelectedDateStr(clickedDate);
+       setSelectedHorarioId(agendamento.horario_id);
+       setSelectedAgendamento(null);
+       setModalMode('queue');
+       setIsModalOpen(true);
+       setAgendarPara('');
+       await carregarFila(agendamento.recurso_id, agendamento.horario_id, clickedDate);
+    } else {
+       setSelectedAgendamento(agendamento);
+       setSelectedDateStr(clickedDate);
+       setSelectedHorarioId(agendamento.horario_id);
+       setModalMode('edit');
+       setDataFimFixo(agendamento.data_fim_fixo || '');
+       setIsEditingDataFim(false);
+       setIsModalOpen(true);
+    }
+  };
+
+  const handleAdicionarAFila = async () => {
+    if (!usuario) return;
+    setIsSubmitting(true);
+    try {
+       const userId = isCoordenadorOuAdmin ? agendarPara : usuario.id;
+       if (!userId) {
+           toast.warning("Selecione um professor.");
+           return;
+       }
+       
+       const conflitos = await verificarConflitoProfessor(userId, selectedDateStr, selectedHorarioId);
+       if (conflitos.length > 0) {
+           toast.error("Conflito de Horário", { description: `Professor já possui registro (${conflitos[0].tipo}) neste mesmo horário no recurso: ${conflitos[0].recursos?.nome}.`});
+           return;
+       }
+
+       await criarAgendamento({
+           recurso_id: selectedRecurso,
+           horario_id: selectedHorarioId,
+           data_agendamento: selectedDateStr,
+           tipo: 'Pre-Reserva',
+           usuario_id: userId,
+           agendado_por: usuario.id
+       });
+       await carregarFila(selectedRecurso, selectedHorarioId, selectedDateStr);
+       setSemanaOffset(prev => prev);
+       if (isCoordenadorOuAdmin) setAgendarPara('');
+       toast.success("Sucesso", { description: "Registro adicionado à fila!" });
+    } catch(e: any) {
+        toast.error("Erro", { description: e.message });
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
+
+  const handleRemoverDaFila = async (agendamentoId: string) => {
+    setIsSubmitting(true);
+    try {
+       await cancelarOuExcluirAgendamento(agendamentoId, 'Pre-Reserva');
+       await carregarFila(selectedRecurso, selectedHorarioId, selectedDateStr);
+       setSemanaOffset(prev => prev);
+       toast.success("Removido", { description: "O registro foi removido com sucesso." });
+    } catch(e: any) {
+        toast.error("Erro ao remover", { description: e.message });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   const determinarTipoAgendamento = () => {
@@ -188,7 +367,21 @@ export default function Agendamentos() {
     return 'Pre-Reserva';
   };
 
-  const isCoordenadorOuAdmin = usuario?.papel === 'Coordenador' || usuario?.papel === 'Administrador';
+  const getSextaDeAnaliseStr = () => {
+    if (!selectedDateStr) return '';
+    const target = new Date(selectedDateStr + 'T12:00:00');
+    const d = target.getDay();
+    const diffToMonday = d === 0 ? -6 : 1 - d;
+    const monday = new Date(target);
+    monday.setDate(target.getDate() + diffToMonday);
+    
+    const previousFriday = new Date(monday);
+    previousFriday.setDate(monday.getDate() - 3);
+    
+    return previousFriday.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  };
+
+
 
   const handleConfirmarAgendamento = async () => {
     if (!usuario) return;
@@ -196,43 +389,105 @@ export default function Agendamentos() {
     setIsSubmitting(true);
     try {
       const tipo = determinarTipoAgendamento();
+      const finalUserId = agendarEscola ? null : (agendarPara || usuario.id);
+      
+      if (finalUserId) {
+         const conflitos = await verificarConflitoProfessor(finalUserId, selectedDateStr, selectedHorarioId);
+         if (conflitos.length > 0) {
+             toast.error("Conflito de Horário", { description: `Professor já possui registro (${conflitos[0].tipo}) neste mesmo horário no recurso: ${conflitos[0].recursos?.nome}.` });
+             return;
+         }
+      }
       
       const payload: any = {
         recurso_id: selectedRecurso,
         horario_id: selectedHorarioId,
         data_agendamento: selectedDateStr,
         tipo: tipo,
-        // Se agendado por outro (só admin/coord pode fazer isso) ou se for pra escola (null)
-        usuario_id: agendarEscola ? null : (agendarPara || usuario.id),
+        usuario_id: finalUserId,
         agendado_por: usuario.id,
       };
 
       if (tipo === 'Fixo') {
         const diaDaSemana = new Date(selectedDateStr + 'T12:00:00').getDay() || 7;
         payload.dia_semana_fixo = diaDaSemana;
-        payload.data_inicio_fixo = selectedDateStr; // Opcionalmente uma tela de Fixo faria o Fim também
+        payload.data_inicio_fixo = selectedDateStr; 
+        if (dataFimFixo) {
+          payload.data_fim_fixo = dataFimFixo;
+        }
       }
 
       await criarAgendamento(payload);
       
-      // Recarregar agendamentos (simplificado chamando um reload forçado da state ou disparando um evento)
-      // Como estamos usando useEffect para carregar, podemos dar trigger mudando um state dummy ou fechando modal + timeout
       setIsModalOpen(false);
+      toast.success("Sucesso", { description: "Agendamento confirmado." });
       
-      // Refresh quick
       setTimeout(() => {
-        setSemanaOffset(prev => prev); // Isso infelizmente não vai disparar o useEffect a menos que mude, então ideal seria um signal state.
-        window.location.reload(); // Simplificação rústica pro MVP. O melhor seria abstrair o fetchAgs
+        setSemanaOffset(prev => prev); 
+        window.location.reload(); 
       }, 500);
 
     } catch (e: any) {
-      alert("Erro ao criar agendamento: " + e.message);
+      toast.error("Erro ao agendar", { description: e.message });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const podeAvancar = isCoordenadorOuAdmin || (configuracoes?.semanas_limite_agendamento && semanaOffset < configuracoes.semanas_limite_agendamento);
+  const handleAtualizarFixo = async () => {
+    if (!selectedAgendamento) return;
+    setIsSubmitting(true);
+    try {
+      await atualizarDataFimFixo(selectedAgendamento.id, dataFimFixo || null as any);
+      setIsModalOpen(false);
+      toast.success("Atualizado", { description: "Data atualizada com sucesso." });
+      setTimeout(() => window.location.reload(), 500);
+    } catch (e: any) {
+      toast.error("Erro ao atualizar data", { description: e.message });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleExcluirAgendamento = async () => {
+    if (!selectedAgendamento) return;
+    const isFixo = selectedAgendamento.tipo === 'Fixo';
+
+    setIsSubmitting(true);
+    try {
+      if (isFixo) {
+        const dateLimit = new Date(selectedDateStr + 'T12:00:00');
+        dateLimit.setDate(dateLimit.getDate() - 1);
+        await atualizarDataFimFixo(selectedAgendamento.id, toLocalYYYYMMDD(dateLimit));
+      } else {
+        await cancelarOuExcluirAgendamento(selectedAgendamento.id, selectedAgendamento.tipo);
+      }
+      setIsModalOpen(false);
+      toast.success("Sucesso", { description: "Registro excluído/cancelado." });
+      setTimeout(() => window.location.reload(), 500);
+    } catch (e: any) {
+      toast.error("Erro ao excluir", { description: e.message });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const podeExcluir = (ag: AgendamentoComDetalhes | null) => {
+    if (!ag) return false;
+    if (isCoordenadorOuAdmin) return true;
+    if ((ag.tipo === 'Pre-Reserva' || ag.tipo === 'Confirmado') && ag.usuario_id === usuario?.id) return true;
+    return false;
+  };
+
+  const podeAvancar = isCoordenadorOuAdmin || (() => {
+    if (!configuracoes?.data_limite_agendamento) {
+      return !configuracoes?.semanas_limite_agendamento || (semanaOffset < configuracoes.semanas_limite_agendamento);
+    }
+    const proximaSegunda = getBaseMonday();
+    proximaSegunda.setDate(proximaSegunda.getDate() + ((semanaOffset + 1) * 7));
+    const limite = new Date(configuracoes.data_limite_agendamento + 'T23:59:59');
+    return proximaSegunda <= limite;
+  })();
 
   return (
     <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8">
@@ -288,7 +543,7 @@ export default function Agendamentos() {
       </Card>
 
       <Card className="w-full overflow-hidden border-border/50 shadow-sm">
-        <ScrollArea className="w-full h-[600px]">
+        <div className="w-full overflow-auto max-h-[600px] touch-pan-x touch-pan-y">
           <div className="min-w-[800px] p-0">
             <table className="w-full border-collapse">
                 <thead className="sticky top-0 z-10 shadow-sm">
@@ -313,8 +568,13 @@ export default function Agendamentos() {
                 <tbody>
                   {horarios.filter(h => h.tipo === 'Aula').map((horario) => (
                     <tr key={horario.id} className="hover:bg-muted/10 transition-colors">
-                      <td className="border p-3 text-center text-sm font-medium bg-muted/20">
-                        {horario.inicio.substring(0,5)} - {horario.fim.substring(0,5)}
+                      <td className="border p-3 text-center bg-muted/20 align-middle">
+                        <div className="flex flex-col items-center justify-center">
+                          <span className="font-semibold text-sm text-foreground">{horario.label}</span>
+                          <span className="text-xs font-medium text-muted-foreground mt-0.5">
+                            {horario.inicio.substring(0,5)} - {horario.fim.substring(0,5)}
+                          </span>
+                        </div>
                       </td>
                       {diasSemanas.map((_, idx) => {
                         const cellAgendamentos = getAgendamentosPorCelula(horario.id, idx);
@@ -328,40 +588,62 @@ export default function Agendamentos() {
                         else if (isConfirmado) cellBg = 'bg-emerald-100 hover:bg-emerald-200 border-emerald-200';
                         else if (isPreReserva) cellBg = 'bg-amber-100/50 hover:bg-amber-100 border-amber-200';
 
-                        return (
-                          <td 
-                            key={`${horario.id}-${idx}`} 
-                            className={`border p-2 text-center relative cursor-pointer hover:bg-muted/30 min-h-[80px] align-top transition-colors ${cellBg}`}
-                            onClick={() => openModal(horario.id, idx)}
-                          >
-                            <div className="flex flex-col gap-1 min-h-[60px] w-full items-center justify-center">
-                              {cellAgendamentos.length === 0 ? (
-                                <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 bg-background/50 transition-opacity">
-                                  <span className="text-sm font-medium text-primary bg-background px-2 py-1 rounded shadow">+ Agendar</span>
-                                </div>
-                              ) : (
-                                cellAgendamentos.map(ag => (
-                                  <div key={ag.id} className="text-xs bg-white/70 rounded px-1.5 py-1 w-full text-center shadow-sm border border-black/10 whitespace-nowrap overflow-hidden text-ellipsis">
-                                    <div className="font-semibold text-slate-800 text-[11px]">
-                                      {ag.usuario_id === null ? "ESCOLA" : (ag.usuarios?.nome_completo?.split(' ')[0] || "Prof")}
-                                    </div>
-                                    {ag.tipo === 'Pre-Reserva' && (
-                                      <div className="text-[10px] text-amber-700 font-bold leading-tight mt-0.5">Pré-reserva</div>
+                                        const isPreReservaCell = (!hasFixo && !isConfirmado && isPreReserva);
+                                        const dateOfCell = getBaseMonday();
+                                        dateOfCell.setDate(dateOfCell.getDate() + (semanaOffset * 7) + idx);
+                                        const cellDateStr = toLocalYYYYMMDD(dateOfCell);
+                                        const cacheKey = `${horario.id}_${cellDateStr}`;
+                                        const myRank = rankCache[cacheKey];
+
+                                        return (
+                                          <td 
+                                            key={`${horario.id}-${idx}`} 
+                                            className={`group border p-2 text-center relative cursor-pointer hover:bg-muted/30 min-h-[80px] align-top transition-colors ${cellBg}`}
+                                            onClick={() => handleCellClick(horario.id, idx)}
+                                          >
+                                            <div className="flex flex-col gap-1 min-h-[60px] w-full items-center justify-center">
+                                              {cellAgendamentos.length === 0 ? (
+                                                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-background/50 transition-opacity">
+                                                    <span className="text-sm font-medium text-primary bg-background px-2 py-1 rounded shadow">+ Agendar</span>
+                                                  </div>
+                                                ) : (
+                                                  <>
+                                                    {isPreReservaCell ? (
+                                                      <div className="text-xs bg-white/80 rounded px-1.5 py-2 w-full flex flex-col items-center justify-center text-center shadow-sm border border-amber-300 cursor-pointer hover:bg-white transition-colors relative z-10 gap-1 min-h-[48px]">
+                                                        <div className="font-bold text-slate-800 text-[11px] leading-tight uppercase tracking-wide">
+                                                          Pré-reserva
+                                                        </div>
+                                                        {cellAgendamentos.some(ag => ag.usuario_id === usuario?.id) && (
+                                                          <div className="text-[10px] text-emerald-800 font-bold leading-tight bg-emerald-100 rounded px-1.5 py-0.5 shadow-sm border border-emerald-200">
+                                                            {myRank ? `Registrado (${myRank}º)` : 'Registrado'}
+                                                          </div>
+                                                        )}
+                                                      </div>
+                                                    ) : (
+                                      cellAgendamentos.map(ag => (
+                                        <div key={ag.id} onClick={(e) => handleEditClick(ag, cellDateStr, e)} className="text-xs bg-white/70 rounded px-1.5 py-1 w-full text-center shadow-sm border border-black/10 whitespace-nowrap overflow-hidden text-ellipsis cursor-pointer hover:bg-white transition-colors relative z-10">
+                                          <div className="font-semibold text-slate-800 text-[11px]">
+                                            {ag.usuario_id === null ? "ESCOLA" : (ag.usuarios?.apelido || ag.usuarios?.nome_completo?.split(' ')[0] || "Prof")}
+                                          </div>
+                                          {ag.tipo === 'Pre-Reserva' && (
+                                            <div className="text-[10px] text-amber-700 font-bold leading-tight mt-0.5">Pré-reserva</div>
+                                          )}
+                                          {ag.tipo === 'Fixo' && (
+                                            <div className="text-[10px] text-blue-700 font-bold leading-tight mt-0.5">Fixo</div>
+                                          )}
+                                          {ag.tipo === 'Confirmado' && (
+                                            <div className="text-[10px] text-emerald-700 font-bold leading-tight mt-0.5">Confirmado</div>
+                                          )}
+                                          {ag.agendado_por && ag.agendado_por !== ag.usuario_id && (
+                                            <div className="text-[9px] text-muted-foreground leading-tight italic truncate mt-0.5">
+                                              por {ag.agendado_por_usuario?.nome_completo?.split(' ')[0]}
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))
                                     )}
-                                    {ag.tipo === 'Fixo' && (
-                                      <div className="text-[10px] text-blue-700 font-bold leading-tight mt-0.5">Fixo</div>
-                                    )}
-                                    {ag.tipo === 'Confirmado' && (
-                                      <div className="text-[10px] text-emerald-700 font-bold leading-tight mt-0.5">Confirmado</div>
-                                    )}
-                                    {ag.agendado_por && ag.agendado_por !== ag.usuario_id && (
-                                      <div className="text-[9px] text-muted-foreground leading-tight italic truncate mt-0.5">
-                                        por {ag.agendado_por_usuario?.nome_completo?.split(' ')[0]}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))
-                              )}
+                                  </>
+                                )}
                             </div>
                           </td>
                         );
@@ -370,83 +652,312 @@ export default function Agendamentos() {
                   ))}
                 </tbody>
               </table>
-            </div>
-          </ScrollArea>
-        </Card>
+          </div>
+        </div>
+      </Card>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Novo Agendamento</DialogTitle>
+            <DialogTitle>
+              {modalMode === 'create' ? 'Novo Agendamento' : modalMode === 'queue' ? 'Fila de Pré-Reserva' : 'Detalhes do Agendamento'}
+            </DialogTitle>
             <DialogDescription>
               {selectedDateStr && new Date(selectedDateStr + 'T12:00:00').toLocaleDateString('pt-BR')} - {horarios.find(h => h.id === selectedHorarioId)?.inicio.substring(0,5)} às {horarios.find(h => h.id === selectedHorarioId)?.fim.substring(0,5)}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-             {/* Componente de Form aqui nas proximas iteracoes */}
-             
-             <div className="flex flex-col gap-2 p-3 bg-muted/30 rounded-md border">
-               <span className="text-sm font-medium">Tipo Previsto:</span>
-               <Badge
-                 variant={determinarTipoAgendamento() === 'Confirmado' ? 'default' : determinarTipoAgendamento() === 'Fixo' ? 'default' : 'secondary'}
-                 className="w-fit"
-               >
-                 {determinarTipoAgendamento()}
-               </Badge>
-               {determinarTipoAgendamento() === 'Pre-Reserva' && (
-                 <p className="text-xs text-muted-foreground mt-1">
-                   O sistema gerará uma fila por Score. Na sexta-feira, o professor com menor Score terá a reserva confirmada.
-                 </p>
-               )}
-             </div>
-
-             {isCoordenadorOuAdmin && (
-               <div className="space-y-4 pt-4 border-t">
-                 <h4 className="text-sm font-semibold">Opções de Administrador</h4>
-                 
-                 <div className="flex items-center space-x-2">
-                    <input 
-                      type="checkbox" 
-                      id="agendarEscola" 
-                      checked={agendarEscola} 
-                      onChange={(e) => {
-                        setAgendarEscola(e.target.checked);
-                        if (e.target.checked) setAgendarPara('');
-                      }} 
-                      className="rounded border-gray-300 text-primary shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
-                    />
-                    <Label htmlFor="agendarEscola" className="text-sm">Agendar para a Escola (Bloqueio Geral)</Label>
+          
+          {modalMode === 'queue' ? (
+             <div className="flex flex-col gap-4 py-2">
+                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-md text-xs text-blue-800 shadow-sm leading-relaxed">
+                   <strong>Fila Dinâmica de Pré-Reserva:</strong><br/>
+                   Agendamentos (A) e Cancelamentos (C) são calculados no histórico dos últimos 21 dias a partir desta data. 
+                   O Score S determina a prioridade de confirmação. A fórmula é <strong>S = A + C + O</strong> (onde O = Ordem de registro). Quanto menor o Score, maior a preferência no desempate de sexta-feira.
                  </div>
 
-                 {!agendarEscola && (
-                   <div className="space-y-2">
-                     <Label className="text-sm">Agendar em nome de outro Professor:</Label>
-                     <p className="text-xs text-muted-foreground">Deixe vazio para agendar para si mesmo.</p>
-                     <Input 
-                       placeholder="ID do Professor (temp)" 
-                       value={agendarPara} 
-                       onChange={(e) => setAgendarPara(e.target.value)}
-                     />
-                   </div>
-                 )}
+                 <div className="border border-slate-200 rounded-md overflow-hidden bg-white shadow-sm">
+                   <table className="w-full text-left text-sm">
+                     <thead className="bg-slate-100 text-slate-700 text-xs uppercase tracking-wider">
+                       <tr>
+                         <th className="p-2 border-b font-medium">Professor(a)</th>
+                         <th className="p-2 border-b font-bold text-center" title="Score Final (A + C + O)">S</th>
+                         <th className="p-2 border-b font-medium text-center text-muted-foreground w-10" title="Quantidade Agendamentos">A</th>
+                         <th className="p-2 border-b font-medium text-center text-muted-foreground w-10" title="Quantidade Cancelamentos">C</th>
+                         <th className="p-2 border-b font-medium text-center text-muted-foreground w-10" title="Ordem Registrada">O</th>
+                         <th className="p-2 border-b text-right min-w-[50px]">Ações</th>
+                       </tr>
+                     </thead>
+                     <tbody>
+                       {isLoadingFila ? (
+                         <tr><td colSpan={6} className="p-6 text-center text-muted-foreground text-sm border-b">Carregando métricas da fila...</td></tr>
+                       ) : filaPreReserva.length === 0 ? (
+                         <tr><td colSpan={6} className="p-6 text-center text-muted-foreground text-sm border-b">Ninguém nesta fila de espera ainda. Pode entrar!</td></tr>
+                       ) : (
+                         filaPreReserva.map((item, idx) => (
+                           <tr key={item.agendamento_id} className="hover:bg-slate-50 border-b last:border-0 group/row">
+                             <td className="p-2 py-3 flex items-center gap-2">
+                               {idx === 0 ? <span className="bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded text-[10px] border border-emerald-200 shadow-sm leading-none shrink-0" title="Primeiro da Fila!">#1</span> : null}
+                               <span className="truncate max-w-[120px] font-medium text-slate-700" title={item.nome_professor}>{item.nome_professor}</span>
+                             </td>
+                             <td className="p-2 text-center font-extrabold text-slate-900 bg-slate-50/50">{item.score}</td>
+                             <td className="p-2 text-center text-xs text-muted-foreground">{item.quantidade_agendamentos}</td>
+                             <td className="p-2 text-center text-xs text-muted-foreground">{item.quantidade_cancelamentos}</td>
+                             <td className="p-2 text-center text-xs font-medium text-muted-foreground">{item.ordem}</td>
+                             <td className="p-2 text-right">
+                                {(isCoordenadorOuAdmin || usuario?.id === item.usuario_id) && (
+                                   <AlertDialog>
+                                     <AlertDialogTrigger asChild>
+                                       <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-red-700 hover:bg-red-50 ml-auto opacity-80 hover:opacity-100" title="Remover da Fila">
+                                         <Trash2 className="h-4 w-4" />
+                                       </Button>
+                                     </AlertDialogTrigger>
+                                     <AlertDialogContent>
+                                       <AlertDialogHeader>
+                                         <AlertDialogTitle>Remover da Fila</AlertDialogTitle>
+                                         <AlertDialogDescription>
+                                            Tem certeza que deseja retirar {item.nome_professor} da fila de espera deste horário?
+                                         </AlertDialogDescription>
+                                       </AlertDialogHeader>
+                                       <AlertDialogFooter>
+                                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                         <AlertDialogAction onClick={() => handleRemoverDaFila(item.agendamento_id)} className="bg-red-600 focus:ring-red-600 hover:bg-red-700">Confirmar Remoção</AlertDialogAction>
+                                       </AlertDialogFooter>
+                                     </AlertDialogContent>
+                                   </AlertDialog>
+                                )}
+                             </td>
+                           </tr>
+                         ))
+                       )}
+                     </tbody>
+                   </table>
+                 </div>
 
-                 <div className="flex items-center space-x-2 mt-4">
-                    <input 
-                      type="checkbox" 
-                      id="agendamentoFixo" 
-                      checked={agendamentoFixo} 
-                      onChange={(e) => setAgendamentoFixo(e.target.checked)} 
-                      className="rounded border-gray-300 text-primary shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
-                    />
-                    <Label htmlFor="agendamentoFixo" className="text-sm">Tornar este agendamento Fixo (Semanal)</Label>
+                 <div className="pt-3">
+                   {isCoordenadorOuAdmin ? (
+                     <div className="flex gap-2 items-end bg-slate-50 p-3 rounded-md border border-slate-100">
+                       <div className="flex-1 space-y-1.5">
+                         <Label className="text-xs font-semibold text-slate-700">Gestão: Inserir em nome do Professor</Label>
+                         <Select value={agendarPara} onValueChange={setAgendarPara}>
+                           <SelectTrigger className="h-8 text-sm w-full bg-white">
+                             <SelectValue placeholder="Selecione..." />
+                           </SelectTrigger>
+                           <SelectContent>
+                             {professores.map(p => (
+                               <SelectItem key={p.id} value={p.id} className="text-sm">{p.nome}</SelectItem>
+                             ))}
+                           </SelectContent>
+                         </Select>
+                       </div>
+                       <Button size="sm" className="h-8 shadow-sm px-4" disabled={!agendarPara || isSubmitting} onClick={handleAdicionarAFila}>Inserir</Button>
+                     </div>
+                   ) : (
+                     <Button 
+                       className="w-full shadow-sm py-5 text-sm font-semibold tracking-wide" 
+                       disabled={isSubmitting || filaPreReserva.some(f => f.usuario_id === usuario?.id)} 
+                       onClick={() => handleAdicionarAFila()}
+                     >
+                       {filaPreReserva.some(f => f.usuario_id === usuario?.id) ? 'Você já está na fila de espera' : 'Entrar na Fila de Reserva'}
+                     </Button>
+                   )}
+                 </div>
+             </div>
+          ) : modalMode === 'create' ? (
+            <div className="grid gap-4 py-4">
+               {/* Componente de Form aqui nas proximas iteracoes */}
+               
+               <div className="flex flex-col gap-2 p-3 bg-muted/30 rounded-md border">
+                 <span className="text-sm font-medium">Tipo Previsto:</span>
+                 <Badge
+                   variant={determinarTipoAgendamento() === 'Confirmado' ? 'default' : determinarTipoAgendamento() === 'Fixo' ? 'default' : 'secondary'}
+                   className="w-fit"
+                 >
+                   {determinarTipoAgendamento()}
+                 </Badge>
+                 {determinarTipoAgendamento() === 'Pre-Reserva' && (
+                   <p className="text-xs text-muted-foreground mt-1">
+                     O sistema gerará uma fila por Score. Na sexta-feira ({getSextaDeAnaliseStr()}), o professor com menor Score terá a reserva confirmada.
+                   </p>
+                 )}
+               </div>
+
+               {isCoordenadorOuAdmin && (
+                 <div className="space-y-4 pt-4 border-t">
+                   <h4 className="text-sm font-semibold">Opções de Gestão</h4>
+                   
+                   <div className="flex items-center space-x-2">
+                      <input 
+                        type="checkbox" 
+                        id="agendarEscola" 
+                        checked={agendarEscola} 
+                        onChange={(e) => {
+                          setAgendarEscola(e.target.checked);
+                          if (e.target.checked) setAgendarPara('');
+                        }} 
+                        className="rounded border-gray-300 text-primary shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                      />
+                      <Label htmlFor="agendarEscola" className="text-sm">Agendar para a Escola (Bloqueio Geral)</Label>
+                   </div>
+
+                   {!agendarEscola && (
+                     <div className="space-y-2">
+                       <Label className="text-sm">Agendar em nome de outro Professor:</Label>
+                       <p className="text-xs text-muted-foreground">Deixe vazio para agendar para si mesmo.</p>
+                       <Select value={agendarPara || "vazio"} onValueChange={(val) => setAgendarPara(val === "vazio" ? "" : val)}>
+                         <SelectTrigger className="w-full">
+                           <SelectValue placeholder="Selecione um Professor..." />
+                         </SelectTrigger>
+                         <SelectContent>
+                           <SelectItem value="vazio" className="text-muted-foreground italic">
+                             -- Agendar para mim mesmo --
+                           </SelectItem>
+                           {professores.map(p => (
+                             <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                           ))}
+                         </SelectContent>
+                       </Select>
+
+                       {agendarPara && agendarPara !== "vazio" && (
+                         <div className="mt-3 p-2.5 bg-blue-50 border border-blue-200 rounded-md text-xs text-blue-800 leading-relaxed shadow-sm">
+                           <strong>Atenção:</strong> Você está registrando este agendamento em nome do professor selecionado. 
+                           O registro principal ficará no nome do professor, mas o sistema possui formato de auditoria que registrará 
+                           explicitamente que foi você (<strong>{usuario?.nome_completo?.split(' ')[0] || 'Administrador'}</strong>) quem realizou esta operação em nome dele.
+                         </div>
+                       )}
+                     </div>
+                   )}
+
+                   <div className="flex flex-col gap-2 mt-4">
+                     <div className="flex items-center space-x-2">
+                       <input 
+                         type="checkbox" 
+                         id="agendamentoFixo" 
+                         checked={agendamentoFixo} 
+                         onChange={(e) => setAgendamentoFixo(e.target.checked)} 
+                         className="rounded border-gray-300 text-primary shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                       />
+                       <Label htmlFor="agendamentoFixo" className="text-sm">Tornar este agendamento Fixo (Semanal)</Label>
+                     </div>
+                     {agendamentoFixo && (
+                       <div className="space-y-2 mt-2 pl-6">
+                         <Label className="text-sm">Data Final (Opcional):</Label>
+                         <Input 
+                           type="date" 
+                           value={dataFimFixo} 
+                           onChange={(e) => setDataFimFixo(e.target.value)}
+                           min={selectedDateStr}
+                         />
+                         <p className="text-[10px] text-muted-foreground">Deixe em branco para um agendamento contínuo.</p>
+                       </div>
+                     )}
+                   </div>
+                 </div>
+               )}
+            </div>
+          ) : (
+            <div className="grid gap-4 py-4">
+               <div className="flex flex-col gap-2 p-3 bg-muted/30 rounded-md border">
+                 <span className="text-sm font-medium">Status Atual:</span>
+                 <Badge variant={selectedAgendamento?.tipo === 'Confirmado' || selectedAgendamento?.tipo === 'Fixo' ? 'default' : 'secondary'} className="w-fit">
+                   {selectedAgendamento?.tipo}
+                 </Badge>
+                 <div className="mt-2 text-sm text-muted-foreground">
+                    <p><strong>Agendado para:</strong> {selectedAgendamento?.usuario_id ? selectedAgendamento.usuarios?.nome_completo : 'ESCOLA'}</p>
+                    {selectedAgendamento?.agendado_por && selectedAgendamento.agendado_por !== selectedAgendamento.usuario_id && (
+                      <div className="mt-2 p-2 bg-slate-100 border border-slate-200 rounded text-xs text-slate-700">
+                        <strong>Log de Auditoria:</strong> O registro foi efetuado no nome do professor, porém o procedimento foi realizado de forma sistêmica por <strong>{selectedAgendamento.agendado_por_usuario?.nome_completo}</strong>.
+                      </div>
+                    )}
+                    {selectedAgendamento?.tipo === 'Fixo' && (
+                      <>
+                        <p><strong>Início:</strong> {selectedAgendamento.data_inicio_fixo ? new Date(selectedAgendamento.data_inicio_fixo + 'T12:00:00').toLocaleDateString('pt-BR') : '-'}</p>
+                        <p><strong>Fim:</strong> {selectedAgendamento.data_fim_fixo ? new Date(selectedAgendamento.data_fim_fixo + 'T12:00:00').toLocaleDateString('pt-BR') : 'Contínuo'}</p>
+                      </>
+                    )}
                  </div>
                </div>
-             )}
+               
+               {selectedAgendamento?.tipo === 'Fixo' && isCoordenadorOuAdmin && (
+                 <div className="space-y-4 pt-4 border-t">
+                   <h4 className="text-sm font-semibold">Editar Agendamento Fixo</h4>
+                   <div className="space-y-2">
+                     <div className="flex justify-between items-center">
+                        <Label className="text-sm">Data Final (Opcional):</Label>
+                        {!isEditingDataFim && (
+                          <Button type="button" variant="outline" size="sm" onClick={() => setIsEditingDataFim(true)}>Modificar Data Final</Button>
+                        )}
+                     </div>
+                     
+                     {isEditingDataFim ? (
+                       <div className="flex gap-2 items-center">
+                         <div className="flex-1">
+                           <Input 
+                             type="date" 
+                             value={dataFimFixo} 
+                             onChange={(e) => setDataFimFixo(e.target.value)}
+                             min={selectedAgendamento.data_inicio_fixo || selectedDateStr}
+                           />
+                         </div>
+                         <Button type="button" onClick={handleAtualizarFixo} disabled={isSubmitting}>Salvar Mudança</Button>
+                       </div>
+                     ) : (
+                       <p className="text-sm bg-slate-50 border p-2 rounded-md text-slate-700">
+                         {selectedAgendamento.data_fim_fixo 
+                            ? new Date(selectedAgendamento.data_fim_fixo + 'T12:00:00').toLocaleDateString('pt-BR') 
+                            : 'Contínuo (Sem data final definida)'}
+                       </p>
+                     )}
+                   </div>
+                 </div>
+               )}
+            </div>
+          )}
+          
+          <DialogFooter className="mt-4 pt-4 border-t flex sm:justify-between w-full">
+            {modalMode === 'queue' ? (
+              <div className="flex w-full justify-between items-center gap-2 flex-wrap">
+                {isCoordenadorOuAdmin ? (
+                  <Button type="button" variant="outline" onClick={() => setModalMode('create')} className="text-xs bg-amber-50 hover:bg-amber-100 border-amber-200 text-amber-900">
+                    ✚ Opções de Gestão (Forçar Fixo)
+                  </Button>
+                ) : <span />}
+                <Button onClick={() => setIsModalOpen(false)}>Fechar Janela</Button>
+              </div>
+            ) : (
+              <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
+            )}
 
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-            <Button type="button" onClick={handleConfirmarAgendamento} disabled={isSubmitting}>Confirmar Agendamento</Button>
+            {modalMode === 'create' ? (
+              <Button type="button" onClick={handleConfirmarAgendamento} disabled={isSubmitting}>Confirmar Agendamento</Button>
+            ) : modalMode === 'edit' ? (
+              <div className="flex gap-2 justify-end items-center flex-row-reverse w-full sm:w-auto mt-2 sm:mt-0">
+                {podeExcluir(selectedAgendamento) && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button type="button" variant="destructive" disabled={isSubmitting}>
+                        {selectedAgendamento?.tipo === 'Fixo' ? 'Parar' : 'Cancelar / Excluir'}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Confirmação</AlertDialogTitle>
+                        <AlertDialogDescription>
+                           {selectedAgendamento?.tipo === 'Fixo' 
+                             ? `Atenção: Você está interrompendo este agendamento fixo a partir de ${new Date(selectedDateStr + 'T12:00:00').toLocaleDateString('pt-BR')}. Todas as reservas a partir desta data serão apagadas. Deseja confirmar?`
+                             : 'Tem certeza que deseja cancelar e excluir permanentemente este agendamento?'}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleExcluirAgendamento} className="bg-red-600 hover:bg-red-700 focus:ring-red-600">
+                          {selectedAgendamento?.tipo === 'Fixo' ? 'Confirmar Interrupção' : 'Compreendo, Excluir'}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
+            ) : null}
           </DialogFooter>
         </DialogContent>
       </Dialog>
