@@ -174,3 +174,50 @@ export async function consolidarPreReservasPassadas(recursoId: string, horarioId
    if (err2) throw err2;
    return true;
 }
+
+// Processamento em lote (Fechamento da Sexta-Feira)
+export async function processarFilaSemanal(dataInicio: string, dataFim: string) {
+  // 1. Obter todas as pré-reservas do período
+  const { data: preReservas, error } = await supabase
+    .from('agendamentos')
+    .select('recurso_id, horario_id, data_agendamento')
+    .eq('tipo', 'Pre-Reserva')
+    .gte('data_agendamento', dataInicio)
+    .lte('data_agendamento', dataFim);
+    
+  if (error) throw error;
+  if (!preReservas || preReservas.length === 0) return true;
+
+  // 2. Extrair grupos únicos
+  const groups = new Set<string>();
+  preReservas.forEach(pr => {
+    groups.add(`${pr.recurso_id}|${pr.horario_id}|${pr.data_agendamento}`);
+  });
+
+  // 3. Processar cada grupo
+  for (const group of Array.from(groups)) {
+    const [recId, horId, dt] = group.split('|');
+    const fila = await getFilaPreReserva(recId, horId, dt);
+    
+    if (fila && fila.length > 0) {
+      const vencedor = fila[0];
+      
+      // Confirmar o vencedor
+      await supabase
+        .from('agendamentos')
+        .update({ tipo: 'Confirmado', status: 'Ativo' })
+        .eq('id', vencedor.agendamento_id);
+      
+      // Apagar os perdedores (excluir fisicamente para limpar a agenda)
+      const perdedoresIds = fila.slice(1).map(f => f.agendamento_id);
+      if (perdedoresIds.length > 0) {
+        await supabase
+          .from('agendamentos')
+          .delete()
+          .in('id', perdedoresIds);
+      }
+    }
+  }
+  
+  return true;
+}

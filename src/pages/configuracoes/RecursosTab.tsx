@@ -16,11 +16,20 @@ import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Recurso, getRecursos, criarRecurso, atualizarRecurso, deletarRecurso } from '@/services/recursos'
 import { useAuth } from '@/contexts/AuthContext'
+import { useInstituicao } from '@/contexts/InstituicaoContext'
+import { supabase } from '@/lib/supabase'
 
 export function RecursosTab() {
+  const { configuracoes, refreshConfiguracoes } = useInstituicao()
   const [recursos, setRecursos] = useState<Recurso[]>([])
   const [loading, setLoading] = useState(true)
   const [errorDesc, setErrorDesc] = useState<string | null>(null)
+  const [successConfigMsg, setSuccessConfigMsg] = useState('')
+  
+  // Regras States
+  const [formSemanasLimit, setFormSemanasLimit] = useState(4)
+  const [formDataLimit, setFormDataLimit] = useState('')
+  const [isSavingConfig, setIsSavingConfig] = useState(false)
   
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -38,6 +47,38 @@ export function RecursosTab() {
   useEffect(() => {
     loadRecursos()
   }, [])
+
+  useEffect(() => {
+    if (configuracoes) {
+      setFormSemanasLimit(configuracoes.semanas_limite_agendamento || 4)
+      setFormDataLimit(configuracoes.data_limite_agendamento || '')
+    }
+  }, [configuracoes])
+
+  const handleSaveRegras = async () => {
+    if (!configuracoes?.id) return
+    setIsSavingConfig(true)
+    setErrorDesc(null)
+    setSuccessConfigMsg('')
+    try {
+      const { error } = await supabase
+        .from('configuracoes_instituicao')
+        .update({
+          semanas_limite_agendamento: formSemanasLimit,
+          data_limite_agendamento: formDataLimit || null
+        })
+        .eq('id', configuracoes.id)
+
+      if (error) throw error
+      await refreshConfiguracoes()
+      setSuccessConfigMsg('Regras atualizadas com sucesso!')
+      setTimeout(() => setSuccessConfigMsg(''), 3000)
+    } catch (err) {
+      setErrorDesc(err instanceof Error ? err.message : 'Erro ao salvar regras de agendamento.')
+    } finally {
+      setIsSavingConfig(false)
+    }
+  }
 
   async function loadRecursos() {
     try {
@@ -133,6 +174,51 @@ export function RecursosTab() {
            </Button>
         )}
       </div>
+
+      {podeEditar && (
+        <div className="bg-white p-5 rounded-lg border shadow-sm space-y-4 mb-8">
+          <div className="border-b pb-2 flex justify-between items-center">
+            <h3 className="text-lg font-semibold text-slate-800">Regras Globais de Agendamento</h3>
+            {successConfigMsg && <span className="text-sm font-medium text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">{successConfigMsg}</span>}
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="semanasLimit" className="font-medium">Limite Móvel (Semanas à Frente)</Label>
+              <Input 
+                id="semanasLimit"
+                type="number" 
+                min={1} 
+                max={52}
+                value={formSemanasLimit}
+                onChange={(e) => setFormSemanasLimit(parseInt(e.target.value) || 4)}
+              />
+              <p className="text-[11px] text-muted-foreground leading-tight">
+                Impede que os professores agendem aulas para meses distantes no futuro. O padrão do sistema é 4 semanas. Ao usar uma "Data Final" abaixo, esta regra móvel é ignorada.
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="dataLimit" className="font-medium">Data Final do Bimestre/Semestre (Opcional)</Label>
+              <Input 
+                id="dataLimit"
+                type="date" 
+                value={formDataLimit}
+                onChange={(e) => setFormDataLimit(e.target.value)}
+              />
+              <p className="text-[11px] text-muted-foreground leading-tight">
+                Se definida, crava um limite absoluto na tabela de agendamentos para toda a escola. Nenhum usuário (nem mesmo a coordenação) poderá avançar a grade além dessa data.
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex justify-end pt-2">
+            <Button onClick={handleSaveRegras} disabled={isSavingConfig} size="sm" className="bg-slate-800 hover:bg-slate-700">
+              {isSavingConfig ? 'Salvando...' : 'Salvar Regras'}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {loading ? (
          <div className="py-12 text-center text-muted-foreground">Carregando recursos...</div>

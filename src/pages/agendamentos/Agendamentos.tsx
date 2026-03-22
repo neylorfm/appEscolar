@@ -13,7 +13,7 @@ import { Badge } from '../../components/ui/badge';
 import { Label } from '../../components/ui/label';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { criarAgendamento, getAgendamentosPorPeriodo, AgendamentoComDetalhes, cancelarOuExcluirAgendamento, atualizarDataFimFixo, getFilaPreReserva, FilaPreReserva, verificarConflitoProfessor } from '../../services/agendamentos';
+import { criarAgendamento, getAgendamentosPorPeriodo, AgendamentoComDetalhes, cancelarOuExcluirAgendamento, atualizarDataFimFixo, getFilaPreReserva, FilaPreReserva, verificarConflitoProfessor, processarFilaSemanal } from '../../services/agendamentos';
 import { getRecursos } from '../../services/recursos';
 import { getHorarios, Horario } from '../../services/horarios';
 import { getUsuarios } from '../../services/usuarios';
@@ -61,6 +61,9 @@ export default function Agendamentos() {
   const [selectedHorarioId, setSelectedHorarioId] = useState<string>('');
   const [selectedDateStr, setSelectedDateStr] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isProcessingQueue, setIsProcessingQueue] = useState(false);
+  const [hasGlobalPreReservas, setHasGlobalPreReservas] = useState(false);
+  
   
   // Form state
   const [agendarPara, setAgendarPara] = useState<string>(''); // Vazio = professor logado
@@ -139,8 +142,25 @@ export default function Agendamentos() {
       }
     }
     
-    // Initial load
-    loadAgendamentos();
+        // Initial load
+        loadAgendamentos();
+
+        // Check se a aba atual tem pré-reservas para habilitar/desabilitar o botão manual
+        const checkGlobalPreReservas = async () => {
+             const baseSegundaTab = getBaseMonday();
+             baseSegundaTab.setDate(baseSegundaTab.getDate() + (semanaOffset * 7));
+             const baseSextaTab = new Date(baseSegundaTab);
+             baseSextaTab.setDate(baseSegundaTab.getDate() + 4);
+             
+             const req1 = await supabase.from('agendamentos')
+                .select('*', { count: 'exact', head: true })
+                .eq('tipo', 'Pre-Reserva')
+                .gte('data_agendamento', toLocalYYYYMMDD(baseSegundaTab))
+                .lte('data_agendamento', toLocalYYYYMMDD(baseSextaTab));
+                
+             setHasGlobalPreReservas((req1.count || 0) > 0);
+        };
+        checkGlobalPreReservas();
 
     // Setup Realtime Subscription
     const channel = supabase
@@ -267,8 +287,9 @@ export default function Agendamentos() {
     const cellAgs = getAgendamentosPorCelula(horarioId, indiceDiaSemana);
     const hasFixo = cellAgs.some(a => a.tipo === 'Fixo');
     const isConfirmado = cellAgs.some(a => a.tipo === 'Confirmado');
+    const hasPreReserva = cellAgs.some(a => a.tipo === 'Pre-Reserva');
 
-    if (isPreReservaCell && !hasFixo && !isConfirmado) {
+    if ((isPreReservaCell || hasPreReserva) && !hasFixo && !isConfirmado) {
        setModalMode('queue');
        setIsModalOpen(true);
        setAgendarPara('');
@@ -388,6 +409,18 @@ export default function Agendamentos() {
     
     setIsSubmitting(true);
     try {
+      const dataObj = new Date(selectedDateStr + 'T12:00:00');
+      const indiceDiaSemana = dataObj.getDay() - 1; 
+
+      const celulasAgs = getAgendamentosPorCelula(selectedHorarioId, indiceDiaSemana);
+      const hasPreReserva = celulasAgs.some(a => a.tipo === 'Pre-Reserva');
+      
+      if (hasPreReserva) {
+          toast.error("Conflito com Fila", { description: "Não é possível realizar registros (Confirmado/Fixo) em horários que possuem Pré-reserva na fila de espera." });
+          setIsSubmitting(false);
+          return;
+      }
+
       const tipo = determinarTipoAgendamento();
       const finalUserId = agendarEscola ? null : (agendarPara || usuario.id);
       
@@ -479,46 +512,94 @@ export default function Agendamentos() {
     return false;
   };
 
-  const podeAvancar = isCoordenadorOuAdmin || (() => {
-    if (!configuracoes?.data_limite_agendamento) {
-      return !configuracoes?.semanas_limite_agendamento || (semanaOffset < configuracoes.semanas_limite_agendamento);
+  const handleProcessarFilaSemanas = async () => {
+     if (!confirm("Esta ação irá processar todas as pré-reservas da PRÓXIMA SEMANA convertendo o 1º da fila em Confirmado e removendo os demais. Deseja continuar?")) return;
+     setIsProcessingQueue(true);
+     try {
+       const segundaFeira = getBaseMonday();
+       segundaFeira.setDate(segundaFeira.getDate() + 7);
+       
+       const sextaFeira = new Date(segundaFeira);
+       sextaFeira.setDate(segundaFeira.getDate() + 4); 
+       
+       const inicioStr = toLocalYYYYMMDD(segundaFeira);
+       const fimStr = toLocalYYYYMMDD(sextaFeira);
+
+       await processarFilaSemanal(inicioStr, fimStr);
+       setSemanaOffset(1); // Mudar a view para a proxima semana para ver o resultado
+       toast.success("Fila Processada", { description: "As pré-reservas da próxima semana foram analisadas e convertidas." });
+       setTimeout(() => window.location.reload(), 1000);
+     } catch (e: any) {
+       toast.error("Erro ao processar", { description: e.message });
+     } finally {
+       setIsProcessingQueue(false);
+     }
+  };
+
+  const podeAvancar = (() => {
+    // Aplicação estrita da trava Institucional para todos
+    if (configuracoes?.data_limite_agendamento) {
+      const proximaSegunda = getBaseMonday();
+      proximaSegunda.setDate(proximaSegunda.getDate() + ((semanaOffset + 1) * 7));
+      const limite = new Date(configuracoes.data_limite_agendamento + 'T23:59:59');
+      if (proximaSegunda > limite) return false;
+    } else if (configuracoes?.semanas_limite_agendamento) {
+      if (semanaOffset >= configuracoes.semanas_limite_agendamento) return false;
     }
-    const proximaSegunda = getBaseMonday();
-    proximaSegunda.setDate(proximaSegunda.getDate() + ((semanaOffset + 1) * 7));
-    const limite = new Date(configuracoes.data_limite_agendamento + 'T23:59:59');
-    return proximaSegunda <= limite;
+    
+    return true;
   })();
 
   return (
     <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Agendamentos</h1>
-          <p className="text-muted-foreground mt-1 text-base">
-            Gerencie reservas de salas e laboratórios da instituição.
-          </p>
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+        <div className="flex flex-col gap-3">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Agendamentos</h1>
+            <p className="text-muted-foreground mt-1 text-base">
+              Gerencie reservas de salas e laboratórios da instituição.
+            </p>
+          </div>
+          
+          {isCoordenadorOuAdmin && (
+             <div className="flex flex-col items-start gap-1 mt-2">
+                 <Button 
+                    variant="outline" 
+                    onClick={handleProcessarFilaSemanas} 
+                    disabled={isProcessingQueue || (!hasGlobalPreReservas && semanaOffset === 1)}
+                    className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
+                 >
+                    {isProcessingQueue ? "Processando..." : (!hasGlobalPreReservas && semanaOffset === 1) ? "Fila já processada ✔️" : "Processar Fila da Próxima Semana"}
+                 </Button>
+                 <span className="text-xs text-muted-foreground">
+                    Utilize esta rotina para converter manualmente as pré-reservas em agendamentos confirmados para a próxima semana.
+                 </span>
+             </div>
+          )}
         </div>
         
-        <div className="flex items-center space-x-2 bg-background p-1 rounded-lg border shadow-sm">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => setSemanaOffset(semanaOffset - 1)}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <div className="min-w-[140px] text-center font-medium text-sm flex items-center justify-center gap-2">
-            <Calendar className="h-4 w-4 text-primary" />
-            {getWeekText()}
+        <div className="flex flex-col sm:items-end gap-3 mt-4 sm:mt-0">
+          <div className="flex items-center space-x-2 bg-background p-1 rounded-lg border shadow-sm relative overflow-hidden">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setSemanaOffset(semanaOffset - 1)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="min-w-[140px] text-center font-medium text-sm flex items-center justify-center gap-2">
+              <Calendar className="h-4 w-4 text-primary" />
+              {getWeekText()}
+            </div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setSemanaOffset(semanaOffset + 1)}
+              disabled={!podeAvancar}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => setSemanaOffset(semanaOffset + 1)}
-            disabled={!podeAvancar}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
         </div>
       </div>
 
@@ -738,7 +819,7 @@ export default function Agendamentos() {
                      <div className="flex gap-2 items-end bg-slate-50 p-3 rounded-md border border-slate-100">
                        <div className="flex-1 space-y-1.5">
                          <Label className="text-xs font-semibold text-slate-700">Gestão: Inserir em nome do Professor</Label>
-                         <Select value={agendarPara} onValueChange={setAgendarPara}>
+                         <Select value={agendarPara} onValueChange={setAgendarPara} disabled={new Date().getDay() === 5 && semanaOffset === 1}>
                            <SelectTrigger className="h-8 text-sm w-full bg-white">
                              <SelectValue placeholder="Selecione..." />
                            </SelectTrigger>
@@ -749,15 +830,15 @@ export default function Agendamentos() {
                            </SelectContent>
                          </Select>
                        </div>
-                       <Button size="sm" className="h-8 shadow-sm px-4" disabled={!agendarPara || isSubmitting} onClick={handleAdicionarAFila}>Inserir</Button>
+                       <Button size="sm" className="h-8 shadow-sm px-4" disabled={!agendarPara || isSubmitting || (new Date().getDay() === 5 && semanaOffset === 1)} onClick={handleAdicionarAFila}>Inserir</Button>
                      </div>
                    ) : (
                      <Button 
                        className="w-full shadow-sm py-5 text-sm font-semibold tracking-wide" 
-                       disabled={isSubmitting || filaPreReserva.some(f => f.usuario_id === usuario?.id)} 
+                       disabled={isSubmitting || filaPreReserva.some(f => f.usuario_id === usuario?.id) || (new Date().getDay() === 5 && semanaOffset === 1)} 
                        onClick={() => handleAdicionarAFila()}
                      >
-                       {filaPreReserva.some(f => f.usuario_id === usuario?.id) ? 'Você já está na fila de espera' : 'Entrar na Fila de Reserva'}
+                       {new Date().getDay() === 5 && semanaOffset === 1 ? 'Fila bloqueada para novos registros na Sexta-feira' : filaPreReserva.some(f => f.usuario_id === usuario?.id) ? 'Você já está na fila de espera' : 'Entrar na Fila de Reserva'}
                      </Button>
                    )}
                  </div>
