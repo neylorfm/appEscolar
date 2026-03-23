@@ -189,39 +189,7 @@ export default function Agendamentos() {
     return `${Math.abs(semanaOffset)} Semanas atrás`;
   };
 
-  const handleDateJump = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.value) return;
-    const selectedDate = new Date(e.target.value + 'T12:00:00');
-    
-    const today = new Date();
-    const currentMonday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    currentMonday.setDate(currentMonday.getDate() - (currentMonday.getDay() === 0 ? 6 : currentMonday.getDay() - 1));
-    
-    const pickedMonday = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
-    pickedMonday.setDate(pickedMonday.getDate() - (pickedMonday.getDay() === 0 ? 6 : pickedMonday.getDay() - 1));
-    
-    const diffTime = pickedMonday.getTime() - currentMonday.getTime();
-    const diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
-    
-    setSemanaOffset(diffWeeks);
-  };
 
-  const handleUpdateDataLimite = async (val: string) => {
-    setDataLimiteUI(val);
-    if (!configuracoes) return;
-    try {
-      const { error } = await supabase
-        .from('configuracoes_instituicao')
-        .update({ data_limite_agendamento: val || null })
-        .eq('id', configuracoes.id);
-      
-      if (error) throw error;
-      toast.success("Data limite de visualização atualizada.");
-      refreshConfiguracoes();
-    } catch (err: any) {
-      toast.error("Erro ao atualizar data limite.");
-    }
-  };
 
   const getAgendamentosPorCelula = (horarioId: string, indiceDiaSemana: number) => {
     // indiceDiaSemana: 0 (Segunda) a 4 (Sexta)
@@ -333,7 +301,8 @@ export default function Agendamentos() {
        
        const conflitos = await verificarConflitoProfessor(userId, selectedDateStr, selectedHorarioId);
        if (conflitos.length > 0) {
-           toast.error("Conflito de Horário", { description: `Professor já possui registro (${conflitos[0].tipo}) neste mesmo horário no recurso: ${conflitos[0].recursos?.nome}.`});
+           const recursoNome = Array.isArray(conflitos[0].recursos) ? conflitos[0].recursos[0]?.nome : (conflitos[0].recursos as any)?.nome;
+           toast.error("Conflito de Horário", { description: `Professor já possui registro (${conflitos[0].tipo}) neste mesmo horário no recurso: ${recursoNome}.`});
            return;
        }
 
@@ -427,7 +396,8 @@ export default function Agendamentos() {
       if (finalUserId) {
          const conflitos = await verificarConflitoProfessor(finalUserId, selectedDateStr, selectedHorarioId);
          if (conflitos.length > 0) {
-             toast.error("Conflito de Horário", { description: `Professor já possui registro (${conflitos[0].tipo}) neste mesmo horário no recurso: ${conflitos[0].recursos?.nome}.` });
+             const recursoNome = Array.isArray(conflitos[0].recursos) ? conflitos[0].recursos[0]?.nome : (conflitos[0].recursos as any)?.nome;
+             toast.error("Conflito de Horário", { description: `Professor já possui registro (${conflitos[0].tipo}) neste mesmo horário no recurso: ${recursoNome}.` });
              return;
          }
       }
