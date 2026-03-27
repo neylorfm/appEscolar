@@ -23,6 +23,22 @@ export function InstituicaoProvider({ children }: { children: React.ReactNode })
     if (config.cor_destaque_2) root.style.setProperty('--highlight-color-2', config.cor_destaque_2)
   }
 
+  const applyBrandingToDocument = (config: ConfiguracoesInstituicao) => {
+    if (config.nome_instituicao) {
+      document.title = config.nome_instituicao;
+    }
+    
+    if (config.logo_url) {
+      let link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.head.appendChild(link);
+      }
+      link.href = config.logo_url;
+    }
+  }
+
   const refreshConfiguracoes = useCallback(async () => {
     try {
       setLoading(true)
@@ -36,6 +52,7 @@ export function InstituicaoProvider({ children }: { children: React.ReactNode })
       } else if (data) {
         setConfiguracoes(data as ConfiguracoesInstituicao)
         applyColorsToCss(data as ConfiguracoesInstituicao)
+        applyBrandingToDocument(data as ConfiguracoesInstituicao)
       }
     } catch (err) {
       console.error('Falha ao carregar configurações:', err)

@@ -3,6 +3,7 @@ import { useInstituicao } from '../../contexts/InstituicaoContext';
 import { Card, CardContent } from '../../components/ui/card';
 
 import { Calendar, ChevronLeft, ChevronRight, Clock, Trash2 } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog';
@@ -14,7 +15,7 @@ import { Label } from '../../components/ui/label';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { criarAgendamento, getAgendamentosPorPeriodo, AgendamentoComDetalhes, cancelarOuExcluirAgendamento, atualizarDataFimFixo, getFilaPreReserva, FilaPreReserva, verificarConflitoProfessor, processarFilaSemanal } from '../../services/agendamentos';
-import { getRecursos } from '../../services/recursos';
+import { getRecursos, Recurso } from '../../services/recursos';
 import { getHorarios, Horario } from '../../services/horarios';
 import { getUsuarios } from '../../services/usuarios';
 
@@ -37,11 +38,17 @@ const toLocalYYYYMMDD = (d: Date) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
+const renderIcon = (iconName: string, size = 20, className = "") => {
+  // @ts-ignore
+  const IconComponent = LucideIcons[iconName] || LucideIcons['Box'];
+  return <IconComponent size={size} className={className} />;
+};
+
 export default function Agendamentos() {
   const { configuracoes } = useInstituicao();
   const { usuario } = useAuth();
   const [semanaOffset, setSemanaOffset] = useState(0); 
-  const [recursos, setRecursos] = useState<{ id: string; nome: string }[]>([]);
+  const [recursos, setRecursos] = useState<Recurso[]>([]);
   const [horarios, setHorarios] = useState<Horario[]>([]);
   const [professores, setProfessores] = useState<{ id: string; nome: string }[]>([]);
   const [agendamentos, setAgendamentos] = useState<AgendamentoComDetalhes[]>([]);
@@ -597,9 +604,20 @@ export default function Agendamentos() {
         <div className="w-full overflow-auto max-h-[600px] touch-pan-x touch-pan-y">
           <div className="min-w-[800px] p-0">
             <table className="w-full border-collapse">
-                <thead className="sticky top-0 z-10 shadow-sm">
+                <thead className="sticky top-0 z-20 shadow-sm">
                   <tr className="bg-slate-50">
-                    <th className="border p-3 w-32 font-semibold text-center text-muted-foreground bg-slate-50"><Clock className="h-4 w-4 mx-auto" /></th>
+                    <th className="border p-3 w-32 font-semibold text-center text-muted-foreground bg-slate-50 sticky left-0 z-30">
+                      <div className="flex flex-col items-center justify-center whitespace-normal break-words leading-tight gap-1">
+                        {recursos.find(r => r.id === selectedRecurso)?.icone && (
+                            <div className="text-muted-foreground flex items-center justify-center">
+                               {renderIcon(recursos.find(r => r.id === selectedRecurso)!.icone, 18)}
+                            </div>
+                        )}
+                        <span className="font-semibold text-sm text-foreground text-center">
+                          {recursos.find(r => r.id === selectedRecurso)?.nome || 'Recurso'}
+                        </span>
+                      </div>
+                    </th>
                     {diasSemanas.map((dia, idx) => {
                       const headerDate = getBaseMonday();
                       headerDate.setDate(headerDate.getDate() + (semanaOffset * 7) + idx);
@@ -619,7 +637,7 @@ export default function Agendamentos() {
                 <tbody>
                   {horarios.filter(h => h.tipo === 'Aula').map((horario) => (
                     <tr key={horario.id} className="hover:bg-muted/10 transition-colors">
-                      <td className="border p-3 text-center bg-muted/20 align-middle">
+                      <td className="border p-3 text-center bg-slate-50 align-middle sticky left-0 z-10">
                         <div className="flex flex-col items-center justify-center">
                           <span className="font-semibold text-sm text-foreground">{horario.label}</span>
                           <span className="text-xs font-medium text-muted-foreground mt-0.5">
