@@ -431,11 +431,6 @@ export default function Agendamentos() {
       
       setIsModalOpen(false);
       toast.success("Sucesso", { description: "Agendamento confirmado." });
-      
-      setTimeout(() => {
-        setSemanaOffset(prev => prev); 
-        window.location.reload(); 
-      }, 500);
 
     } catch (e: any) {
       toast.error("Erro ao agendar", { description: e.message });
@@ -451,7 +446,6 @@ export default function Agendamentos() {
       await atualizarDataFimFixo(selectedAgendamento.id, dataFimFixo || null as any);
       setIsModalOpen(false);
       toast.success("Atualizado", { description: "Data atualizada com sucesso." });
-      setTimeout(() => window.location.reload(), 500);
     } catch (e: any) {
       toast.error("Erro ao atualizar data", { description: e.message });
     } finally {
@@ -474,7 +468,6 @@ export default function Agendamentos() {
       }
       setIsModalOpen(false);
       toast.success("Sucesso", { description: "Registro excluído/cancelado." });
-      setTimeout(() => window.location.reload(), 500);
     } catch (e: any) {
       toast.error("Erro ao excluir", { description: e.message });
     } finally {
@@ -505,7 +498,6 @@ export default function Agendamentos() {
        await processarFilaSemanal(inicioStr, fimStr);
        setSemanaOffset(1); // Mudar a view para a proxima semana para ver o resultado
        toast.success("Fila Processada", { description: "As pré-reservas da próxima semana foram analisadas e convertidas." });
-       setTimeout(() => window.location.reload(), 1000);
      } catch (e: any) {
        toast.error("Erro ao processar", { description: e.message });
      } finally {
