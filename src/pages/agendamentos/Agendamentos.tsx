@@ -597,8 +597,8 @@ export default function Agendamentos() {
           <div className="min-w-[800px] p-0">
             <table className="w-full border-collapse">
                 <thead className="sticky top-0 z-20 shadow-sm">
-                  <tr className="bg-slate-50">
-                    <th className="border p-3 w-32 font-semibold text-center text-muted-foreground bg-slate-50 sticky left-0 z-30">
+                  <tr className="bg-muted/30">
+                    <th className="border p-3 w-32 font-semibold text-center text-muted-foreground bg-muted/30 sticky left-0 z-30">
                       <div className="flex flex-col items-center justify-center whitespace-normal break-words leading-tight gap-1">
                         {recursos.find(r => r.id === selectedRecurso)?.icone && (
                             <div className="text-muted-foreground flex items-center justify-center">
@@ -616,7 +616,7 @@ export default function Agendamentos() {
                       const formattedDate = headerDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 
                       return (
-                        <th key={dia} className="border p-3 font-semibold text-center text-foreground bg-slate-100">
+                        <th key={dia} className="border p-3 font-semibold text-center text-foreground bg-muted/50">
                           <div className="flex flex-col items-center justify-center">
                             <span>{dia}</span>
                             <span className="text-xs font-normal text-muted-foreground mt-0.5">{formattedDate}</span>
@@ -629,7 +629,7 @@ export default function Agendamentos() {
                 <tbody>
                   {horarios.filter(h => h.tipo === 'Aula').map((horario) => (
                     <tr key={horario.id} className="hover:bg-muted/10 transition-colors">
-                      <td className="border p-3 text-center bg-slate-50 align-middle sticky left-0 z-10">
+                      <td className="border p-3 text-center bg-muted/30 align-middle sticky left-0 z-10">
                         <div className="flex flex-col items-center justify-center">
                           <span className="font-semibold text-sm text-foreground">{horario.label}</span>
                           <span className="text-xs font-medium text-muted-foreground mt-0.5">
@@ -645,9 +645,9 @@ export default function Agendamentos() {
                         
                         // Determinar a cor base do fundo
                         let cellBg = '';
-                        if (hasFixo) cellBg = 'bg-blue-100 hover:bg-blue-200 border-blue-200';
-                        else if (isConfirmado) cellBg = 'bg-emerald-100 hover:bg-emerald-200 border-emerald-200';
-                        else if (isPreReserva) cellBg = 'bg-amber-100/50 hover:bg-amber-100 border-amber-200';
+                        if (hasFixo) cellBg = 'bg-blue-100 hover:bg-blue-200 border-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:border-blue-800';
+                        else if (isConfirmado) cellBg = 'bg-emerald-100 hover:bg-emerald-200 border-emerald-200 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 dark:border-emerald-800';
+                        else if (isPreReserva) cellBg = 'bg-amber-100/50 hover:bg-amber-100 border-amber-200 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 dark:border-amber-800';
 
                                         const isPreReservaCell = (!hasFixo && !isConfirmado && isPreReserva);
                                         const dateOfCell = getBaseMonday();
@@ -670,30 +670,30 @@ export default function Agendamentos() {
                                                 ) : (
                                                   <>
                                                     {isPreReservaCell ? (
-                                                      <div className="text-xs bg-white/80 rounded px-1.5 py-2 w-full flex flex-col items-center justify-center text-center shadow-sm border border-amber-300 cursor-pointer hover:bg-white transition-colors relative z-10 gap-1 min-h-[48px]">
-                                                        <div className="font-bold text-slate-800 text-[11px] leading-tight uppercase tracking-wide">
+                                                      <div className="text-xs bg-white/80 dark:bg-slate-800/80 rounded px-1.5 py-2 w-full flex flex-col items-center justify-center text-center shadow-sm border border-amber-300 dark:border-amber-700 cursor-pointer hover:bg-white dark:hover:bg-slate-800 transition-colors relative z-10 gap-1 min-h-[48px]">
+                                                        <div className="font-bold text-slate-800 dark:text-slate-200 text-[11px] leading-tight uppercase tracking-wide">
                                                           Pré-reserva
                                                         </div>
                                                         {cellAgendamentos.some(ag => ag.usuario_id === usuario?.id) && (
-                                                          <div className="text-[10px] text-emerald-800 font-bold leading-tight bg-emerald-100 rounded px-1.5 py-0.5 shadow-sm border border-emerald-200">
+                                                          <div className="text-[10px] text-emerald-800 dark:text-emerald-400 font-bold leading-tight bg-emerald-100 dark:bg-emerald-900/50 rounded px-1.5 py-0.5 shadow-sm border border-emerald-200 dark:border-emerald-800">
                                                             {myRank ? `Registrado (${myRank}º)` : 'Registrado'}
                                                           </div>
                                                         )}
                                                       </div>
                                                     ) : (
                                       cellAgendamentos.map(ag => (
-                                        <div key={ag.id} onClick={(e) => handleEditClick(ag, cellDateStr, e)} className="text-xs bg-white/70 rounded px-1.5 py-1 w-full text-center shadow-sm border border-black/10 whitespace-nowrap overflow-hidden text-ellipsis cursor-pointer hover:bg-white transition-colors relative z-10">
-                                          <div className="font-semibold text-slate-800 text-[11px]">
+                                        <div key={ag.id} onClick={(e) => handleEditClick(ag, cellDateStr, e)} className="text-xs bg-white/70 dark:bg-slate-800/80 rounded px-1.5 py-1 w-full text-center shadow-sm border border-black/10 dark:border-white/10 whitespace-nowrap overflow-hidden text-ellipsis cursor-pointer hover:bg-white dark:hover:bg-slate-700 transition-colors relative z-10">
+                                          <div className="font-semibold text-slate-800 dark:text-slate-200 text-[11px]">
                                             {ag.usuario_id === null ? "ESCOLA" : (ag.usuarios?.apelido || ag.usuarios?.nome_completo?.split(' ')[0] || "Prof")}
                                           </div>
                                           {ag.tipo === 'Pre-Reserva' && (
-                                            <div className="text-[10px] text-amber-700 font-bold leading-tight mt-0.5">Pré-reserva</div>
+                                            <div className="text-[10px] text-amber-700 dark:text-amber-400 font-bold leading-tight mt-0.5">Pré-reserva</div>
                                           )}
                                           {ag.tipo === 'Fixo' && (
-                                            <div className="text-[10px] text-blue-700 font-bold leading-tight mt-0.5">Fixo</div>
+                                            <div className="text-[10px] text-blue-700 dark:text-blue-400 font-bold leading-tight mt-0.5">Fixo</div>
                                           )}
                                           {ag.tipo === 'Confirmado' && (
-                                            <div className="text-[10px] text-emerald-700 font-bold leading-tight mt-0.5">Confirmado</div>
+                                            <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold leading-tight mt-0.5">Confirmado</div>
                                           )}
                                           {ag.agendado_por && ag.agendado_por !== ag.usuario_id && (
                                             <div className="text-[9px] text-muted-foreground leading-tight italic truncate mt-0.5">
