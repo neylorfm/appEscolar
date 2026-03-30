@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useInstituicao } from '../../contexts/InstituicaoContext';
 import { Card, CardContent } from '../../components/ui/card';
 
-import { Calendar, ChevronLeft, ChevronRight, Clock, Trash2 } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
