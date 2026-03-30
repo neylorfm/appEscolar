@@ -6,6 +6,7 @@ import { InstituicaoProvider } from "./contexts/InstituicaoContext"
 import { Login } from "./pages/login/Login"
 import Agendamentos from "./pages/agendamentos/Agendamentos"
 import { Toaster } from "./components/ui/sonner"
+import { ThemeProvider } from "./components/ThemeProvider"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { usuario, loading } = useAuth()
@@ -41,30 +42,32 @@ function Dashboard() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <InstituicaoProvider>
-        <AuthProvider>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            
-            <Route path="/" element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }>
-              <Route index element={<Dashboard />} />
-              <Route path="agendamentos" element={<Agendamentos />} />
-              <Route path="configuracoes" element={
-                <AdminRoute>
-                  <ConfiguracoesLayout />
-                </AdminRoute>
-              } />
-            </Route>
-          </Routes>
-          <Toaster position="top-right" richColors />
-        </AuthProvider>
-      </InstituicaoProvider>
-    </BrowserRouter>
+    <ThemeProvider defaultTheme="system" storageKey="app-escolar-theme">
+      <BrowserRouter>
+        <InstituicaoProvider>
+          <AuthProvider>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <Layout />
+                </ProtectedRoute>
+              }>
+                <Route index element={<Dashboard />} />
+                <Route path="agendamentos" element={<Agendamentos />} />
+                <Route path="configuracoes" element={
+                  <AdminRoute>
+                    <ConfiguracoesLayout />
+                  </AdminRoute>
+                } />
+              </Route>
+            </Routes>
+            <Toaster position="top-right" richColors />
+          </AuthProvider>
+        </InstituicaoProvider>
+      </BrowserRouter>
+    </ThemeProvider>
   )
 }
 

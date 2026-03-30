@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from "@/contexts/AuthContext"
 import { useInstituicao } from "@/contexts/InstituicaoContext"
 import { UserProfileModal } from "@/components/usuarios/UserProfileModal"
+import { ThemeToggle } from "@/components/ThemeToggle"
 
 const routes = [
   {
@@ -118,6 +119,12 @@ export function Sidebar({ className }: { className?: string }) {
         {/* Footer / Profile Area */}
         <div className="border-t p-2">
           <div className={cn("flex flex-col gap-2 p-2", isExpanded ? "items-start" : "items-center")}>
+            {/* Theme Toggle */}
+            <div className={cn("flex items-center w-full mb-1", isExpanded ? "justify-between px-1" : "justify-center")} title="Alternar tema visual">
+              {isExpanded && <span className="text-sm font-medium text-muted-foreground">Tema Visual</span>}
+              <ThemeToggle />
+            </div>
+            
             {/* User Info (Clickable for Profile Edit) */}
             <div 
               className={cn(
