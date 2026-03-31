@@ -17,6 +17,11 @@ export function InstituicaoTab() {
   const [corDestaque1, setCorDestaque1] = useState('#e0e7ff')
   const [corDestaque2, setCorDestaque2] = useState('#f1f5f9')
   
+  const [corLoginBackground, setCorLoginBackground] = useState('#f9fafb')
+  const [corLoginText, setCorLoginText] = useState('#111827')
+  const [corLoginFormBackground, setCorLoginFormBackground] = useState('#ffffff')
+  const [corLoginFormText, setCorLoginFormText] = useState('#374151')
+  
   const [timeoutProf, setTimeoutProf] = useState(60)
   const [timeoutCoord, setTimeoutCoord] = useState(60)
   const [timeoutAdmin, setTimeoutAdmin] = useState(20)
@@ -37,6 +42,10 @@ export function InstituicaoTab() {
       setCorSecundaria2(configuracoes.cor_secundaria_2 || '#312e81')
       setCorDestaque1(configuracoes.cor_destaque_1 || '#e0e7ff')
       setCorDestaque2(configuracoes.cor_destaque_2 || '#f1f5f9')
+      setCorLoginBackground(configuracoes.cor_login_background || '#f9fafb')
+      setCorLoginText(configuracoes.cor_login_text || '#111827')
+      setCorLoginFormBackground(configuracoes.cor_login_form_background || '#ffffff')
+      setCorLoginFormText(configuracoes.cor_login_form_text || '#374151')
       setTimeoutProf(configuracoes.timeout_professor_min || 60)
       setTimeoutCoord(configuracoes.timeout_coordenador_min || 60)
       setTimeoutAdmin(configuracoes.timeout_administrador_min || 20)
@@ -97,6 +106,10 @@ export function InstituicaoTab() {
           cor_secundaria_2: corSecundaria2,
           cor_destaque_1: corDestaque1,
           cor_destaque_2: corDestaque2,
+          cor_login_background: corLoginBackground,
+          cor_login_text: corLoginText,
+          cor_login_form_background: corLoginFormBackground,
+          cor_login_form_text: corLoginFormText,
           timeout_professor_min: timeoutProf,
           timeout_coordenador_min: timeoutCoord,
           timeout_administrador_min: timeoutAdmin,
@@ -223,7 +236,43 @@ export function InstituicaoTab() {
                  </div>
               </div>
            </div>
-        </div>
+
+            <div className="pt-4 border-t">
+               <Label className="mb-2 block">Cores da Tela de Login</Label>
+               <p className="text-xs text-muted-foreground mb-4">Escolha as cores exclusivas para a tela de Login, evitando conflito com o modo escuro global.</p>
+               
+               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="space-y-1">
+                     <Label className="text-xs font-normal">Fundo da Página</Label>
+                     <div className="flex gap-2 items-center">
+                       <input type="color" value={corLoginBackground} onChange={(e) => setCorLoginBackground(e.target.value)} className="w-8 h-8 rounded cursor-pointer border-none" />
+                       <Input value={corLoginBackground} onChange={(e) => setCorLoginBackground(e.target.value)} className="h-8 text-xs font-mono" />
+                     </div>
+                  </div>
+                  <div className="space-y-1">
+                     <Label className="text-xs font-normal">Texto da Página</Label>
+                     <div className="flex gap-2 items-center">
+                       <input type="color" value={corLoginText} onChange={(e) => setCorLoginText(e.target.value)} className="w-8 h-8 rounded cursor-pointer border-none" />
+                       <Input value={corLoginText} onChange={(e) => setCorLoginText(e.target.value)} className="h-8 text-xs font-mono" />
+                     </div>
+                  </div>
+                  <div className="space-y-1">
+                     <Label className="text-xs font-normal">Fundo do Card (Form)</Label>
+                     <div className="flex gap-2 items-center">
+                       <input type="color" value={corLoginFormBackground} onChange={(e) => setCorLoginFormBackground(e.target.value)} className="w-8 h-8 rounded cursor-pointer border-none" />
+                       <Input value={corLoginFormBackground} onChange={(e) => setCorLoginFormBackground(e.target.value)} className="h-8 text-xs font-mono" />
+                     </div>
+                  </div>
+                  <div className="space-y-1">
+                     <Label className="text-xs font-normal">Texto do Card (Form)</Label>
+                     <div className="flex gap-2 items-center">
+                       <input type="color" value={corLoginFormText} onChange={(e) => setCorLoginFormText(e.target.value)} className="w-8 h-8 rounded cursor-pointer border-none" />
+                       <Input value={corLoginFormText} onChange={(e) => setCorLoginFormText(e.target.value)} className="h-8 text-xs font-mono" />
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
       </div>
 
       {/* Sessões */}

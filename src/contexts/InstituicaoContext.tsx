@@ -21,6 +21,10 @@ export function InstituicaoProvider({ children }: { children: React.ReactNode })
     if (config.cor_secundaria_2) root.style.setProperty('--secondary-color-2', config.cor_secundaria_2)
     if (config.cor_destaque_1) root.style.setProperty('--highlight-color-1', config.cor_destaque_1)
     if (config.cor_destaque_2) root.style.setProperty('--highlight-color-2', config.cor_destaque_2)
+    if (config.cor_login_background) root.style.setProperty('--login-background', config.cor_login_background)
+    if (config.cor_login_text) root.style.setProperty('--login-text', config.cor_login_text)
+    if (config.cor_login_form_background) root.style.setProperty('--login-form-background', config.cor_login_form_background)
+    if (config.cor_login_form_text) root.style.setProperty('--login-form-text', config.cor_login_form_text)
   }
 
   const applyBrandingToDocument = (config: ConfiguracoesInstituicao) => {

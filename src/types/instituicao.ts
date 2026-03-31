@@ -13,4 +13,8 @@ export interface ConfiguracoesInstituicao {
   semanas_limite_agendamento: number
   tipo_limite_agendamento: string
   data_limite_agendamento: string | null
+  cor_login_background?: string
+  cor_login_text?: string
+  cor_login_form_background?: string
+  cor_login_form_text?: string
 }

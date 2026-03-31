@@ -70,9 +70,14 @@ export function Login() {
   const logoUrl = configuracoes?.logo_url || '/vite.svg'
   const nomeInstituicao = configuracoes?.nome_instituicao || 'Carregando...'
 
+  const bgColor = configuracoes?.cor_login_background || '#f9fafb'
+  const textColor = configuracoes?.cor_login_text || '#111827'
+  const formBgColor = configuracoes?.cor_login_form_background || '#ffffff'
+  const formTextColor = configuracoes?.cor_login_form_text || '#374151'
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl border border-gray-100">
+    <div className="flex min-h-screen items-center justify-center p-4" style={{ backgroundColor: bgColor, color: textColor }}>
+      <div className="w-full max-w-md rounded-2xl p-8 shadow-xl border border-gray-100" style={{ backgroundColor: formBgColor, color: formTextColor }}>
         <div className="flex flex-col items-center mb-8 gap-4">
           {/* Logo container */}
           <div className="h-24 w-24 rounded-full overflow-hidden flex items-center justify-center bg-gray-100 p-2 shadow-inner border border-gray-200">
@@ -88,10 +93,10 @@ export function Login() {
           </div>
           
           <div className="text-center">
-             <h1 className="text-2xl font-bold tracking-tight text-gray-900" style={{ color: configuracoes?.cor_principal }}>
+             <h1 className="text-2xl font-bold tracking-tight" style={{ color: configuracoes?.cor_principal || textColor }}>
                 {nomeInstituicao}
              </h1>
-             <p className="text-sm text-muted-foreground mt-1">Faça login para acessar o sistema escolar</p>
+             <p className="text-sm mt-1" style={{ color: formTextColor, opacity: 0.8 }}>Faça login para acessar o sistema escolar</p>
           </div>
         </div>
 
@@ -103,7 +108,7 @@ export function Login() {
 
         <form onSubmit={handleLogin} className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-gray-700">Email</Label>
+            <Label htmlFor="email" style={{ color: formTextColor }}>Email</Label>
             <Input
               id="email"
               type="email"
@@ -111,15 +116,15 @@ export function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="seu@email.com"
-              className="h-11"
+              className="h-11 bg-white text-gray-900 border-gray-300"
             />
           </div>
           
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="password" className="text-gray-700">Senha</Label>
-              <span className="text-[11px] text-muted-foreground">
-                Esqueceu a senha? <strong style={{ color: configuracoes?.cor_principal || 'inherit' }}>Procure a coordenação</strong>
+              <Label htmlFor="password" style={{ color: formTextColor }}>Senha</Label>
+              <span className="text-[11px]" style={{ color: formTextColor, opacity: 0.8 }}>
+                Esqueceu a senha? <strong style={{ color: configuracoes?.cor_principal || 'inherit', opacity: 1 }}>Procure a coordenação</strong>
               </span>
             </div>
             <Input
@@ -129,7 +134,7 @@ export function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="h-11"
+              className="h-11 bg-white text-gray-900 border-gray-300"
             />
           </div>
 
