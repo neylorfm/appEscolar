@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Link, useLocation } from "react-router-dom"
-import { Calendar, Home, Settings, ChevronLeft, ChevronRight, LogOut, Building2 } from "lucide-react"
+import { Calendar, Home, Settings, ChevronLeft, ChevronRight, LogOut, Building2, FileText, BarChart } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -20,6 +20,11 @@ const routes = [
     path: "/agendamentos",
     name: "Agendamentos",
     icon: Calendar,
+  },
+  {
+    path: "/avaliacoes",
+    name: "Avaliações",
+    icon: FileText,
   },
   {
     path: "/configuracoes",
