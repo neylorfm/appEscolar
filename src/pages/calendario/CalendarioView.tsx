@@ -1,17 +1,15 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { useSearchParams } from "react-router-dom"
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isSameMonth, isToday } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { Calendar, Settings, Download, Search, Plus } from "lucide-react"
+import { Settings, Search, Plus } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { useAuth } from "@/contexts/AuthContext"
 import { CalendarioEvento, getEventosPorAno, getAnoLetivo, CalendarioAnoLetivo } from "@/services/calendario"
 import GerenciarAnoModal from "./GerenciarAnoModal"
 import ImportarCSVModal from "./ImportarCSVModal"
-import { toast } from "sonner"
 import AddEventoModal from "./AddEventoModal"
 
 export const DEFAULT_EVENT_TYPES = [
@@ -77,12 +75,6 @@ export default function CalendarioView() {
     const handlePrevious = () => setCurrentDate(v => subMonths(v, 1))
     const handleNext = () => setCurrentDate(v => addMonths(v, 1))
     const handleToday = () => setCurrentDate(new Date())
-
-    const handleSelectMonth = (value: string) => {
-        const novoD = new Date(currentDate)
-        novoD.setMonth(parseInt(value))
-        setCurrentDate(novoD)
-    }
 
     // Cálculos do grid
     // Função de renderização de um mês isolado (usada em ambas as views)
@@ -293,7 +285,7 @@ export default function CalendarioView() {
                     }
                     
                     const [yStart, mStart, dStart] = periodo.inicio.split('-').map(Number)
-                    const [yEnd, mEnd, dEnd] = periodo.fim.split('-').map(Number)
+                    const [yEnd, mEnd] = periodo.fim.split('-').map(Number)
                     const dInicio = new Date(yStart, mStart - 1, dStart)
                     
                     const monthsDiff = (yEnd - yStart) * 12 + (mEnd - mStart)

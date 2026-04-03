@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Link, useLocation } from "react-router-dom"
-import { Calendar, Home, Settings, ChevronLeft, ChevronRight, LogOut, Building2, FileText, BarChart } from "lucide-react"
+import { Calendar, Home, Settings, ChevronLeft, ChevronRight, LogOut, Building2, FileText } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -41,17 +41,39 @@ export function Sidebar({ className }: { className?: string }) {
   const { configuracoes } = useInstituicao()
 
   return (
-    <div
-      className={cn(
-        "hidden border-r bg-muted/40 transition-all duration-300 md:block relative",
-        isExpanded ? "w-64 lg:w-72" : "w-[72px]",
-        className
+    <>
+      {/* Mobile Overlay for Expanded Sidebar */}
+      {isExpanded && (
+        <div 
+          className="fixed inset-0 bg-black/20 z-40 md:hidden animate-in fade-in duration-200" 
+          onClick={() => setIsExpanded(false)}
+        />
       )}
-    >
-      <div className="flex h-full max-h-screen flex-col">
+      
+      <div
+        className={cn(
+          "fixed top-0 left-0 z-50 border-r bg-white dark:bg-slate-950 transition-all duration-300 shadow-sm",
+          // Desktop behavior
+          "md:relative md:h-screen",
+          isExpanded 
+            ? "w-[280px] h-[100dvh]" 
+            : "w-[64px] h-[64px] md:h-screen md:w-[72px] m-4 md:m-0 rounded-2xl md:rounded-none border shadow-lg md:shadow-none",
+          className
+        )}
+      >
+      <div className="flex h-full max-h-[100dvh] flex-col">
         {/* Header / Logo Area */}
-        <div className="flex h-14 lg:h-[60px] items-center border-b px-4 justify-between">
-          <Link to="/" className={cn("flex items-center gap-3 overflow-hidden", !isExpanded && "justify-center w-full")}>
+        <div className={cn(
+          "flex h-[60px] shrink-0 items-center justify-between border-b px-4",
+          !isExpanded && "border-b-0 px-0"
+        )}>
+          <button 
+            onClick={() => setIsExpanded(!isExpanded)}
+            className={cn(
+              "flex items-center gap-3 overflow-hidden transition-all duration-300", 
+              !isExpanded && "justify-center w-full"
+            )}
+          >
             <div className="flex h-8 w-8 items-center justify-center rounded-lg overflow-hidden bg-primary text-primary-foreground shrink-0 border border-gray-200 shadow-inner">
               {configuracoes?.logo_url ? (
                 <img src={configuracoes.logo_url} alt="Logo da Instituição" className="w-full h-full object-contain bg-white" />
@@ -60,7 +82,7 @@ export function Sidebar({ className }: { className?: string }) {
               )}
             </div>
             {isExpanded && (
-              <div className="flex flex-col">
+              <div className="flex flex-col text-left">
                 <span className="font-bold text-sm leading-tight break-words whitespace-normal line-clamp-2" style={{ color: configuracoes?.cor_principal }}>
                   {configuracoes?.nome_instituicao || "Minha Instituição"}
                 </span>
@@ -69,7 +91,7 @@ export function Sidebar({ className }: { className?: string }) {
                 </span>
               </div>
             )}
-          </Link>
+          </button>
           
           <Button
             variant="ghost"
@@ -89,7 +111,10 @@ export function Sidebar({ className }: { className?: string }) {
         </div>
 
         {/* Navigation */}
-        <div className="flex-1 overflow-auto py-4">
+        <div className={cn(
+          "flex-1 overflow-y-auto py-4 transition-opacity duration-200 scrollbar-none",
+          !isExpanded && "md:opacity-100 opacity-0 pointer-events-none md:pointer-events-auto"
+        )}>
           <nav className="grid gap-1 px-2">
             {routes.map((route) => {
               // Only Administrador can see Settings
@@ -122,36 +147,39 @@ export function Sidebar({ className }: { className?: string }) {
         </div>
 
         {/* Footer / Profile Area */}
-        <div className="border-t p-2">
-          <div className={cn("flex flex-col gap-2 p-2", isExpanded ? "items-start" : "items-center")}>
+        <div className={cn(
+          "border-t p-2 pb-6 shrink-0 transition-opacity duration-200",
+          !isExpanded && "md:opacity-100 opacity-0 pointer-events-none md:pointer-events-auto"
+        )}>
+          <div className={cn("flex flex-col gap-1 p-1 pb-2", isExpanded ? "items-start" : "items-center")}>
             {/* Theme Toggle */}
-            <div className={cn("flex items-center w-full mb-1", isExpanded ? "justify-between px-1" : "justify-center")} title="Alternar tema visual">
-              {isExpanded && <span className="text-sm font-medium text-muted-foreground">Tema Visual</span>}
+            <div className={cn("flex items-center w-full mb-1", isExpanded ? "justify-between px-2" : "justify-center")} title="Alternar tema visual">
+              {isExpanded && <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Tema Visual</span>}
               <ThemeToggle />
             </div>
             
             {/* User Info (Clickable for Profile Edit) */}
             <div 
               className={cn(
-                "flex items-center gap-3 w-full rounded-md p-1.5 transition-colors cursor-pointer hover:bg-slate-100", 
+                "flex items-center gap-2 w-full rounded-lg p-1.5 transition-colors cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800", 
                 !isExpanded && "justify-center"
               )}
               onClick={() => setIsProfileModalOpen(true)}
               title={isExpanded ? "Editar Perfil" : usuario?.nome_completo || 'Perfil'}
             >
-              <Avatar className="h-8 w-8 rounded-full border shrink-0">
-                <AvatarImage src={usuario?.foto_url || ''} alt="Avatar do usuário" />
-                <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+              <Avatar className="h-7 w-7 rounded-full border shrink-0">
+                <AvatarImage src={usuario?.foto_url || ''} alt="Avatar" />
+                <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
                   {usuario?.nome_completo ? usuario.nome_completo.charAt(0).toUpperCase() : 'U'}
                 </AvatarFallback>
               </Avatar>
               
               {isExpanded && (
-                <div className="flex flex-col overflow-hidden">
-                  <span className="text-sm font-medium leading-none truncate" title={usuario?.nome_completo || 'Sem Nome'}>
+                <div className="flex flex-col items-start overflow-hidden">
+                  <span className="text-xs font-bold leading-none truncate w-full" title={usuario?.nome_completo || 'Sem Nome'}>
                     {usuario?.nome_completo || 'Sem Nome'}
                   </span>
-                  <span className="text-[10px] uppercase font-bold text-muted-foreground truncate mt-1" title={usuario?.papel}>
+                  <span className="text-[9px] uppercase font-bold text-muted-foreground truncate mt-0.5" title={usuario?.papel}>
                     {usuario?.apelido || usuario?.papel}
                   </span>
                 </div>
@@ -159,16 +187,17 @@ export function Sidebar({ className }: { className?: string }) {
             </div>
 
             {/* Logout Button */}
-            <Button
-              variant="outline"
-              size={isExpanded ? "sm" : "icon"}
-              className={cn("w-full mt-2 border-border/50 text-muted-foreground hover:text-foreground", !isExpanded && "h-8 w-8")}
+            <button
+              className={cn(
+                "flex items-center gap-2 w-full mt-1 p-2 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors",
+                !isExpanded ? "justify-center" : "px-3"
+              )}
               onClick={logout}
               title={!isExpanded ? "Sair" : undefined}
             >
-              <LogOut className={cn("h-4 w-4 text-muted-foreground", isExpanded && "mr-2")} />
-              {isExpanded && "Sair"}
-            </Button>
+              <LogOut className="h-4 w-4 shrink-0" />
+              {isExpanded && <span className="text-xs font-bold">Encerrar Sessão</span>}
+            </button>
           </div>
         </div>
       </div>
@@ -178,5 +207,6 @@ export function Sidebar({ className }: { className?: string }) {
          onClose={() => setIsProfileModalOpen(false)} 
       />
     </div>
+    </>
   )
 }

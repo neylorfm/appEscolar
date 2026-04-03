@@ -3,9 +3,7 @@ import { useParams, useNavigate } from "react-router-dom"
 import { ArrowLeft, Upload, Save, Download, AlertCircle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
@@ -388,7 +386,7 @@ export default function LancamentoResultadosPage() {
                                       maxLength={1}
                                       value={inputVal}
                                       onChange={(e) => handleRespostaChange(al.matricula, q, e.target.value)}
-                                      className={`w-8 h-8 text-center text-xs font-mono font-bold uppercase rounded border focus:outline-none focus:ring-1 focus:ring-ring \${colorClass} \${!canEdit ? 'bg-muted/50 cursor-not-allowed opacity-80' : 'bg-background'}`}
+                                      className={`w-8 h-8 text-center text-xs font-mono font-bold uppercase rounded border focus:outline-none focus:ring-1 focus:ring-ring ${colorClass} ${!canEdit ? 'bg-muted/50 cursor-not-allowed opacity-80' : 'bg-background'}`}
                                    />
                                  </td>
                                )

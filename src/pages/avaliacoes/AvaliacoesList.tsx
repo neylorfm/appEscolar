@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
-import { PlusCircle, FileText, Trash2, Edit } from "lucide-react"
+import { useNavigate } from "react-router-dom"
+import { PlusCircle, FileText, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"

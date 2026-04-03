@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { toast } from "sonner"
-import { Calendar as CalendarIcon, X, AlertTriangle } from "lucide-react"
+import { X, AlertTriangle } from "lucide-react"
 import {
   Dialog,
   DialogContent,

@@ -13,10 +13,8 @@ import CalendarioView from "./pages/calendario/CalendarioView"
 import { Toaster } from "./components/ui/sonner"
 import { ThemeProvider } from "./components/ThemeProvider"
 
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Calendar as CalendarIcon, Settings, Eye } from "lucide-react"
-import { Link } from "react-router-dom"
+import { QuickLinks } from "./pages/dashboard/QuickLinks"
+import { Avisos } from "./pages/dashboard/Avisos"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { usuario, loading } = useAuth()
@@ -44,41 +42,26 @@ function Dashboard() {
   const { usuario } = useAuth()
   
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8 max-w-6xl mx-auto">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Bem-vindo ao App Escolar. Selecione um módulo abaixo.</p>
+        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+          Olá, {usuario?.nome_completo?.split(' ')[0] || 'Bem-vindo'}!
+        </h1>
+        <p className="text-slate-500 mt-2 text-lg font-medium">
+          Confira os destaques e acessos rápidos de hoje.
+        </p>
       </div>
       
-      <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-        <Card className="flex flex-col">
-          <CardHeader className="pb-3">
-             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-orange-50 text-orange-600 mb-4">
-               <CalendarIcon className="h-6 w-6" />
-             </div>
-             <CardTitle className="text-xl">Calendário Acadêmico</CardTitle>
-             <CardDescription className="pt-2">
-               Versão atualizada do calendário escolar com eventos e períodos letivos.
-             </CardDescription>
-          </CardHeader>
-          <div className="flex-1" />
-          <div className="flex w-full items-center gap-4 border-t px-5 py-3 text-sm font-semibold text-slate-600">
-             <Link to="/calendario" className="flex items-center gap-1.5 hover:text-slate-900 transition-colors">
-                Visualizar
-                <Eye className="h-3.5 w-3.5" />
-             </Link>
-             
-             {(usuario?.papel === 'Administrador' || usuario?.papel === 'Coordenador') && (
-               <>
-                 <div className="h-4 w-px bg-slate-200" />
-                 <Link to="/calendario?manage=true" className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 transition-colors">
-                   Gerenciar
-                   <Settings className="h-3.5 w-3.5" />
-                 </Link>
-               </>
-             )}
-          </div>
-        </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        {/* Coluna de Conteúdo Principal (Avisos) */}
+        <div className="lg:col-span-2 order-2 lg:order-1">
+          <Avisos />
+        </div>
+
+        {/* Coluna Lateral (QuickLinks) */}
+        <div className="order-1 lg:order-2 flex flex-col gap-6">
+          <QuickLinks />
+        </div>
       </div>
     </div>
   )
