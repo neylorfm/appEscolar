@@ -200,7 +200,7 @@ export default function CalendarioView() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b pb-4 gap-4">
                 <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-3">
-                        <h1 className="text-2xl font-bold tracking-tight text-slate-800">Calendário Escolar</h1>
+                        <h1 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">Calendário Escolar</h1>
                     </div>
                 </div>
             </div>
@@ -212,7 +212,7 @@ export default function CalendarioView() {
                     <Button 
                         variant="outline" 
                         onClick={() => setIsViewSelectOpen(true)}
-                        className="font-extrabold text-indigo-700 bg-indigo-50/50 shadow-sm border-indigo-200 hover:bg-indigo-100/50 hover:border-indigo-300 transition-all rounded-xl relative pr-8"
+                        className="font-extrabold text-indigo-700 dark:text-white bg-indigo-50/50 dark:bg-[#d8849e] shadow-sm border-indigo-200 dark:border-transparent hover:bg-indigo-100/50 transition-all rounded-xl relative pr-8"
                     >
                         <Search className="w-4 h-4 mr-2 opacity-50" />
                         {viewMode === 'month' ? 'Visão Mensal' : (anoLetivoData?.periodos[parseInt(selectedBimesterIdx)]?.nome || 'Bimestre')}
@@ -225,7 +225,7 @@ export default function CalendarioView() {
 
                     {isCoordAdm && (
                         <>
-                            <Button className="bg-indigo-600 hover:bg-indigo-700 font-bold tracking-wide shadow-sm" onClick={() => setIsImportarOpen(true)}>
+                            <Button className="bg-indigo-600 hover:bg-indigo-700 dark:bg-[#d8849e] font-bold tracking-wide shadow-sm dark:text-white" onClick={() => setIsImportarOpen(true)}>
                                 IMPORTAR CSV
                             </Button>
                             

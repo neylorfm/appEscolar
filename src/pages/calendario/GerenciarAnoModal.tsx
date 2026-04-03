@@ -111,13 +111,13 @@ export default function GerenciarAnoModal({
                         <section>
                             <div className="flex items-center gap-2 mb-4">
                                 <div className="w-1 h-4 bg-blue-600 rounded-full" />
-                                <h3 className="font-bold text-sm text-slate-800 tracking-wider">DATAS PRINCIPAIS</h3>
+                                <h3 className="font-bold text-sm text-slate-800 dark:text-white tracking-wider">DATAS PRINCIPAIS</h3>
                             </div>
                             
                             <div className="grid grid-cols-2 gap-6">
                                 <div>
                                     <Label className="text-xs font-bold text-slate-400 uppercase">Ano Letivo</Label>
-                                    <div className="text-2xl font-bold mt-1 text-slate-800 tracking-tight">
+                                    <div className="text-2xl font-bold mt-1 text-slate-800 dark:text-white tracking-tight">
                                         {formData.ano_letivo}
                                     </div>
                                 </div>
@@ -158,7 +158,7 @@ export default function GerenciarAnoModal({
                         <section>
                             <div className="flex items-center gap-2 mb-4">
                                 <div className="w-1 h-4 bg-blue-600 rounded-full" />
-                                <h3 className="font-bold text-sm text-slate-800 tracking-wider">BIMESTRES</h3>
+                                <h3 className="font-bold text-sm text-slate-800 dark:text-white tracking-wider">BIMESTRES</h3>
                             </div>
 
                             <div className="flex flex-col gap-3">
@@ -172,7 +172,7 @@ export default function GerenciarAnoModal({
                                                     type="date" 
                                                     value={per.inicio}
                                                     onChange={e => handleChangePeriodo(idx, 'inicio', e.target.value)}
-                                                    className="h-9 bg-white"
+                                                    className="h-9 bg-white dark:text-black"
                                                 />
                                             </div>
                                             <div className="space-y-1.5">
@@ -181,7 +181,7 @@ export default function GerenciarAnoModal({
                                                     type="date" 
                                                     value={per.fim}
                                                     onChange={e => handleChangePeriodo(idx, 'fim', e.target.value)}
-                                                    className="h-9 bg-white"
+                                                    className="h-9 bg-white dark:text-black"
                                                 />
                                             </div>
                                         </div>
@@ -196,7 +196,7 @@ export default function GerenciarAnoModal({
                         <section>
                             <div className="flex items-center gap-2 mb-4">
                                 <div className="w-1 h-4 bg-purple-600 rounded-full" />
-                                <h3 className="font-bold text-sm text-slate-800 tracking-wider">TIPO DE EVENTOS (LEGENDAS)</h3>
+                                <h3 className="font-bold text-sm text-slate-800 dark:text-white tracking-wider">TIPO DE EVENTOS (LEGENDAS)</h3>
                             </div>
                             
                             <p className="text-sm text-slate-500 mb-3">Adicione legendas extras customizadas. Elas aparecerão no calendário junto aos tipos padrões.</p>
@@ -247,7 +247,7 @@ export default function GerenciarAnoModal({
                                 <h3 className="font-bold text-sm uppercase tracking-wider">Zona de Perigo</h3>
                             </div>
                             
-                            <p className="text-sm text-slate-600 mb-4">
+                            <p className="text-sm text-slate-600 dark:text-[#b8e8b3] mb-4">
                                 Para resetar todas as datas e eventos do banco, digite a frase abaixo e confirme.
                             </p>
                             

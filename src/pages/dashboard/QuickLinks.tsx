@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { ExternalLink, Plus, Trash2, Edit2, Calendar } from "lucide-react"
+import { ExternalLink, Plus, Trash2, Edit2, Calendar, Clock } from "lucide-react"
 import * as LucideIcons from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -68,6 +68,7 @@ export function QuickLinks() {
     }
   }
 
+
   const DynamicIcon = ({ name, className }: { name: string | null, className?: string }) => {
     if (!name) return <ExternalLink className={className} />
     const Icon = (LucideIcons as any)[name]
@@ -75,9 +76,9 @@ export function QuickLinks() {
   }
 
   return (
-    <Card className="shadow-sm border-none bg-slate-50/50">
+    <Card className="shadow-sm border-none bg-slate-50/50 dark:bg-slate-900/40">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-500">Links Rápidos</CardTitle>
+        <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-white">Links Rápidos</CardTitle>
         {canManage && (
           <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-primary" onClick={() => { setEditingLink({ icone: 'ExternalLink' }); setIsModalOpen(true); }}>
             <Plus className="h-4 w-4" />
@@ -87,11 +88,18 @@ export function QuickLinks() {
       <CardContent>
         <div className="flex flex-col gap-2">
           {/* Default System Links */}
-          <Link to="/calendario" className="flex items-center gap-3 p-3 rounded-xl bg-white border border-slate-200 hover:border-primary hover:shadow-md transition-all group">
-            <div className="h-9 w-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
+          <Link to="/calendario" className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-primary hover:shadow-md transition-all group">
+            <div className="h-9 w-9 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
               <Calendar className="h-5 w-5" />
             </div>
-            <span className="font-bold text-slate-700">Calendário Letivo</span>
+            <span className="font-bold text-slate-700 dark:text-slate-200">Calendário Letivo</span>
+          </Link>
+
+          <Link to="/agendamentos" className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-primary hover:shadow-md transition-all group">
+            <div className="h-9 w-9 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
+              <Clock className="h-5 w-5" />
+            </div>
+            <span className="font-bold text-slate-700 dark:text-slate-200">Agendamentos</span>
           </Link>
 
           {/* Custom Links */}
@@ -101,13 +109,13 @@ export function QuickLinks() {
                 href={link.url} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="flex items-center gap-3 p-3 rounded-xl bg-white border border-slate-200 hover:border-primary hover:shadow-md transition-all group"
+                className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-primary hover:shadow-md transition-all group"
               >
-                <div className="h-9 w-9 rounded-lg bg-slate-50 text-slate-600 flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
+                <div className="h-9 w-9 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
                   <DynamicIcon name={link.icone} className="h-5 w-5" />
                 </div>
                 <div className="flex flex-col overflow-hidden">
-                   <span className="font-bold text-slate-700 truncate">{link.titulo}</span>
+                   <span className="font-bold text-slate-700 dark:text-slate-200 truncate">{link.titulo}</span>
                    <span className="text-[10px] text-muted-foreground truncate">{link.url}</span>
                 </div>
               </a>
@@ -145,11 +153,12 @@ export function QuickLinks() {
               <Label htmlFor="url">URL Externa</Label>
               <Input id="url" placeholder="https://..." value={editingLink?.url || ""} onChange={(e) => setEditingLink(prev => ({ ...prev, url: e.target.value }))} />
             </div>
+
             <div className="grid gap-2">
               <Label htmlFor="icone">Nome do Ícone (Lucide)</Label>
               <div className="flex gap-2">
                 <Input id="icone" placeholder="Book, Globe, etc." value={editingLink?.icone || ""} onChange={(e) => setEditingLink(prev => ({ ...prev, icone: e.target.value }))} />
-                <div className="h-10 w-10 rounded border flex items-center justify-center bg-slate-50">
+                <div className="h-10 w-10 rounded border flex items-center justify-center bg-slate-50 dark:bg-slate-900">
                   <DynamicIcon name={editingLink?.icone || null} />
                 </div>
               </div>

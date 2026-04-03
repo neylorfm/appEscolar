@@ -76,7 +76,7 @@ export function Avisos() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between px-1">
-        <div className="flex items-center gap-2 text-slate-800">
+        <div className="flex items-center gap-2 text-slate-800 dark:text-white">
            <Bell className="h-5 w-5 text-primary" />
            <h2 className="text-xl font-bold">Quadro de Avisos</h2>
         </div>
@@ -89,7 +89,7 @@ export function Avisos() {
 
       <div className="grid gap-4">
         {avisos.map((aviso) => (
-          <Card key={aviso.id} className="relative group overflow-hidden border-none shadow-sm hover:shadow-md transition-all bg-white">
+          <Card key={aviso.id} className="relative group overflow-hidden border-none shadow-sm hover:shadow-md transition-all bg-white dark:bg-slate-900/50 dark:border dark:border-slate-800">
             {canManage && (
               <div className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
                 <Button variant="ghost" size="icon" className="h-8 w-8 bg-white/80 border" onClick={() => { setEditingAviso(aviso); setIsModalOpen(true); }}>
@@ -101,17 +101,17 @@ export function Avisos() {
               </div>
             )}
             <CardHeader className="pb-2">
-              <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+              <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">
                 <Calendar className="h-3 w-3" />
                 {format(new Date(aviso.data_publicacao), "dd 'de' MMMM", { locale: ptBR })}
                 <span className="mx-1">•</span>
                 <Clock className="h-3 w-3" />
                 {format(new Date(aviso.data_publicacao), "HH:mm")}
               </div>
-              <CardTitle className="text-lg text-slate-800">{aviso.titulo}</CardTitle>
+              <CardTitle className="text-lg text-slate-800 dark:text-slate-100">{aviso.titulo}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap">
+              <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">
                 {aviso.conteudo}
               </p>
             </CardContent>
@@ -121,7 +121,7 @@ export function Avisos() {
         {!loading && avisos.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 text-center bg-slate-50/50 rounded-2xl border-2 border-dashed">
             <Bell className="h-10 w-10 text-slate-300 mb-2" />
-            <p className="text-sm text-slate-500 font-medium">Nenhum aviso importante no momento.</p>
+            <p className="text-sm text-slate-500 dark:text-[#b8e8b3] font-medium">Nenhum aviso importante no momento.</p>
           </div>
         )}
       </div>

@@ -44,10 +44,10 @@ function Dashboard() {
   return (
     <div className="flex flex-col gap-8 max-w-6xl mx-auto">
       <div>
-        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-slate-50">
           Olá, {usuario?.nome_completo?.split(' ')[0] || 'Bem-vindo'}!
         </h1>
-        <p className="text-slate-500 mt-2 text-lg font-medium">
+        <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg font-medium">
           Confira os destaques e acessos rápidos de hoje.
         </p>
       </div>
