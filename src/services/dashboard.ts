@@ -14,6 +14,7 @@ export interface Aviso {
   id: string
   titulo: string
   conteudo: string
+  imagem_url?: string | null
   data_publicacao: string
   autor_id: string | null
   tags: string[]
@@ -118,6 +119,7 @@ export async function upsertAviso(aviso: Partial<Aviso>) {
       .update({
         titulo: aviso.titulo,
         conteudo: aviso.conteudo,
+        imagem_url: aviso.imagem_url ? aviso.imagem_url.trim() : null,
         tags: aviso.tags || [],
         data_publicacao: aviso.data_publicacao || new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -137,6 +139,7 @@ export async function upsertAviso(aviso: Partial<Aviso>) {
       .insert([{
         titulo: aviso.titulo,
         conteudo: aviso.conteudo,
+        imagem_url: aviso.imagem_url ? aviso.imagem_url.trim() : null,
         autor_id: aviso.autor_id || null,
         tags: aviso.tags || [],
         data_publicacao: aviso.data_publicacao || new Date().toISOString()

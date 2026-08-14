@@ -122,6 +122,7 @@ export type Database = {
           created_at: string
           data_publicacao: string
           id: string
+          imagem_url: string | null
           tags: string[] | null
           titulo: string
           updated_at: string
@@ -132,6 +133,7 @@ export type Database = {
           created_at?: string
           data_publicacao?: string
           id?: string
+          imagem_url?: string | null
           tags?: string[] | null
           titulo: string
           updated_at?: string
@@ -142,6 +144,7 @@ export type Database = {
           created_at?: string
           data_publicacao?: string
           id?: string
+          imagem_url?: string | null
           tags?: string[] | null
           titulo?: string
           updated_at?: string
