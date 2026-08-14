@@ -52,8 +52,11 @@ export function QuickLinks() {
       toast.success("Link salvo com sucesso")
       setIsModalOpen(false)
       loadLinks()
-    } catch (error) {
-      toast.error("Erro ao salvar link")
+    } catch (error: any) {
+      console.error("Erro ao salvar quicklink:", error)
+      toast.error("Erro ao salvar link", {
+        description: error?.message || "Verifique se a tabela quicklinks existe no banco de dados."
+      })
     }
   }
 
@@ -63,8 +66,11 @@ export function QuickLinks() {
       await deleteQuickLink(id)
       toast.success("Link excluído")
       loadLinks()
-    } catch (error) {
-      toast.error("Erro ao excluir link")
+    } catch (error: any) {
+      console.error("Erro ao excluir quicklink:", error)
+      toast.error("Erro ao excluir link", {
+        description: error?.message || "Erro ao conectar com o banco de dados."
+      })
     }
   }
 

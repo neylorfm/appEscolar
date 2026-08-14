@@ -57,8 +57,11 @@ export function Avisos() {
       toast.success("Aviso publicado")
       setIsModalOpen(false)
       loadAvisos()
-    } catch (error) {
-      toast.error("Erro ao salvar aviso")
+    } catch (error: any) {
+      console.error("Erro ao salvar aviso:", error)
+      toast.error("Erro ao salvar aviso", {
+        description: error?.message || "Verifique se a tabela avisos existe no banco de dados."
+      })
     }
   }
 
@@ -68,8 +71,11 @@ export function Avisos() {
       await deleteAviso(id)
       toast.success("Aviso removido")
       loadAvisos()
-    } catch (error) {
-      toast.error("Erro ao excluir")
+    } catch (error: any) {
+      console.error("Erro ao excluir aviso:", error)
+      toast.error("Erro ao excluir", {
+        description: error?.message || "Erro ao conectar com o banco de dados."
+      })
     }
   }
 

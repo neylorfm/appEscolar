@@ -115,6 +115,77 @@ export type Database = {
         }
         Relationships: []
       }
+      avisos: {
+        Row: {
+          autor_id: string | null
+          conteudo: string
+          created_at: string
+          data_publicacao: string
+          id: string
+          tags: string[] | null
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          autor_id?: string | null
+          conteudo: string
+          created_at?: string
+          data_publicacao?: string
+          id?: string
+          tags?: string[] | null
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          autor_id?: string | null
+          conteudo?: string
+          created_at?: string
+          data_publicacao?: string
+          id?: string
+          tags?: string[] | null
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avisos_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      quicklinks: {
+        Row: {
+          created_at: string
+          icone: string | null
+          id: string
+          ordem: number
+          titulo: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          icone?: string | null
+          id?: string
+          ordem?: number
+          titulo: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          icone?: string | null
+          id?: string
+          ordem?: number
+          titulo?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       configuracoes_instituicao: {
         Row: {
           cor_destaque_1: string | null
