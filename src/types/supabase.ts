@@ -278,6 +278,7 @@ export type Database = {
           icone: string
           id: string
           nome: string
+          ordem: number | null
           updated_at: string
         }
         Insert: {
@@ -287,6 +288,7 @@ export type Database = {
           icone?: string
           id?: string
           nome: string
+          ordem?: number | null
           updated_at?: string
         }
         Update: {
@@ -296,6 +298,7 @@ export type Database = {
           icone?: string
           id?: string
           nome?: string
+          ordem?: number | null
           updated_at?: string
         }
         Relationships: []

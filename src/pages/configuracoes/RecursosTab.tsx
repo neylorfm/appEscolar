@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, AlertCircle } from 'lucide-react'
+import { Plus, Trash2, AlertCircle, GripVertical, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
@@ -14,7 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Recurso, getRecursos, criarRecurso, atualizarRecurso, deletarRecurso } from '@/services/recursos'
+import { Recurso, getRecursos, criarRecurso, atualizarRecurso, deletarRecurso, atualizarOrdemRecursos } from '@/services/recursos'
 import { useAuth } from '@/contexts/AuthContext'
 import { useInstituicao } from '@/contexts/InstituicaoContext'
 import { supabase } from '@/lib/supabase'
@@ -40,6 +41,11 @@ export function RecursosTab() {
   const [formIcone, setFormIcone] = useState('Box')
   const [formDetalhes, setFormDetalhes] = useState('')
   const [formAtivo, setFormAtivo] = useState(true)
+
+  // Drag and drop states
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+  const [isSavingOrder, setIsSavingOrder] = useState(false)
 
   const { usuario } = useAuth()
   const podeEditar = usuario?.papel === 'Administrador'
@@ -124,14 +130,17 @@ export function RecursosTab() {
           ativo: formAtivo
         })
         setRecursos(prev => prev.map(r => r.id === editingId ? atualizado : r))
+        toast.success('Recurso atualizado com sucesso!')
       } else {
         const novo = await criarRecurso({
           nome: formNome.trim(),
           icone: formIcone.trim(),
           detalhes: formDetalhes.trim() || null,
-          ativo: formAtivo
+          ativo: formAtivo,
+          ordem: recursos.length + 1
         })
         setRecursos(prev => [...prev, novo])
+        toast.success('Novo recurso cadastrado!')
       }
       setIsModalOpen(false)
     } catch (err) {
@@ -145,10 +154,97 @@ export function RecursosTab() {
     
     try {
       await deletarRecurso(id)
-      setRecursos(prev => prev.filter(r => r.id !== id))
+      const filtrados = recursos.filter(r => r.id !== id)
+      setRecursos(filtrados)
+      toast.success('Recurso excluído com sucesso.')
+      // Atualizar a ordem dos restantes
+      if (filtrados.length > 0) {
+        await persistNewOrder(filtrados)
+      }
     } catch (err) {
       setErrorDesc(err instanceof Error ? err.message : 'Erro ao excluir o recurso.')
     }
+  }
+
+  // Helper to persist new order in Supabase
+  const persistNewOrder = async (orderedList: Recurso[]) => {
+    const previousList = [...recursos]
+    setIsSavingOrder(true)
+    try {
+      const updates = orderedList.map((rec, index) => ({
+        id: rec.id,
+        ordem: index + 1
+      }))
+      await atualizarOrdemRecursos(updates)
+      toast.success('Ordem dos recursos atualizada com sucesso!', { id: 'ordem-recursos-toast' })
+    } catch (err) {
+      console.error('Erro ao persistir ordem:', err)
+      setRecursos(previousList)
+      toast.error('Erro ao salvar nova ordem dos recursos.')
+    } finally {
+      setIsSavingOrder(false)
+    }
+  }
+
+  // Move item by direction (-1 for left/up, 1 for right/down)
+  const handleMove = async (index: number, direction: -1 | 1, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    const targetIndex = index + direction
+    if (targetIndex < 0 || targetIndex >= recursos.length) return
+
+    const newList = [...recursos]
+    const [movedItem] = newList.splice(index, 1)
+    newList.splice(targetIndex, 0, movedItem)
+
+    // Atualização otimista imediata
+    setRecursos(newList)
+    await persistNewOrder(newList)
+  }
+
+  // HTML5 Drag and Drop handlers
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    if (!podeEditar) return
+    setDraggedIndex(index)
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', index.toString())
+  }
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    if (!podeEditar) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index)
+    }
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+  }
+
+  const handleDrop = async (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault()
+    if (!podeEditar || draggedIndex === null || draggedIndex === targetIndex) {
+      setDraggedIndex(null)
+      setDragOverIndex(null)
+      return
+    }
+
+    const newList = [...recursos]
+    const [draggedItem] = newList.splice(draggedIndex, 1)
+    newList.splice(targetIndex, 0, draggedItem)
+
+    setDraggedIndex(null)
+    setDragOverIndex(null)
+
+    // Atualização otimista
+    setRecursos(newList)
+    await persistNewOrder(newList)
+  }
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null)
+    setDragOverIndex(null)
   }
 
   // Helper to dynamically render a Lucide component by string name
@@ -162,13 +258,20 @@ export function RecursosTab() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-xl font-semibold">Recursos</h2>
+          <h2 className="text-xl font-semibold flex items-center gap-2">
+            <span>Recursos</span>
+            {isSavingOrder && (
+              <span className="text-xs font-normal text-muted-foreground animate-pulse">
+                Salvando ordem...
+              </span>
+            )}
+          </h2>
           <p className="text-sm text-muted-foreground">
-            Gerencie os laboratórios, salas de vídeo, quadras e outros espaços.
+            Gerencie e reordene os laboratórios, salas de vídeo, quadras e outros espaços.
           </p>
         </div>
         {podeEditar && (
-           <Button onClick={() => handleOpenModal()} className="bg-primary hover:bg-primary/90">
+           <Button onClick={() => handleOpenModal()} className="bg-primary hover:bg-primary/90 shadow-sm">
              <Plus className="mr-2 h-4 w-4" />
              Novo Recurso
            </Button>
@@ -176,7 +279,7 @@ export function RecursosTab() {
       </div>
 
       {podeEditar && (
-        <div className="bg-white p-5 rounded-lg border shadow-sm space-y-4 mb-8">
+        <div className="bg-white p-5 rounded-lg border shadow-sm space-y-4 mb-6">
           <div className="border-b pb-2 flex justify-between items-center">
             <h3 className="text-lg font-semibold text-slate-800">Regras Globais de Agendamento</h3>
             {successConfigMsg && <span className="text-sm font-medium text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">{successConfigMsg}</span>}
@@ -220,6 +323,16 @@ export function RecursosTab() {
         </div>
       )}
 
+      {/* Dica de Reordenação */}
+      {podeEditar && recursos.length > 1 && (
+        <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-50/60 dark:bg-blue-950/30 text-blue-800 dark:text-blue-300 rounded-lg border border-blue-200/60 dark:border-blue-900/40 text-xs sm:text-sm">
+          <ArrowUpDown className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
+          <span>
+            <strong>Ordem Personalizada:</strong> Arraste os cartões pelo ícone de grade (<GripVertical className="h-3.5 w-3.5 inline mx-0.5" />) ou use as setas ⬅️ ➡️ no rodapé de cada cartão para definir a ordem na lista suspensa de Agendamentos.
+          </span>
+        </div>
+      )}
+
       {loading ? (
          <div className="py-12 text-center text-muted-foreground">Carregando recursos...</div>
       ) : recursos.length === 0 ? (
@@ -228,21 +341,54 @@ export function RecursosTab() {
          </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {recursos.map((recurso) => (
+          {recursos.map((recurso, index) => {
+            const isBeingDragged = draggedIndex === index
+            const isOver = dragOverIndex === index && draggedIndex !== index
+
+            return (
              <div 
                key={recurso.id} 
-               className={`relative bg-card rounded-xl border shadow-sm flex flex-col overflow-hidden group transition-all duration-200 ${podeEditar ? 'hover:shadow-md hover:border-blue-200 cursor-pointer' : ''} ${!recurso.ativo ? 'opacity-80' : ''}`}
+               draggable={podeEditar}
+               onDragStart={(e) => handleDragStart(e, index)}
+               onDragOver={(e) => handleDragOver(e, index)}
+               onDragLeave={handleDragLeave}
+               onDrop={(e) => handleDrop(e, index)}
+               onDragEnd={handleDragEnd}
+               className={`relative bg-card rounded-xl border shadow-sm flex flex-col overflow-hidden group transition-all duration-200 
+                 ${podeEditar ? 'hover:shadow-md hover:border-blue-300 cursor-pointer' : ''} 
+                 ${!recurso.ativo ? 'opacity-80 bg-slate-50/50' : ''}
+                 ${isBeingDragged ? 'opacity-40 scale-95 border-dashed border-blue-500 ring-2 ring-blue-400/50' : ''}
+                 ${isOver ? 'border-primary ring-2 ring-primary/50 bg-blue-50/40 scale-[1.02]' : ''}
+               `}
                onClick={() => podeEditar && handleOpenModal(recurso)}
              >
                 {/* Status Ribbon/Badge in top right corner */}
-                <div className={`absolute -right-8 top-4 rotate-45 px-10 py-0.5 text-[10px] font-bold text-white text-center shadow-sm w-[120px] ${recurso.ativo ? 'bg-emerald-500' : 'bg-rose-500'}`}>
+                <div className={`absolute -right-8 top-4 rotate-45 px-10 py-0.5 text-[10px] font-bold text-white text-center shadow-sm w-[120px] pointer-events-none ${recurso.ativo ? 'bg-emerald-500' : 'bg-rose-500'}`}>
                    {recurso.ativo ? 'ATIVO' : 'INATIVO'}
                 </div>
                 
+                {/* Card Top / Drag Handle & Order Badge */}
+                <div className="pt-3 px-4 flex items-center justify-between pointer-events-auto">
+                  <div className="flex items-center gap-1.5">
+                    {podeEditar && (
+                      <div 
+                        className="cursor-grab active:cursor-grabbing p-1 -ml-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
+                        title="Arraste para reordenar"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <GripVertical className="h-4 w-4" />
+                      </div>
+                    )}
+                    <span className="text-[11px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full shadow-2xs">
+                      #{index + 1}
+                    </span>
+                  </div>
+                </div>
+
                 {/* Card Body */}
-                <div className="p-5 flex-1 flex flex-col">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="w-12 h-12 rounded-lg bg-blue-50/50 flex items-center justify-center text-blue-600 border border-blue-100/50 flex-shrink-0">
+                <div className="p-5 pt-2 flex-1 flex flex-col">
+                  <div className="flex items-center gap-4 mb-3">
+                    <div className="w-12 h-12 rounded-lg bg-blue-50/70 flex items-center justify-center text-blue-600 border border-blue-100 flex-shrink-0 shadow-2xs">
                       {renderIcon(recurso.icone, 24)}
                     </div>
                     <h3 className="font-semibold text-slate-800 text-lg leading-tight pr-8">
@@ -261,19 +407,54 @@ export function RecursosTab() {
                   )}
                 </div>
 
-                {/* Optional Quick Delete overlay on hover - just for convenience */}
-                {podeEditar && (
-                  <Button
-                     variant="destructive"
-                     size="icon"
-                     className="absolute bottom-4 right-4 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity bg-rose-500 hover:bg-rose-600 rounded-full shadow-sm"
-                     onClick={(e) => handleDelete(recurso.id, e)}
-                  >
-                     <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
+                {/* Card Footer with Reorder Controls and Quick Actions */}
+                <div className="px-4 py-2.5 bg-slate-50/80 border-t flex items-center justify-between gap-2 mt-auto" onClick={(e) => e.stopPropagation()}>
+                  {/* Directional buttons for easy 1-click reordering */}
+                  {podeEditar ? (
+                    <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7 bg-white hover:bg-slate-100 text-slate-700 disabled:opacity-30 disabled:pointer-events-none"
+                        disabled={index === 0}
+                        onClick={(e) => handleMove(index, -1, e)}
+                        title="Mover para a esquerda/anterior"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7 bg-white hover:bg-slate-100 text-slate-700 disabled:opacity-30 disabled:pointer-events-none"
+                        disabled={index === recursos.length - 1}
+                        onClick={(e) => handleMove(index, 1, e)}
+                        title="Mover para a direita/próximo"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : <div />}
+
+                  {/* Actions (Delete) */}
+                  {podeEditar && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                         variant="ghost"
+                         size="icon"
+                         className="h-7 w-7 text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-md"
+                         onClick={(e) => handleDelete(recurso.id, e)}
+                         title="Excluir recurso"
+                      >
+                         <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
              </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
@@ -397,3 +578,4 @@ export function RecursosTab() {
 function SaveIcon({ className }: { className?: string }) {
   return <LucideIcons.Save className={className} />
 }
+

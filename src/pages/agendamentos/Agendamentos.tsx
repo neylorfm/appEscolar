@@ -88,8 +88,9 @@ export default function Agendamentos() {
           getHorarios(),
           getUsuarios()
         ]);
-        setRecursos(recs.filter(r => r.ativo));
-        if (recs.length > 0) setSelectedRecurso(recs[0].id);
+        const ativos = recs.filter(r => r.ativo);
+        setRecursos(ativos);
+        if (ativos.length > 0) setSelectedRecurso(ativos[0].id);
         
         // Ordenar os horarios
         const sortedHrs = hrs.sort((a, b) => a.inicio.localeCompare(b.inicio));
