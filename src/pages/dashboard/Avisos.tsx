@@ -82,15 +82,22 @@ export function Avisos() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between px-1">
-        <div className="flex items-center gap-2 text-slate-800 dark:text-white">
-           <Bell className="h-5 w-5 text-primary" />
-           <h2 className="text-xl font-bold">Quadro de Avisos</h2>
+        <div className="flex items-center gap-2.5 text-foreground">
+          <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+            <Bell className="h-5 w-5" />
+          </div>
+          <h2 className="text-xl font-bold tracking-tight">Quadro de Avisos</h2>
         </div>
         {canManage && (
-          <Button size="sm" onClick={() => { setEditingAviso({}); setIsModalOpen(true); }} className="rounded-full px-4 border shadow-sm">
-            <Plus className="h-4 w-4 mr-2" /> Novo Aviso
+          <Button 
+            size="sm" 
+            onClick={() => { setEditingAviso({}); setIsModalOpen(true); }} 
+            className="rounded-lg px-3.5 text-xs font-semibold shadow-xs gap-1.5"
+          >
+            <Plus className="h-4 w-4" /> 
+            <span>Novo Aviso</span>
           </Button>
         )}
       </div>
@@ -100,31 +107,48 @@ export function Avisos() {
 
       <div className="grid gap-4">
         {avisos.map((aviso) => (
-          <Card key={aviso.id} className="relative group overflow-hidden border-none shadow-sm hover:shadow-md transition-all bg-white dark:bg-slate-900/50 dark:border dark:border-slate-800">
+          <Card 
+            key={aviso.id} 
+            className="relative group overflow-hidden border border-border/80 shadow-xs hover:shadow-md hover:border-primary/40 transition-all bg-card rounded-xl"
+          >
             {canManage && (
-              <div className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
-                <Button variant="ghost" size="icon" className="h-8 w-8 bg-white/90 dark:bg-slate-800/90 border shadow-xs" onClick={() => { setEditingAviso(aviso); setIsModalOpen(true); }} title="Editar aviso">
-                  <Edit2 className="h-4 w-4" />
+              <div className="absolute right-3.5 top-3.5 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1.5 z-10 bg-background/90 p-1 rounded-lg border border-border shadow-xs">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-7 w-7 text-muted-foreground hover:text-foreground" 
+                  onClick={() => { setEditingAviso(aviso); setIsModalOpen(true); }} 
+                  title="Editar aviso"
+                >
+                  <Edit2 className="h-3.5 w-3.5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 bg-white/90 dark:bg-slate-800/90 border shadow-xs text-red-500 hover:text-red-600" onClick={() => handleDelete(aviso.id)} title="Excluir aviso">
-                  <Trash2 className="h-4 w-4" />
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-7 w-7 text-destructive/80 hover:text-destructive hover:bg-destructive/10" 
+                  onClick={() => handleDelete(aviso.id)} 
+                  title="Excluir aviso"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
             )}
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">
-                <Calendar className="h-3 w-3" />
+            <CardHeader className="pb-2.5 pt-4 px-4 sm:px-5">
+              <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-foreground/80 dark:text-muted-foreground uppercase tracking-wider mb-1.5 bg-muted/60 px-2 py-0.5 rounded-md border border-border/60 w-fit">
+                <Calendar className="h-3 w-3 text-primary" />
                 {format(new Date(aviso.data_publicacao), "dd 'de' MMMM", { locale: ptBR })}
-                <span className="mx-1">•</span>
-                <Clock className="h-3 w-3" />
+                <span className="text-border mx-0.5">•</span>
+                <Clock className="h-3 w-3 text-primary" />
                 {format(new Date(aviso.data_publicacao), "HH:mm")}
               </div>
-              <CardTitle className="text-lg text-slate-800 dark:text-slate-100 pr-16">{aviso.titulo}</CardTitle>
+              <CardTitle className="text-lg font-bold text-foreground pr-16 leading-snug">
+                {aviso.titulo}
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="px-4 sm:px-5 pb-4 space-y-3">
               {/* Imagem do Aviso (se informada) */}
               {aviso.imagem_url && (
-                <div className="relative group/img overflow-hidden rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50 flex justify-center items-center max-h-60 sm:max-h-72">
+                <div className="relative group/img overflow-hidden rounded-xl border border-border bg-muted/30 flex justify-center items-center max-h-60 sm:max-h-72">
                   <img
                     src={aviso.imagem_url}
                     alt={aviso.titulo}
@@ -138,7 +162,7 @@ export function Avisos() {
                     href={aviso.imagem_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-white hover:bg-black/80 opacity-0 group-hover/img:opacity-100 transition-opacity backdrop-blur-xs shadow-sm"
+                    className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/70 text-white hover:bg-black/90 opacity-0 group-hover/img:opacity-100 transition-opacity backdrop-blur-xs shadow-sm"
                     title="Ver imagem em tamanho real"
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
@@ -146,7 +170,7 @@ export function Avisos() {
                 </div>
               )}
 
-              <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">
+              <p className="text-foreground/90 text-sm leading-relaxed whitespace-pre-wrap">
                 {aviso.conteudo}
               </p>
             </CardContent>
@@ -154,9 +178,10 @@ export function Avisos() {
         ))}
 
         {!loading && avisos.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-12 text-center bg-slate-50/50 rounded-2xl border-2 border-dashed">
-            <Bell className="h-10 w-10 text-slate-300 mb-2" />
-            <p className="text-sm text-slate-500 dark:text-[#b8e8b3] font-medium">Nenhum aviso importante no momento.</p>
+          <div className="flex flex-col items-center justify-center py-12 px-4 text-center bg-muted/20 rounded-2xl border-2 border-dashed border-border/80">
+            <Bell className="h-10 w-10 text-muted-foreground/60 mb-2" />
+            <p className="text-sm text-foreground/80 font-semibold">Nenhum aviso importante no momento.</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Novos comunicados institucionais aparecerão aqui.</p>
           </div>
         )}
       </div>

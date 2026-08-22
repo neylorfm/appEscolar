@@ -205,7 +205,7 @@ export function CardBimestres() {
                   className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold transition-all select-none border ${
                     ativo
                       ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                      : "bg-background/80 hover:bg-muted text-muted-foreground hover:text-foreground border-border/60"
+                      : "bg-background hover:bg-muted text-foreground/80 hover:text-foreground border-border"
                   }`}
                 >
                   <span className="truncate hidden sm:inline">{bim.rotulo}</span>
@@ -215,7 +215,7 @@ export function CardBimestres() {
                       className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold leading-tight ${
                         ativo 
                           ? "bg-primary-foreground/20 text-primary-foreground" 
-                          : "bg-muted text-muted-foreground"
+                          : "bg-muted-foreground/15 text-foreground"
                       }`}
                     >
                       {count}
@@ -230,13 +230,13 @@ export function CardBimestres() {
         {/* Conteúdo do Bimestre Ativo */}
         <CardContent className="p-3 sm:p-4">
           {loading ? (
-            <div className="py-6 text-center text-xs text-muted-foreground">
+            <div className="py-6 text-center text-xs text-muted-foreground font-medium">
               Carregando informações do bimestre...
             </div>
           ) : itensDoBimestre.length === 0 ? (
-            <div className="py-6 px-4 text-center rounded-lg border border-dashed border-border/80 bg-muted/10 flex flex-col items-center justify-center">
-              <Info className="h-5 w-5 text-muted-foreground/60 mb-1.5" />
-              <p className="text-xs font-medium text-muted-foreground">
+            <div className="py-6 px-4 text-center rounded-xl border border-dashed border-border/80 bg-muted/20 flex flex-col items-center justify-center">
+              <Info className="h-5 w-5 text-muted-foreground mb-1.5" />
+              <p className="text-xs font-semibold text-foreground/80">
                 Nenhuma informação cadastrada no {bimestreAtivo}º Bimestre.
               </p>
               {canManage && (
@@ -244,7 +244,7 @@ export function CardBimestres() {
                   variant="link"
                   size="sm"
                   onClick={handleOpenNovo}
-                  className="h-7 text-xs text-primary mt-1 p-0"
+                  className="h-7 text-xs font-semibold text-primary mt-1 p-0"
                 >
                   + Inserir primeira informação
                 </Button>
@@ -255,20 +255,22 @@ export function CardBimestres() {
               {itensDoBimestre.map((item) => (
                 <div
                   key={item.id}
-                  className="group relative rounded-lg border border-border/70 bg-card p-3 hover:border-primary/40 hover:shadow-2xs transition-all flex flex-col gap-1.5"
+                  className="group relative rounded-xl border border-border bg-background p-3 sm:p-3.5 hover:border-primary/50 hover:shadow-2xs transition-all flex flex-col gap-1.5"
                 >
                   {/* Linha de Título e Ações */}
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                      <FileText className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
-                      <h4 className="text-xs sm:text-sm font-semibold text-foreground leading-snug break-words">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <div className="p-1 rounded-md bg-primary/10 text-primary shrink-0">
+                        <FileText className="h-3.5 w-3.5" />
+                      </div>
+                      <h4 className="text-xs sm:text-sm font-bold text-foreground leading-snug break-words">
                         {item.titulo}
                       </h4>
                     </div>
 
                     {/* Botões de Ação para Admin / Coordenador */}
                     {canManage && (
-                      <div className="flex items-center gap-1 shrink-0 opacity-80 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-1 shrink-0 opacity-80 sm:opacity-0 group-hover:opacity-100 transition-opacity bg-background/90 p-0.5 rounded-lg border border-border shadow-2xs">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -293,22 +295,22 @@ export function CardBimestres() {
 
                   {/* Descrição */}
                   {item.descricao && (
-                    <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap pl-5">
+                    <p className="text-xs text-foreground/80 leading-relaxed whitespace-pre-wrap pl-7">
                       {item.descricao}
                     </p>
                   )}
 
                   {/* Link (se cadastrado) */}
                   {item.link && (
-                    <div className="pl-5 pt-0.5">
+                    <div className="pl-7 pt-1">
                       <a
                         href={formatarUrl(item.link)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline group/link"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline bg-primary/10 hover:bg-primary/15 px-2.5 py-1 rounded-md border border-primary/20 group/link transition-colors"
                       >
                         <ExternalLink className="h-3 w-3 shrink-0" />
-                        <span className="truncate max-w-[280px] sm:max-w-md">
+                        <span className="truncate max-w-[260px] sm:max-w-md">
                           {item.link}
                         </span>
                       </a>

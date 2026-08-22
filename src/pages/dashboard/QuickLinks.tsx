@@ -82,30 +82,41 @@ export function QuickLinks() {
   }
 
   return (
-    <Card className="shadow-sm border-none bg-slate-50/50 dark:bg-slate-900/40">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-white">Links Rápidos</CardTitle>
+    <Card className="border border-border bg-card shadow-xs">
+      <CardHeader className="flex flex-row items-center justify-between pb-3 pt-4 px-4 sm:px-5 border-b border-border/60 bg-muted/20">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+            <ExternalLink className="h-4 w-4" />
+          </div>
+          <CardTitle className="text-sm font-bold uppercase tracking-wider text-foreground">Links Rápidos</CardTitle>
+        </div>
         {canManage && (
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-primary" onClick={() => { setEditingLink({ icone: 'ExternalLink' }); setIsModalOpen(true); }}>
-            <Plus className="h-4 w-4" />
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-8 text-xs font-semibold rounded-lg px-2.5 gap-1 shadow-2xs border-border/80 hover:bg-muted" 
+            onClick={() => { setEditingLink({ icone: 'ExternalLink' }); setIsModalOpen(true); }}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span>Adicionar</span>
           </Button>
         )}
       </CardHeader>
-      <CardContent>
-        <div className="flex flex-col gap-2">
+      <CardContent className="p-4 sm:p-5">
+        <div className="flex flex-col gap-2.5">
           {/* Default System Links */}
-          <Link to="/calendario" className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-primary hover:shadow-md transition-all group">
-            <div className="h-9 w-9 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
+          <Link to="/calendario" className="flex items-center gap-3 p-3 rounded-xl bg-background border border-border hover:border-primary/50 hover:bg-muted/30 hover:shadow-2xs transition-all group">
+            <div className="h-9 w-9 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 flex items-center justify-center shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors">
               <Calendar className="h-5 w-5" />
             </div>
-            <span className="font-bold text-slate-700 dark:text-slate-200">Calendário Letivo</span>
+            <span className="font-bold text-foreground text-sm">Calendário Letivo</span>
           </Link>
 
-          <Link to="/agendamentos" className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-primary hover:shadow-md transition-all group">
-            <div className="h-9 w-9 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
+          <Link to="/agendamentos" className="flex items-center gap-3 p-3 rounded-xl bg-background border border-border hover:border-primary/50 hover:bg-muted/30 hover:shadow-2xs transition-all group">
+            <div className="h-9 w-9 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
               <Clock className="h-5 w-5" />
             </div>
-            <span className="font-bold text-slate-700 dark:text-slate-200">Agendamentos</span>
+            <span className="font-bold text-foreground text-sm">Agendamentos</span>
           </Link>
 
           {/* Custom Links */}
@@ -115,23 +126,23 @@ export function QuickLinks() {
                 href={link.url} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-primary hover:shadow-md transition-all group"
+                className="flex items-center gap-3 p-3 rounded-xl bg-background border border-border hover:border-primary/50 hover:bg-muted/30 hover:shadow-2xs transition-all group"
               >
-                <div className="h-9 w-9 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
+                <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                   <DynamicIcon name={link.icone} className="h-5 w-5" />
                 </div>
-                <div className="flex flex-col overflow-hidden">
-                   <span className="font-bold text-slate-700 dark:text-slate-200 truncate">{link.titulo}</span>
-                   <span className="text-[10px] text-muted-foreground truncate">{link.url}</span>
+                <div className="flex flex-col overflow-hidden flex-1 min-w-0 pr-14">
+                   <span className="font-bold text-foreground text-sm truncate group-hover:text-primary transition-colors">{link.titulo}</span>
+                   <span className="text-xs text-muted-foreground truncate">{link.url}</span>
                 </div>
               </a>
               
               {canManage && (
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-blue-600" onClick={(e) => { e.preventDefault(); setEditingLink(link); setIsModalOpen(true); }}>
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 bg-background/90 p-1 rounded-lg border border-border shadow-xs">
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={(e) => { e.preventDefault(); setEditingLink(link); setIsModalOpen(true); }}>
                     <Edit2 className="h-3.5 w-3.5" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-red-500" onClick={(e) => { e.preventDefault(); handleDelete(link.id); }}>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/80 hover:text-destructive hover:bg-destructive/10" onClick={(e) => { e.preventDefault(); handleDelete(link.id); }}>
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
@@ -140,7 +151,7 @@ export function QuickLinks() {
           ))}
           
           {!loading && links.length === 0 && !canManage && (
-            <p className="text-center py-4 text-xs text-muted-foreground">Nenhum link adicional.</p>
+            <p className="text-center py-4 text-xs font-medium text-muted-foreground">Nenhum link adicional.</p>
           )}
         </div>
       </CardContent>
