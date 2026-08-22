@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/contexts/AuthContext"
 import { getAvisos, Aviso, deleteAviso, upsertAviso } from "@/services/dashboard"
+import { CardBimestres } from "./CardBimestres"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -93,6 +94,9 @@ export function Avisos() {
           </Button>
         )}
       </div>
+
+      {/* Card Otimizado por Bimestre */}
+      <CardBimestres />
 
       <div className="grid gap-4">
         {avisos.map((aviso) => (

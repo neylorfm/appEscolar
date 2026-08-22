@@ -22,6 +22,17 @@ export interface Aviso {
   updated_at?: string
 }
 
+export interface InformacaoBimestre {
+  id: string
+  bimestre: number // 1, 2, 3 ou 4
+  titulo: string
+  link?: string | null
+  descricao?: string | null
+  ordem: number
+  created_at: string
+  updated_at?: string
+}
+
 // Quicklinks Services
 export async function getQuickLinks() {
   try {
@@ -163,6 +174,90 @@ export async function deleteAviso(id: string) {
   
   if (error) {
     console.error('Erro ao excluir aviso:', error)
+    throw error
+  }
+}
+
+// Informações Bimestrais Services
+export async function getInformacoesBimestre(bimestre?: number) {
+  try {
+    let query = supabase
+      .from('bimestre_informacoes')
+      .select('*')
+      .order('ordem', { ascending: true })
+      .order('created_at', { ascending: true })
+    
+    if (bimestre) {
+      query = query.eq('bimestre', bimestre)
+    }
+
+    const { data, error } = await query
+    
+    if (error) {
+      console.warn('Não foi possível carregar informações bimestrais:', error.message)
+      return []
+    }
+    return (data as InformacaoBimestre[]) || []
+  } catch (err) {
+    console.error('Erro ao buscar informações bimestrais:', err)
+    return []
+  }
+}
+
+export async function upsertInformacaoBimestre(info: Partial<InformacaoBimestre>) {
+  if (!info.bimestre || !info.titulo) {
+    throw new Error("Bimestre e Título são obrigatórios")
+  }
+
+  if (info.id) {
+    const { data, error } = await supabase
+      .from('bimestre_informacoes')
+      .update({
+        bimestre: info.bimestre,
+        titulo: info.titulo.trim(),
+        link: info.link ? info.link.trim() : null,
+        descricao: info.descricao ? info.descricao.trim() : null,
+        ordem: info.ordem ?? 0,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', info.id)
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Erro ao atualizar informação bimestral:', error)
+      throw error
+    }
+    return data as InformacaoBimestre
+  } else {
+    const { data, error } = await supabase
+      .from('bimestre_informacoes')
+      .insert([{
+        bimestre: info.bimestre,
+        titulo: info.titulo.trim(),
+        link: info.link ? info.link.trim() : null,
+        descricao: info.descricao ? info.descricao.trim() : null,
+        ordem: info.ordem ?? 0
+      }])
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Erro ao criar informação bimestral:', error)
+      throw error
+    }
+    return data as InformacaoBimestre
+  }
+}
+
+export async function deleteInformacaoBimestre(id: string) {
+  const { error } = await supabase
+    .from('bimestre_informacoes')
+    .delete()
+    .eq('id', id)
+  
+  if (error) {
+    console.error('Erro ao excluir informação bimestral:', error)
     throw error
   }
 }

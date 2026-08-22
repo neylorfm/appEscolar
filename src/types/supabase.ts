@@ -115,6 +115,39 @@ export type Database = {
         }
         Relationships: []
       }
+      bimestre_informacoes: {
+        Row: {
+          bimestre: number
+          created_at: string
+          descricao: string | null
+          id: string
+          link: string | null
+          ordem: number
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          bimestre: number
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          link?: string | null
+          ordem?: number
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          bimestre?: number
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          link?: string | null
+          ordem?: number
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       avisos: {
         Row: {
           autor_id: string | null
