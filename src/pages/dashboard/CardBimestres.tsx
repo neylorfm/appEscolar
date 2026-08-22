@@ -8,7 +8,6 @@ import {
   Link as LinkIcon, 
   FileText, 
   CalendarCheck,
-  ChevronRight,
   Info
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
@@ -38,7 +37,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
 
 const BIMESTRES = [
   { valor: 1, rotulo: "1º Bimestre", curto: "1º Bim" },
