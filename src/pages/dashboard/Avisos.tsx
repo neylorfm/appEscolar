@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { 
   Megaphone, 
   Plus, 
@@ -7,6 +7,7 @@ import {
   Calendar, 
   ExternalLink, 
   X,
+  ChevronLeft,
   ChevronRight,
   BookOpen,
   Search,
@@ -68,11 +69,44 @@ export function Avisos() {
   const [editingAviso, setEditingAviso] = useState<Partial<Aviso> | null>(null)
   const [visualizandoAviso, setVisualizandoAviso] = useState<Aviso | null>(null)
   
+  const carouselRef = useRef<HTMLDivElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
+  const [activeSlide, setActiveSlide] = useState(0)
+
   const canManage = usuario?.papel === 'Administrador' || usuario?.papel === 'Coordenador'
 
   useEffect(() => {
     loadAvisos()
   }, [])
+
+  const updateScrollButtons = () => {
+    if (!carouselRef.current) return
+    const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current
+    setCanScrollLeft(scrollLeft > 10)
+    setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10)
+    
+    const page = Math.round(scrollLeft / (clientWidth || 1))
+    setActiveSlide(page)
+  }
+
+  useEffect(() => {
+    updateScrollButtons()
+    window.addEventListener("resize", updateScrollButtons)
+    return () => window.removeEventListener("resize", updateScrollButtons)
+  }, [avisos])
+
+  function scrollPrev() {
+    if (!carouselRef.current) return
+    const container = carouselRef.current
+    container.scrollBy({ left: -container.clientWidth, behavior: "smooth" })
+  }
+
+  function scrollNext() {
+    if (!carouselRef.current) return
+    const container = carouselRef.current
+    container.scrollBy({ left: container.clientWidth, behavior: "smooth" })
+  }
 
   async function loadAvisos() {
     try {
@@ -157,8 +191,8 @@ export function Avisos() {
 
   return (
     <div className="flex flex-col gap-8">
-      {/* SEÇÃO 1: QUADRO DE AVISOS */}
-      <div className="flex flex-col gap-4">
+      {/* SEÇÃO 1: QUADRO DE AVISOS (Carrossel Compacto de 2 Cards) */}
+      <div className="flex flex-col gap-3.5">
         <div className="flex items-center justify-between px-0.5">
           <div className="flex items-center gap-2.5">
             <Megaphone className="h-5 w-5 lg:h-6 lg:w-6 text-[#7f1d1d] dark:text-[#f8b4bc]" />
@@ -167,12 +201,40 @@ export function Avisos() {
             </h2>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            {/* Controles de Navegação Lateral (Aparece quando houver avisos para rolar) */}
+            {avisos.length > 1 && (
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={scrollPrev}
+                  disabled={!canScrollLeft}
+                  className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg border-border/80 text-muted-foreground disabled:opacity-30 hover:text-foreground"
+                  title="Avisos anteriores"
+                  aria-label="Ver avisos anteriores"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={scrollNext}
+                  disabled={!canScrollRight}
+                  className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg border-border/80 text-muted-foreground disabled:opacity-30 hover:text-foreground"
+                  title="Próximos avisos"
+                  aria-label="Ver próximos avisos"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
             {avisos.length > 0 && (
               <button
                 type="button"
                 onClick={() => setIsVerTodosOpen(true)}
-                className="text-xs lg:text-sm font-bold uppercase tracking-wider text-[#ad6020] dark:text-[#f0aa70] hover:underline cursor-pointer transition-colors"
+                className="text-xs lg:text-sm font-bold uppercase tracking-wider text-[#ad6020] dark:text-[#f0aa70] hover:underline cursor-pointer transition-colors whitespace-nowrap"
               >
                 VER TODOS ({avisos.length})
               </button>
@@ -182,7 +244,7 @@ export function Avisos() {
               <Button 
                 size="sm" 
                 onClick={() => { setEditingAviso({ categoria: "COMUNICADO" }); setIsModalOpen(true); }} 
-                className="rounded-lg px-3 text-xs lg:text-sm font-semibold shadow-xs gap-1.5 h-8 lg:h-9 bg-[#7f1d1d] hover:bg-[#661717] text-white"
+                className="rounded-lg px-3 text-xs lg:text-sm font-semibold shadow-xs gap-1.5 h-8 lg:h-9 bg-[#7f1d1d] hover:bg-[#661717] text-white shrink-0"
               >
                 <Plus className="h-3.5 w-3.5 lg:h-4 lg:w-4" /> 
                 <span>Novo</span>
@@ -191,7 +253,7 @@ export function Avisos() {
           </div>
         </div>
 
-        {/* Grid de Cards de Avisos (Estilo Botão com Tag no topo) */}
+        {/* Carrossel de Cards de Avisos: 2 no Desktop, 1 no Mobile com Rolagem Horizontal Suave */}
         {loading ? (
           <div className="py-8 text-center text-xs lg:text-sm text-muted-foreground">
             Carregando quadro de avisos...
@@ -203,107 +265,136 @@ export function Avisos() {
             <p className="text-xs lg:text-sm text-muted-foreground mt-0.5">Novos comunicados institucionais aparecerão aqui.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 lg:gap-4">
-            {avisos.slice(0, 6).map((aviso) => {
-              const badge = getCategoriaBadge(aviso.categoria)
-              const hasLink = Boolean(aviso.link && aviso.link.trim())
+          <div className="relative">
+            <div 
+              ref={carouselRef}
+              onScroll={updateScrollButtons}
+              className="flex gap-3.5 lg:gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-1 pt-0.5 px-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+            >
+              {avisos.map((aviso) => {
+                const badge = getCategoriaBadge(aviso.categoria)
+                const hasLink = Boolean(aviso.link && aviso.link.trim())
 
-              return (
-                <div
-                  key={aviso.id}
-                  onClick={() => handleCardClick(aviso)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault()
-                      handleCardClick(aviso)
-                    }
-                  }}
-                  className="group relative text-left rounded-xl border border-border/80 bg-card p-4 sm:p-4.5 lg:p-5 hover:border-primary/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer flex flex-col justify-between gap-3 lg:gap-3.5 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary select-none"
-                >
-                  {/* Linha de Categoria e Ações */}
-                  <div className="flex items-center justify-between gap-2">
-                    <span className={`text-[10px] sm:text-[11px] lg:text-xs font-bold tracking-wider uppercase px-2.5 lg:px-3 py-0.5 lg:py-1 rounded-md border ${badge.cor}`}>
-                      {badge.rotulo}
-                    </span>
+                return (
+                  <div
+                    key={aviso.id}
+                    onClick={() => handleCardClick(aviso)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()
+                        handleCardClick(aviso)
+                      }
+                    }}
+                    className="w-full sm:w-[calc(50%-0.5rem)] min-w-full sm:min-w-[calc(50%-0.5rem)] shrink-0 snap-start group relative text-left rounded-xl border border-border/80 bg-card p-4 sm:p-4.5 lg:p-5 hover:border-primary/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer flex flex-col justify-between gap-3 lg:gap-3.5 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary select-none min-h-[175px]"
+                  >
+                    {/* Linha de Categoria e Ações */}
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`text-[10px] sm:text-[11px] lg:text-xs font-bold tracking-wider uppercase px-2.5 lg:px-3 py-0.5 lg:py-1 rounded-md border shrink-0 whitespace-nowrap ${badge.cor}`}>
+                        {badge.rotulo}
+                      </span>
 
-                    <div className="flex items-center gap-1.5">
-                      {/* Botão de Acesso ao Link no Card (Acessível e sem mostrar a URL bruta) */}
-                      {hasLink && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            window.open(formatarUrl(aviso.link), "_blank", "noopener,noreferrer")
-                          }}
-                          className="inline-flex items-center gap-1 text-[11px] lg:text-xs font-semibold text-primary bg-primary/10 hover:bg-primary hover:text-primary-foreground transition-colors px-2.5 py-0.5 lg:py-1 rounded-md border border-primary/20 shadow-2xs z-10"
-                          title="Acessar Link Externo"
-                          aria-label={`Acessar link anexo do aviso: ${aviso.titulo}`}
-                        >
-                          <ExternalLink className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
-                          <span>Acessar Link</span>
-                        </button>
-                      )}
-
-                      {/* Botões de Ação para Administrador / Coordenador */}
-                      {canManage && (
-                        <div 
-                          className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-background/90 p-0.5 rounded-lg border border-border shadow-2xs z-10"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-6 w-6 lg:h-7 lg:w-7 text-muted-foreground hover:text-foreground" 
-                            onClick={(e) => { e.stopPropagation(); setEditingAviso(aviso); setIsModalOpen(true); }} 
-                            title="Editar aviso"
-                            aria-label={`Editar aviso: ${aviso.titulo}`}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {/* Botão de Acesso ao Link no Card (Acessível, sem quebra de linha) */}
+                        {hasLink && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              window.open(formatarUrl(aviso.link), "_blank", "noopener,noreferrer")
+                            }}
+                            className="inline-flex items-center gap-1 text-[11px] lg:text-xs font-semibold text-primary bg-primary/10 hover:bg-primary hover:text-primary-foreground transition-colors px-2.5 py-0.5 lg:py-1 rounded-md border border-primary/20 shadow-2xs z-10 whitespace-nowrap shrink-0"
+                            title="Acessar Link Externo"
+                            aria-label={`Acessar link anexo do aviso: ${aviso.titulo}`}
                           >
-                            <Edit2 className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-6 w-6 lg:h-7 lg:w-7 text-destructive/80 hover:text-destructive hover:bg-destructive/10" 
-                            onClick={(e) => { e.stopPropagation(); handleDelete(aviso.id); }} 
-                            title="Excluir aviso"
-                            aria-label={`Excluir aviso: ${aviso.titulo}`}
+                            <ExternalLink className="h-3 w-3 lg:h-3.5 lg:w-3.5 shrink-0" />
+                            <span>Acessar Link</span>
+                          </button>
+                        )}
+
+                        {/* Botões de Ação para Administrador / Coordenador */}
+                        {canManage && (
+                          <div 
+                            className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-background/90 p-0.5 rounded-lg border border-border shadow-2xs z-10 shrink-0"
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            <Trash2 className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
-                          </Button>
-                        </div>
-                      )}
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-6 w-6 lg:h-7 lg:w-7 text-muted-foreground hover:text-foreground" 
+                              onClick={(e) => { e.stopPropagation(); setEditingAviso(aviso); setIsModalOpen(true); }} 
+                              title="Editar aviso"
+                              aria-label={`Editar aviso: ${aviso.titulo}`}
+                            >
+                              <Edit2 className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-6 w-6 lg:h-7 lg:w-7 text-destructive/80 hover:text-destructive hover:bg-destructive/10" 
+                              onClick={(e) => { e.stopPropagation(); handleDelete(aviso.id); }} 
+                              title="Excluir aviso"
+                              aria-label={`Excluir aviso: ${aviso.titulo}`}
+                            >
+                              <Trash2 className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Título do Aviso */}
+                    <div>
+                      <h3 className="text-sm sm:text-base lg:text-lg font-bold text-foreground leading-snug group-hover:text-primary transition-colors line-clamp-2">
+                        {aviso.titulo}
+                      </h3>
+                    </div>
+
+                    {/* Resumo do Conteúdo (Texto enxuto) */}
+                    <p className="text-xs sm:text-[13px] lg:text-[14px] text-muted-foreground leading-relaxed line-clamp-2">
+                      {aviso.conteudo}
+                    </p>
+
+                    {/* Data / Hora e Ação "Ler aviso" no rodapé do Card */}
+                    <div className="pt-2 flex items-center justify-between text-[11px] lg:text-xs text-muted-foreground/80 font-medium border-t border-border/40">
+                      <span className="inline-flex items-center gap-1">
+                        <Calendar className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-primary/70" />
+                        {format(new Date(aviso.data_publicacao), "dd 'de' MMMM", { locale: ptBR })}
+                      </span>
+                      <span className="text-[11px] lg:text-xs text-primary font-semibold group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
+                        <BookOpen className="h-3.5 w-3.5" />
+                        <span>Ler aviso</span>
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </span>
                     </div>
                   </div>
+                )
+              })}
+            </div>
 
-                  {/* Título do Aviso */}
-                  <div>
-                    <h3 className="text-sm sm:text-base lg:text-lg font-bold text-foreground leading-snug group-hover:text-primary transition-colors">
-                      {aviso.titulo}
-                    </h3>
-                  </div>
-
-                  {/* Resumo do Conteúdo (Texto enxuto) */}
-                  <p className="text-xs sm:text-[13px] lg:text-[15px] text-muted-foreground leading-relaxed line-clamp-2 lg:line-clamp-3">
-                    {aviso.conteudo}
-                  </p>
-
-                  {/* Data / Hora e Ação "Ler aviso" no rodapé do Card */}
-                  <div className="pt-1 flex items-center justify-between text-[11px] lg:text-xs text-muted-foreground/80 font-medium border-t border-border/40">
-                    <span className="inline-flex items-center gap-1">
-                      <Calendar className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-primary/70" />
-                      {format(new Date(aviso.data_publicacao), "dd 'de' MMMM", { locale: ptBR })}
-                    </span>
-                    <span className="text-[11px] lg:text-xs text-primary font-semibold group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
-                      <BookOpen className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
-                      <span>Ler aviso</span>
-                      <ChevronRight className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
-                    </span>
-                  </div>
-                </div>
-              )
-            })}
+            {/* Indicadores de Posição / Bolinhas no Mobile e Desktop (Quando > 1 card no mobile ou > 2 cards no desktop) */}
+            {avisos.length > 1 && (
+              <div className="flex items-center justify-center gap-1.5 pt-2">
+                {Array.from({ length: Math.ceil(avisos.length / 2) }).map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      if (!carouselRef.current) return
+                      const container = carouselRef.current
+                      container.scrollTo({ left: idx * container.clientWidth, behavior: "smooth" })
+                    }}
+                    className={`h-1.5 rounded-full transition-all ${
+                      activeSlide === idx 
+                        ? "w-5 bg-[#7f1d1d] dark:bg-[#f8b4bc]" 
+                        : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/50"
+                    }`}
+                    aria-label={`Ir para página ${idx + 1}`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
