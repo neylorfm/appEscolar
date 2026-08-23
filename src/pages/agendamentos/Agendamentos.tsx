@@ -701,9 +701,6 @@ export default function Agendamentos() {
                                           {ag.tipo === 'Pre-Reserva' && (
                                             <div className="text-[10px] text-amber-700 dark:text-amber-400 font-bold leading-tight">Pré-reserva</div>
                                           )}
-                                          {ag.tipo === 'Fixo' && (
-                                            <div className="text-[10px] text-blue-700 dark:text-blue-400 font-extrabold leading-tight">Fixo</div>
-                                          )}
                                           {ag.tipo === 'Confirmado' && (
                                             <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold leading-tight">Confirmado</div>
                                           )}
@@ -722,7 +719,8 @@ export default function Agendamentos() {
                                             </div>
                                           )}
 
-                                          {ag.agendado_por && ag.agendado_por !== ag.usuario_id && (
+                                          {/* Quem agendou aparece apenas para agendamentos não fixos */}
+                                          {ag.tipo !== 'Fixo' && ag.agendado_por && ag.agendado_por !== ag.usuario_id && (
                                             <div className="text-[9px] text-muted-foreground leading-tight italic truncate">
                                               por {ag.agendado_por_usuario?.nome_completo?.split(' ')[0]}
                                             </div>
