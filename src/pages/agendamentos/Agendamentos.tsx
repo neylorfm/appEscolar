@@ -573,19 +573,25 @@ export default function Agendamentos() {
         </div>
       </div>
 
-      <Card className="w-full border-border/50 shadow-sm">
-        <CardContent className="p-4 flex flex-col sm:flex-row items-center gap-4">
-          <label className="text-sm font-medium leading-none whitespace-nowrap">
+      <Card className="w-full border-border/80 shadow-xs bg-card">
+        <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row items-center gap-4">
+          <label className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-[#7f1d1d] dark:text-[#f8b4bc] whitespace-nowrap">
             Selecione o Recurso:
           </label>
-          <div className="w-full sm:w-72">
+          <div className="w-full sm:w-80 md:w-96 lg:w-[420px]">
             <Select value={selectedRecurso} onValueChange={setSelectedRecurso}>
-              <SelectTrigger className="w-full text-base">
+              <SelectTrigger className="w-full h-12 lg:h-14 text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-[#7f1d1d] dark:text-[#f8b4bc] border-border hover:border-[#7f1d1d]/50 shadow-2xs">
                 <SelectValue placeholder="Selecione..." />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-card border-border shadow-lg">
                 {recursos.map(r => (
-                  <SelectItem key={r.id} value={r.id} className="text-base">{r.nome}</SelectItem>
+                  <SelectItem 
+                    key={r.id} 
+                    value={r.id} 
+                    className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-[#7f1d1d] dark:text-[#f8b4bc] focus:bg-[#7f1d1d]/10 focus:text-[#7f1d1d] dark:focus:bg-[#7f1d1d]/30 dark:focus:text-[#f8b4bc] cursor-pointer py-3"
+                  >
+                    {r.nome}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
