@@ -79,58 +79,85 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 
   useEffect(() => {
-    const fetchSession = async () => {
-      setLoading(true)
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (session) {
-         fetchUserProfile(session.user.id)
-      } else {
-         setLoading(false)
+    let isMounted = true
+    const timeoutFallback = setTimeout(() => {
+      if (isMounted) {
+        setLoading(false)
+      }
+    }, 6000) // Fallback de segurança para não travar tela caso o Supabase demore a responder
+
+    const fetchUserProfile = async (userId: string) => {
+      try {
+        const { data, error } = await supabase
+          .from('usuarios')
+          .select('*')
+          .eq('id', userId)
+          .single()
+           
+        if (error) {
+          console.error('Error fetching user profile:', error)
+        }
+           
+        if (data && isMounted) {
+          const u = data as Usuario
+          if (u.ativo === false) {
+            console.warn('Usuário inativo, deslogando...')
+            setInactiveError(true)
+            logout()
+          } else {
+            setUsuario(u)
+          }
+        }
+      } catch (err) {
+        console.error('Falha ao obter perfil de usuário:', err)
+      } finally {
+        if (isMounted) {
+          setLoading(false)
+          clearTimeout(timeoutFallback)
+        }
       }
     }
 
-    const fetchUserProfile = async (userId: string) => {
-        const { data, error } = await supabase
-           .from('usuarios')
-           .select('*')
-           .eq('id', userId)
-           .single()
-           
-        if (error) {
-           console.error('Error fetching user profile:', error)
+    const fetchSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session && isMounted) {
+          await fetchUserProfile(session.user.id)
+        } else if (isMounted) {
+          setLoading(false)
+          clearTimeout(timeoutFallback)
         }
-           
-        if (data) {
-           const u = data as Usuario
-           if (u.ativo === false) {
-             console.warn('Usuário inativo, deslogando...')
-             setInactiveError(true)
-             logout()
-           } else {
-             setUsuario(u)
-           }
+      } catch (err) {
+        console.error('Erro ao verificar sessão:', err)
+        if (isMounted) {
+          setLoading(false)
+          clearTimeout(timeoutFallback)
         }
-        setLoading(false)
+      }
     }
 
     fetchSession()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!isMounted) return
+      
       if (session) {
-        setLoading(true)
-        fetchUserProfile(session.user.id)
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+          fetchUserProfile(session.user.id)
+        }
       } else {
         setUsuario(null)
         setLoading(false)
-        navigate('/login') // Redirect to login when unauthenticated
+        navigate('/login')
       }
     })
 
     return () => {
+      isMounted = false
+      clearTimeout(timeoutFallback)
       subscription.unsubscribe()
     }
-  }, [navigate])
+  }, [navigate, logout])
 
   const clearInactiveError = () => {
     setInactiveError(false)

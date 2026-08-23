@@ -19,7 +19,16 @@ import { Avisos } from "./pages/dashboard/Avisos"
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { usuario, loading } = useAuth()
   
-  if (loading) return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-background text-foreground">
+        <div className="h-8 w-8 animate-spin rounded-full border-3 border-primary border-t-transparent" />
+        <span className="text-xs sm:text-sm font-medium text-muted-foreground animate-pulse">
+          Carregando ambiente escolar...
+        </span>
+      </div>
+    )
+  }
   
   if (!usuario) {
     return <Navigate to="/login" replace />

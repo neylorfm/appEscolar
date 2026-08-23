@@ -11,8 +11,15 @@ interface InstituicaoContextType {
 const InstituicaoContext = createContext<InstituicaoContextType | undefined>(undefined)
 
 export function InstituicaoProvider({ children }: { children: React.ReactNode }) {
-  const [configuracoes, setConfiguracoes] = useState<ConfiguracoesInstituicao | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [configuracoes, setConfiguracoes] = useState<ConfiguracoesInstituicao | null>(() => {
+    try {
+      const cached = localStorage.getItem('configuracoes_instituicao')
+      return cached ? JSON.parse(cached) : null
+    } catch {
+      return null
+    }
+  })
+  const [loading, setLoading] = useState(false)
 
   const applyColorsToCss = (config: ConfiguracoesInstituicao) => {
     const root = document.documentElement
@@ -45,7 +52,6 @@ export function InstituicaoProvider({ children }: { children: React.ReactNode })
 
   const refreshConfiguracoes = useCallback(async () => {
     try {
-      setLoading(true)
       const { data, error } = await supabase
         .from('configuracoes_instituicao')
         .select('*')
@@ -55,6 +61,9 @@ export function InstituicaoProvider({ children }: { children: React.ReactNode })
         console.error('Erro ao buscar configurações da instituição:', error)
       } else if (data) {
         setConfiguracoes(data as ConfiguracoesInstituicao)
+        try {
+          localStorage.setItem('configuracoes_instituicao', JSON.stringify(data))
+        } catch {}
         applyColorsToCss(data as ConfiguracoesInstituicao)
         applyBrandingToDocument(data as ConfiguracoesInstituicao)
       }
@@ -66,6 +75,10 @@ export function InstituicaoProvider({ children }: { children: React.ReactNode })
   }, [])
 
   useEffect(() => {
+    if (configuracoes) {
+      applyColorsToCss(configuracoes)
+      applyBrandingToDocument(configuracoes)
+    }
     refreshConfiguracoes()
   }, [refreshConfiguracoes])
 
