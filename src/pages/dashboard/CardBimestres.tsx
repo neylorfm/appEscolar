@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
 import { 
-  FolderKanban, 
   Plus, 
   Trash2, 
   Edit2, 
@@ -120,12 +119,12 @@ export function CardBimestres() {
     }
   }
 
-  // Ícones e cores para os cards do bimestre
+  // Ícones e cores para os cards do bimestre (exatamente conforme o mockup)
   const ICON_COLORS = [
-    { bg: "bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300 border-rose-200 dark:border-rose-900" },
-    { bg: "bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border-amber-200 dark:border-amber-900" },
-    { bg: "bg-sky-100 text-sky-800 dark:bg-sky-950/80 dark:text-sky-300 border-sky-200 dark:border-sky-900" },
-    { bg: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900" },
+    { bg: "bg-[#fce5e6] text-[#8a2531] dark:bg-[#8a2531]/30 dark:text-[#f8b4bc] border-transparent" },
+    { bg: "bg-[#fbe8da] text-[#944923] dark:bg-[#944923]/30 dark:text-[#f5be9e] border-transparent" },
+    { bg: "bg-[#ddf3f9] text-[#176e82] dark:bg-[#176e82]/30 dark:text-[#90ddf0] border-transparent" },
+    { bg: "bg-[#def2e6] text-[#1e6b45] dark:bg-[#1e6b45]/30 dark:text-[#9fe3be] border-transparent" },
   ]
 
   async function handleSalvar() {
@@ -181,29 +180,24 @@ export function CardBimestres() {
     <div className="flex flex-col gap-4">
       {/* Cabeçalho de Informações por Bimestre */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-0.5">
-        <div className="flex items-center gap-2.5">
-          <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
-            <FolderKanban className="h-5 w-5" />
-          </div>
-          <h2 className="text-xl font-bold tracking-tight text-foreground">
-            Informações por Bimestre
-          </h2>
-        </div>
+        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[#6c1d28] dark:text-[#f8b4bc]">
+          Informações por Bimestre
+        </h2>
 
         {canManage && (
           <Button 
             size="sm" 
             onClick={handleOpenNovo} 
-            className="h-8 text-xs font-semibold rounded-lg px-3 shadow-xs gap-1.5 self-start sm:self-auto"
+            className="h-8 text-xs font-semibold rounded-lg px-3 shadow-xs gap-1.5 self-start sm:self-auto bg-[#6c1d28] hover:bg-[#57161f] text-white"
           >
             <Plus className="h-3.5 w-3.5" />
-            <span>Adicionar Informação</span>
+            <span>Adicionar</span>
           </Button>
         )}
       </div>
 
-      {/* Abas dos 4 Bimestres (Estilo Sublinhado Elegante) */}
-      <div className="flex items-center border-b border-border gap-6 overflow-x-auto select-none pt-1">
+      {/* Abas dos 4 Bimestres (Estilo Sublinhado com Cor Vinho) */}
+      <div className="flex items-center border-b border-border/80 gap-6 overflow-x-auto select-none pt-1">
         {BIMESTRES.map((bim) => {
           const ativo = bimestreAtivo === bim.valor
           const count = contagemPorBimestre[bim.valor] || 0
@@ -212,10 +206,10 @@ export function CardBimestres() {
               key={bim.valor}
               type="button"
               onClick={() => setBimestreAtivo(bim.valor)}
-              className={`pb-2.5 text-xs sm:text-sm uppercase tracking-wider font-bold transition-all relative shrink-0 flex items-center gap-1.5 ${
+              className={`pb-2.5 text-xs sm:text-sm uppercase tracking-wider font-extrabold transition-all relative shrink-0 flex items-center gap-1.5 ${
                 ativo
-                  ? "text-primary border-b-2 border-primary"
-                  : "text-muted-foreground hover:text-foreground border-b-2 border-transparent"
+                  ? "text-[#6c1d28] dark:text-[#f8b4bc] border-b-2 border-[#6c1d28] dark:border-[#f8b4bc]"
+                  : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 border-b-2 border-transparent"
               }`}
             >
               <span>{bim.rotulo}</span>
@@ -223,7 +217,7 @@ export function CardBimestres() {
                 <span 
                   className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold leading-tight ${
                     ativo 
-                      ? "bg-primary text-primary-foreground" 
+                      ? "bg-[#6c1d28] text-white dark:bg-[#f8b4bc] dark:text-zinc-900" 
                       : "bg-muted text-muted-foreground"
                   }`}
                 >

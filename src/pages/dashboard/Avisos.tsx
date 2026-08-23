@@ -36,12 +36,12 @@ import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
 const CATEGORIAS_PADRAO = [
-  { rotulo: "Comunicado", valor: "COMUNICADO", cor: "bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300 border-blue-200 dark:border-blue-900" },
-  { rotulo: "Reunião Pedagógica", valor: "REUNIÃO PEDAGÓGICA", cor: "bg-sky-100 text-sky-800 dark:bg-sky-950/80 dark:text-sky-300 border-sky-200 dark:border-sky-900" },
-  { rotulo: "Prazo / Entrega", valor: "PRAZO", cor: "bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-300 border-amber-200 dark:border-amber-900" },
-  { rotulo: "Aviso Geral", valor: "AVISO GERAL", cor: "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700" },
-  { rotulo: "Importante / Urgente", valor: "IMPORTANTE", cor: "bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border-rose-200 dark:border-rose-900" },
-  { rotulo: "Evento Escolar", valor: "EVENTO", cor: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900" },
+  { rotulo: "REUNIÃO PEDAGÓGICA", valor: "REUNIÃO PEDAGÓGICA", cor: "bg-[#d8f0f8] text-[#136380] dark:bg-[#136380]/30 dark:text-[#90ddf0] border-transparent" },
+  { rotulo: "PRAZO", valor: "PRAZO", cor: "bg-[#fce4d6] text-[#8a431d] dark:bg-[#8a431d]/30 dark:text-[#f5be9e] border-transparent" },
+  { rotulo: "COMUNICADO", valor: "COMUNICADO", cor: "bg-[#ede4f8] text-[#593285] dark:bg-[#593285]/30 dark:text-[#d3b6f5] border-transparent" },
+  { rotulo: "AVISO GERAL", valor: "AVISO GERAL", cor: "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200 border-transparent" },
+  { rotulo: "IMPORTANTE", valor: "IMPORTANTE", cor: "bg-[#fadcd9] text-[#8e2825] dark:bg-[#8e2825]/30 dark:text-[#f7a8a6] border-transparent" },
+  { rotulo: "EVENTO", valor: "EVENTO", cor: "bg-[#def2e6] text-[#1e6b45] dark:bg-[#1e6b45]/30 dark:text-[#9fe3be] border-transparent" },
 ]
 
 function getCategoriaBadge(categoria?: string | null) {
@@ -49,9 +49,9 @@ function getCategoriaBadge(categoria?: string | null) {
   const encontrada = CATEGORIAS_PADRAO.find(c => c.valor === cat)
   if (encontrada) return encontrada
   return {
-    rotulo: categoria || "Comunicado",
+    rotulo: categoria?.toUpperCase() || "COMUNICADO",
     valor: cat,
-    cor: "bg-primary/10 text-primary border-primary/20"
+    cor: "bg-[#ede4f8] text-[#593285] dark:bg-[#593285]/30 dark:text-[#d3b6f5] border-transparent"
   }
 }
 
@@ -144,23 +144,25 @@ export function Avisos() {
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between px-0.5">
           <div className="flex items-center gap-2.5">
-            <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
-              <Megaphone className="h-5 w-5" />
-            </div>
-            <h2 className="text-xl font-bold tracking-tight text-foreground">
+            <Megaphone className="h-5 w-5 text-[#6c1d28] dark:text-[#f8b4bc]" />
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[#6c1d28] dark:text-[#f8b4bc]">
               Quadro de Avisos
             </h2>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#ad6020] dark:text-[#f0aa70] cursor-pointer hover:underline">
+              VER TODOS
+            </span>
+
             {canManage && (
               <Button 
                 size="sm" 
                 onClick={() => { setEditingAviso({ categoria: "COMUNICADO" }); setIsModalOpen(true); }} 
-                className="rounded-lg px-3 text-xs font-semibold shadow-xs gap-1.5 h-8"
+                className="rounded-lg px-3 text-xs font-semibold shadow-xs gap-1.5 h-8 bg-[#6c1d28] hover:bg-[#57161f] text-white"
               >
                 <Plus className="h-3.5 w-3.5" /> 
-                <span>Novo Aviso</span>
+                <span>Novo</span>
               </Button>
             )}
           </div>
