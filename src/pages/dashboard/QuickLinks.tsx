@@ -94,8 +94,8 @@ export function QuickLinks() {
       <Card className="border border-border/80 bg-card shadow-xs rounded-2xl overflow-hidden">
         <CardHeader className="flex flex-row items-center justify-between pb-3 pt-4 px-4 sm:px-5 border-b border-border/60 bg-muted/20">
           <div className="flex items-center gap-2">
-            <Link2 className="h-5 w-5 text-[#6c1d28] dark:text-[#f8b4bc]" />
-            <CardTitle className="text-base font-bold text-[#6c1d28] dark:text-[#f8b4bc]">
+            <Link2 className="h-5 w-5 text-[#7f1d1d] dark:text-[#f8b4bc]" />
+            <CardTitle className="text-base font-bold text-[#7f1d1d] dark:text-[#f8b4bc]">
               Links Rápidos
             </CardTitle>
           </div>
@@ -119,11 +119,11 @@ export function QuickLinks() {
               className="flex items-center justify-between p-3 rounded-xl bg-background border border-border/70 hover:border-primary/50 hover:shadow-xs hover:bg-muted/20 transition-all group select-none"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div className="h-10 w-10 rounded-xl bg-[#f2e6e6] text-[#7c3238] dark:bg-[#7c3238]/30 dark:text-[#f8b4bc] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <div className="h-10 w-10 rounded-xl bg-[#f2e6e6] text-[#7f1d1d] dark:bg-[#7f1d1d]/30 dark:text-[#f8b4bc] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                   <Users className="h-5 w-5" />
                 </div>
                 <div className="flex flex-col truncate">
-                  <span className="font-bold text-foreground text-sm leading-tight group-hover:text-[#6c1d28] dark:group-hover:text-[#f8b4bc] transition-colors">
+                  <span className="font-bold text-foreground text-sm leading-tight group-hover:text-[#7f1d1d] dark:group-hover:text-[#f8b4bc] transition-colors">
                     Turmas e Alunos
                   </span>
                   <span className="text-[11px] text-muted-foreground mt-0.5">
@@ -131,7 +131,7 @@ export function QuickLinks() {
                   </span>
                 </div>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground/70 group-hover:text-[#6c1d28] dark:group-hover:text-[#f8b4bc] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+              <ChevronRight className="h-4 w-4 text-muted-foreground/70 group-hover:text-[#7f1d1d] dark:group-hover:text-[#f8b4bc] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
             </Link>
 
             {/* Link Padrão 2: Relatórios Gerais / Avaliações */}
@@ -144,7 +144,7 @@ export function QuickLinks() {
                   <BarChart3 className="h-5 w-5" />
                 </div>
                 <div className="flex flex-col truncate">
-                  <span className="font-bold text-foreground text-sm leading-tight group-hover:text-[#6c1d28] dark:group-hover:text-[#f8b4bc] transition-colors">
+                  <span className="font-bold text-foreground text-sm leading-tight group-hover:text-[#7f1d1d] dark:group-hover:text-[#f8b4bc] transition-colors">
                     Relatórios Gerais
                   </span>
                   <span className="text-[11px] text-muted-foreground mt-0.5">
@@ -152,7 +152,7 @@ export function QuickLinks() {
                   </span>
                 </div>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground/70 group-hover:text-[#6c1d28] dark:group-hover:text-[#f8b4bc] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+              <ChevronRight className="h-4 w-4 text-muted-foreground/70 group-hover:text-[#7f1d1d] dark:group-hover:text-[#f8b4bc] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
             </Link>
 
             {/* Link Padrão 3: Calendário Acadêmico */}
@@ -165,7 +165,7 @@ export function QuickLinks() {
                   <Calendar className="h-5 w-5" />
                 </div>
                 <div className="flex flex-col truncate">
-                  <span className="font-bold text-foreground text-sm leading-tight group-hover:text-[#6c1d28] dark:group-hover:text-[#f8b4bc] transition-colors">
+                  <span className="font-bold text-foreground text-sm leading-tight group-hover:text-[#7f1d1d] dark:group-hover:text-[#f8b4bc] transition-colors">
                     Calendário Acadêmico
                   </span>
                   <span className="text-[11px] text-muted-foreground mt-0.5">
@@ -173,7 +173,7 @@ export function QuickLinks() {
                   </span>
                 </div>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground/70 group-hover:text-[#6c1d28] dark:group-hover:text-[#f8b4bc] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+              <ChevronRight className="h-4 w-4 text-muted-foreground/70 group-hover:text-[#7f1d1d] dark:group-hover:text-[#f8b4bc] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
             </Link>
 
             {/* Custom Links */}
@@ -186,11 +186,11 @@ export function QuickLinks() {
                   className="flex items-center justify-between p-3 rounded-xl bg-background border border-border/70 hover:border-primary/50 hover:shadow-xs hover:bg-muted/20 transition-all select-none"
                 >
                   <div className="flex items-center gap-3 min-w-0 pr-8">
-                    <div className="h-10 w-10 rounded-xl bg-[#f2e6e6] text-[#7c3238] dark:bg-[#7c3238]/30 dark:text-[#f8b4bc] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <div className="h-10 w-10 rounded-xl bg-[#f2e6e6] text-[#7f1d1d] dark:bg-[#7f1d1d]/30 dark:text-[#f8b4bc] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                       <DynamicIcon name={link.icone} className="h-5 w-5" />
                     </div>
                     <div className="flex flex-col truncate">
-                      <span className="font-bold text-foreground text-sm leading-tight group-hover:text-[#6c1d28] dark:group-hover:text-[#f8b4bc] transition-colors truncate">
+                      <span className="font-bold text-foreground text-sm leading-tight group-hover:text-[#7f1d1d] dark:group-hover:text-[#f8b4bc] transition-colors truncate">
                         {link.titulo}
                       </span>
                       <span className="text-[11px] text-muted-foreground truncate mt-0.5">
@@ -198,7 +198,7 @@ export function QuickLinks() {
                       </span>
                     </div>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground/70 group-hover:text-[#6c1d28] dark:group-hover:text-[#f8b4bc] group-hover:translate-x-0.5 transition-all shrink-0" />
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/70 group-hover:text-[#7f1d1d] dark:group-hover:text-[#f8b4bc] group-hover:translate-x-0.5 transition-all shrink-0" />
                 </a>
                 
                 {canManage && (
@@ -219,7 +219,7 @@ export function QuickLinks() {
 
       {/* CARD INSTITUCIONAL: TRADIÇÃO & EXCELÊNCIA */}
       <div className="relative overflow-hidden rounded-2xl border border-border/80 shadow-xs bg-linear-to-br from-card via-[#fce5e6]/20 to-muted/10 p-5 group select-none">
-        <div className="flex items-center gap-2 text-[#6c1d28] dark:text-[#f8b4bc] font-extrabold text-xs tracking-widest uppercase mb-1">
+        <div className="flex items-center gap-2 text-[#7f1d1d] dark:text-[#f8b4bc] font-extrabold text-xs tracking-widest uppercase mb-1">
           <Sparkles className="h-3.5 w-3.5 text-[#ad6020] dark:text-[#f0aa70]" />
           <span>Tradição & Excelência</span>
         </div>

@@ -144,8 +144,8 @@ export function Avisos() {
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between px-0.5">
           <div className="flex items-center gap-2.5">
-            <Megaphone className="h-5 w-5 text-[#6c1d28] dark:text-[#f8b4bc]" />
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[#6c1d28] dark:text-[#f8b4bc]">
+            <Megaphone className="h-5 w-5 text-[#7f1d1d] dark:text-[#f8b4bc]" />
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[#7f1d1d] dark:text-[#f8b4bc]">
               Quadro de Avisos
             </h2>
           </div>
@@ -159,7 +159,7 @@ export function Avisos() {
               <Button 
                 size="sm" 
                 onClick={() => { setEditingAviso({ categoria: "COMUNICADO" }); setIsModalOpen(true); }} 
-                className="rounded-lg px-3 text-xs font-semibold shadow-xs gap-1.5 h-8 bg-[#6c1d28] hover:bg-[#57161f] text-white"
+                className="rounded-lg px-3 text-xs font-semibold shadow-xs gap-1.5 h-8 bg-[#7f1d1d] hover:bg-[#661717] text-white"
               >
                 <Plus className="h-3.5 w-3.5" /> 
                 <span>Novo</span>

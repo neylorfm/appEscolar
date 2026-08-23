@@ -180,7 +180,7 @@ export function CardBimestres() {
     <div className="flex flex-col gap-4">
       {/* Cabeçalho de Informações por Bimestre */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-0.5">
-        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[#6c1d28] dark:text-[#f8b4bc]">
+        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[#7f1d1d] dark:text-[#f8b4bc]">
           Informações por Bimestre
         </h2>
 
@@ -188,7 +188,7 @@ export function CardBimestres() {
           <Button 
             size="sm" 
             onClick={handleOpenNovo} 
-            className="h-8 text-xs font-semibold rounded-lg px-3 shadow-xs gap-1.5 self-start sm:self-auto bg-[#6c1d28] hover:bg-[#57161f] text-white"
+            className="h-8 text-xs font-semibold rounded-lg px-3 shadow-xs gap-1.5 self-start sm:self-auto bg-[#7f1d1d] hover:bg-[#661717] text-white"
           >
             <Plus className="h-3.5 w-3.5" />
             <span>Adicionar</span>
@@ -196,7 +196,7 @@ export function CardBimestres() {
         )}
       </div>
 
-      {/* Abas dos 4 Bimestres (Estilo Sublinhado com Cor Vinho) */}
+      {/* Abas dos 4 Bimestres (Estilo Sublinhado com Cor Vinho Burgundy #7f1d1d) */}
       <div className="flex items-center border-b border-border/80 gap-6 overflow-x-auto select-none pt-1">
         {BIMESTRES.map((bim) => {
           const ativo = bimestreAtivo === bim.valor
@@ -208,7 +208,7 @@ export function CardBimestres() {
               onClick={() => setBimestreAtivo(bim.valor)}
               className={`pb-2.5 text-xs sm:text-sm uppercase tracking-wider font-extrabold transition-all relative shrink-0 flex items-center gap-1.5 ${
                 ativo
-                  ? "text-[#6c1d28] dark:text-[#f8b4bc] border-b-2 border-[#6c1d28] dark:border-[#f8b4bc]"
+                  ? "text-[#7f1d1d] dark:text-[#f8b4bc] border-b-2 border-[#7f1d1d] dark:border-[#f8b4bc]"
                   : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 border-b-2 border-transparent"
               }`}
             >
@@ -217,7 +217,7 @@ export function CardBimestres() {
                 <span 
                   className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold leading-tight ${
                     ativo 
-                      ? "bg-[#6c1d28] text-white dark:bg-[#f8b4bc] dark:text-zinc-900" 
+                      ? "bg-[#7f1d1d] text-white dark:bg-[#f8b4bc] dark:text-zinc-900" 
                       : "bg-muted text-muted-foreground"
                   }`}
                 >
