@@ -144,14 +144,14 @@ export function Avisos() {
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between px-0.5">
           <div className="flex items-center gap-2.5">
-            <Megaphone className="h-5 w-5 text-[#7f1d1d] dark:text-[#f8b4bc]" />
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[#7f1d1d] dark:text-[#f8b4bc]">
+            <Megaphone className="h-5 w-5 lg:h-6 lg:w-6 text-[#7f1d1d] dark:text-[#f8b4bc]" />
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-[#7f1d1d] dark:text-[#f8b4bc]">
               Quadro de Avisos
             </h2>
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-[#ad6020] dark:text-[#f0aa70] cursor-pointer hover:underline">
+            <span className="text-xs lg:text-sm font-bold uppercase tracking-wider text-[#ad6020] dark:text-[#f0aa70] cursor-pointer hover:underline">
               VER TODOS
             </span>
 
@@ -159,9 +159,9 @@ export function Avisos() {
               <Button 
                 size="sm" 
                 onClick={() => { setEditingAviso({ categoria: "COMUNICADO" }); setIsModalOpen(true); }} 
-                className="rounded-lg px-3 text-xs font-semibold shadow-xs gap-1.5 h-8 bg-[#7f1d1d] hover:bg-[#661717] text-white"
+                className="rounded-lg px-3 text-xs lg:text-sm font-semibold shadow-xs gap-1.5 h-8 lg:h-9 bg-[#7f1d1d] hover:bg-[#661717] text-white"
               >
-                <Plus className="h-3.5 w-3.5" /> 
+                <Plus className="h-3.5 w-3.5 lg:h-4 lg:w-4" /> 
                 <span>Novo</span>
               </Button>
             )}
@@ -170,17 +170,17 @@ export function Avisos() {
 
         {/* Grid de Cards de Avisos (Estilo Botão com Tag no topo) */}
         {loading ? (
-          <div className="py-8 text-center text-xs text-muted-foreground">
+          <div className="py-8 text-center text-xs lg:text-sm text-muted-foreground">
             Carregando quadro de avisos...
           </div>
         ) : avisos.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 px-4 text-center bg-muted/20 rounded-2xl border-2 border-dashed border-border/80">
-            <Megaphone className="h-8 w-8 text-muted-foreground/60 mb-2" />
-            <p className="text-sm text-foreground/80 font-semibold">Nenhum aviso no momento.</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Novos comunicados institucionais aparecerão aqui.</p>
+            <Megaphone className="h-8 w-8 lg:h-10 lg:w-10 text-muted-foreground/60 mb-2" />
+            <p className="text-sm lg:text-base text-foreground/80 font-semibold">Nenhum aviso no momento.</p>
+            <p className="text-xs lg:text-sm text-muted-foreground mt-0.5">Novos comunicados institucionais aparecerão aqui.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 lg:gap-4">
             {avisos.map((aviso) => {
               const badge = getCategoriaBadge(aviso.categoria)
               const hasLink = Boolean(aviso.link && aviso.link.trim())
@@ -191,23 +191,23 @@ export function Avisos() {
                   onClick={() => handleCardClick(aviso)}
                   role="button"
                   tabIndex={0}
-                  className="group relative text-left rounded-xl border border-border/80 bg-card p-4 sm:p-4.5 hover:border-primary/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer flex flex-col justify-between gap-2.5 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary select-none"
+                  className="group relative text-left rounded-xl border border-border/80 bg-card p-4 sm:p-4.5 lg:p-5 hover:border-primary/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer flex flex-col justify-between gap-3 lg:gap-3.5 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary select-none"
                 >
                   {/* Linha de Categoria e Ações de Gestão */}
                   <div className="flex items-center justify-between gap-2">
-                    <span className={`text-[10px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-md border ${badge.cor}`}>
+                    <span className={`text-[10px] sm:text-[11px] lg:text-xs font-bold tracking-wider uppercase px-2.5 lg:px-3 py-0.5 lg:py-1 rounded-md border ${badge.cor}`}>
                       {badge.rotulo}
                     </span>
 
                     <div className="flex items-center gap-1.5">
                       {/* Indicador sutil de link ou texto expansível */}
                       {hasLink ? (
-                        <span className="text-[11px] font-semibold text-primary inline-flex items-center gap-0.5 group-hover:underline">
-                          <ExternalLink className="h-3 w-3" />
+                        <span className="text-[11px] lg:text-xs font-semibold text-primary inline-flex items-center gap-0.5 group-hover:underline">
+                          <ExternalLink className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
                         </span>
                       ) : (
-                        <span className="text-[10px] font-medium text-muted-foreground inline-flex items-center gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
-                          <BookOpen className="h-3 w-3" />
+                        <span className="text-[10px] lg:text-xs font-medium text-muted-foreground inline-flex items-center gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                          <BookOpen className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
                         </span>
                       )}
 
@@ -220,20 +220,20 @@ export function Avisos() {
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="h-6 w-6 text-muted-foreground hover:text-foreground" 
+                            className="h-6 w-6 lg:h-7 lg:w-7 text-muted-foreground hover:text-foreground" 
                             onClick={(e) => { e.stopPropagation(); setEditingAviso(aviso); setIsModalOpen(true); }} 
                             title="Editar aviso"
                           >
-                            <Edit2 className="h-3 w-3" />
+                            <Edit2 className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
                           </Button>
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="h-6 w-6 text-destructive/80 hover:text-destructive hover:bg-destructive/10" 
+                            className="h-6 w-6 lg:h-7 lg:w-7 text-destructive/80 hover:text-destructive hover:bg-destructive/10" 
                             onClick={(e) => { e.stopPropagation(); handleDelete(aviso.id); }} 
                             title="Excluir aviso"
                           >
-                            <Trash2 className="h-3 w-3" />
+                            <Trash2 className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
                           </Button>
                         </div>
                       )}
@@ -242,25 +242,25 @@ export function Avisos() {
 
                   {/* Título do Aviso */}
                   <div>
-                    <h3 className="text-sm sm:text-base font-bold text-foreground leading-snug group-hover:text-primary transition-colors">
+                    <h3 className="text-sm sm:text-base lg:text-lg font-bold text-foreground leading-snug group-hover:text-primary transition-colors">
                       {aviso.titulo}
                     </h3>
                   </div>
 
                   {/* Resumo do Conteúdo (Texto enxuto) */}
-                  <p className="text-xs sm:text-[13px] text-muted-foreground leading-relaxed line-clamp-2">
+                  <p className="text-xs sm:text-[13px] lg:text-[15px] text-muted-foreground leading-relaxed line-clamp-2 lg:line-clamp-3">
                     {aviso.conteudo}
                   </p>
 
                   {/* Data / Hora no rodapé do Card */}
-                  <div className="pt-1 flex items-center justify-between text-[11px] text-muted-foreground/80 font-medium">
+                  <div className="pt-1 flex items-center justify-between text-[11px] lg:text-xs text-muted-foreground/80 font-medium">
                     <span className="inline-flex items-center gap-1">
-                      <Calendar className="h-3 w-3 text-primary/70" />
+                      <Calendar className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-primary/70" />
                       {format(new Date(aviso.data_publicacao), "dd 'de' MMMM", { locale: ptBR })}
                     </span>
-                    <span className="text-[10px] text-primary font-semibold group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
+                    <span className="text-[10px] lg:text-xs text-primary font-semibold group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
                       {hasLink ? "Acessar link" : "Ler aviso"}
-                      <ChevronRight className="h-3 w-3" />
+                      <ChevronRight className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
                     </span>
                   </div>
                 </div>

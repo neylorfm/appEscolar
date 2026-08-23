@@ -180,7 +180,7 @@ export function CardBimestres() {
     <div className="flex flex-col gap-4">
       {/* Cabeçalho de Informações por Bimestre */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-0.5">
-        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[#7f1d1d] dark:text-[#f8b4bc]">
+        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-[#7f1d1d] dark:text-[#f8b4bc]">
           Informações por Bimestre
         </h2>
 
@@ -188,16 +188,16 @@ export function CardBimestres() {
           <Button 
             size="sm" 
             onClick={handleOpenNovo} 
-            className="h-8 text-xs font-semibold rounded-lg px-3 shadow-xs gap-1.5 self-start sm:self-auto bg-[#7f1d1d] hover:bg-[#661717] text-white"
+            className="h-8 lg:h-9 text-xs lg:text-sm font-semibold rounded-lg px-3 lg:px-4 shadow-xs gap-1.5 self-start sm:self-auto bg-[#7f1d1d] hover:bg-[#661717] text-white"
           >
-            <Plus className="h-3.5 w-3.5" />
+            <Plus className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
             <span>Adicionar</span>
           </Button>
         )}
       </div>
 
       {/* Abas dos 4 Bimestres (Estilo Sublinhado com Cor Vinho Burgundy #7f1d1d) */}
-      <div className="flex items-center border-b border-border/80 gap-6 overflow-x-auto select-none pt-1">
+      <div className="flex items-center border-b border-border/80 gap-6 lg:gap-8 overflow-x-auto select-none pt-1">
         {BIMESTRES.map((bim) => {
           const ativo = bimestreAtivo === bim.valor
           const count = contagemPorBimestre[bim.valor] || 0
@@ -206,7 +206,7 @@ export function CardBimestres() {
               key={bim.valor}
               type="button"
               onClick={() => setBimestreAtivo(bim.valor)}
-              className={`pb-2.5 text-xs sm:text-sm uppercase tracking-wider font-extrabold transition-all relative shrink-0 flex items-center gap-1.5 ${
+              className={`pb-2.5 lg:pb-3 text-xs sm:text-sm lg:text-base uppercase tracking-wider font-extrabold transition-all relative shrink-0 flex items-center gap-1.5 ${
                 ativo
                   ? "text-[#7f1d1d] dark:text-[#f8b4bc] border-b-2 border-[#7f1d1d] dark:border-[#f8b4bc]"
                   : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 border-b-2 border-transparent"
@@ -215,7 +215,7 @@ export function CardBimestres() {
               <span>{bim.rotulo}</span>
               {count > 0 && (
                 <span 
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold leading-tight ${
+                  className={`text-[10px] lg:text-xs px-1.5 lg:px-2 py-0.2 rounded-full font-bold leading-tight ${
                     ativo 
                       ? "bg-[#7f1d1d] text-white dark:bg-[#f8b4bc] dark:text-zinc-900" 
                       : "bg-muted text-muted-foreground"
@@ -231,16 +231,16 @@ export function CardBimestres() {
 
       {/* Conteúdo do Bimestre Ativo em Grid */}
       {loading ? (
-        <div className="py-8 text-center text-xs text-muted-foreground">
+        <div className="py-8 text-center text-xs lg:text-sm text-muted-foreground">
           Carregando informações do bimestre...
         </div>
       ) : itensDoBimestre.length === 0 ? (
         <div className="py-10 px-4 text-center rounded-2xl border-2 border-dashed border-border/80 bg-muted/20 flex flex-col items-center justify-center">
-          <Info className="h-8 w-8 text-muted-foreground/60 mb-2" />
-          <p className="text-sm font-semibold text-foreground/80">
+          <Info className="h-8 w-8 lg:h-10 lg:w-10 text-muted-foreground/60 mb-2" />
+          <p className="text-sm lg:text-base font-semibold text-foreground/80">
             Nenhuma informação cadastrada no {bimestreAtivo}º Bimestre.
           </p>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <p className="text-xs lg:text-sm text-muted-foreground mt-0.5">
             Documentos, links e roteiros do período aparecerão aqui.
           </p>
           {canManage && (
@@ -248,14 +248,14 @@ export function CardBimestres() {
               variant="outline"
               size="sm"
               onClick={handleOpenNovo}
-              className="h-8 text-xs font-semibold text-primary mt-3 border-primary/30"
+              className="h-8 lg:h-9 text-xs lg:text-sm font-semibold text-primary mt-3 border-primary/30"
             >
               + Inserir informação
             </Button>
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 lg:gap-4">
           {itensDoBimestre.map((item, index) => {
             const colorTheme = ICON_COLORS[index % ICON_COLORS.length]
             const hasLink = Boolean(item.link && item.link.trim())
@@ -266,22 +266,22 @@ export function CardBimestres() {
                 onClick={() => handleItemClick(item)}
                 role="button"
                 tabIndex={0}
-                className="group relative text-left rounded-xl border border-border/80 bg-card p-4 hover:border-primary/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer flex flex-col justify-between gap-3 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary select-none"
+                className="group relative text-left rounded-xl border border-border/80 bg-card p-4 sm:p-4.5 lg:p-5 hover:border-primary/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer flex flex-col justify-between gap-3 lg:gap-4 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary select-none"
               >
                 {/* Linha de Ícone e Ações */}
                 <div className="flex items-center justify-between">
-                  <div className={`h-8 w-8 rounded-full border flex items-center justify-center ${colorTheme.bg}`}>
-                    <FileText className="h-4 w-4" />
+                  <div className={`h-8 w-8 lg:h-10 lg:w-10 rounded-full border flex items-center justify-center ${colorTheme.bg}`}>
+                    <FileText className="h-4 w-4 lg:h-5 lg:w-5" />
                   </div>
 
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1.5">
                     {hasLink ? (
-                      <span className="text-[11px] font-semibold text-primary inline-flex items-center gap-0.5 group-hover:underline">
-                        <ExternalLink className="h-3 w-3" />
+                      <span className="text-[11px] lg:text-xs font-semibold text-primary inline-flex items-center gap-0.5 group-hover:underline">
+                        <ExternalLink className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
                       </span>
                     ) : (
-                      <span className="text-[10px] font-medium text-muted-foreground inline-flex items-center gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
-                        <Info className="h-3 w-3" />
+                      <span className="text-[10px] lg:text-xs font-medium text-muted-foreground inline-flex items-center gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                        <Info className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
                       </span>
                     )}
 
@@ -294,20 +294,20 @@ export function CardBimestres() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                          className="h-6 w-6 lg:h-7 lg:w-7 text-muted-foreground hover:text-foreground"
                           onClick={(e) => { e.stopPropagation(); handleOpenEditar(item); }}
                           title="Editar informação"
                         >
-                          <Edit2 className="h-3 w-3" />
+                          <Edit2 className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 text-destructive/80 hover:text-destructive hover:bg-destructive/10"
+                          className="h-6 w-6 lg:h-7 lg:w-7 text-destructive/80 hover:text-destructive hover:bg-destructive/10"
                           onClick={(e) => { e.stopPropagation(); handleExcluir(item.id); }}
                           title="Excluir informação"
                         >
-                          <Trash2 className="h-3 w-3" />
+                          <Trash2 className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
                         </Button>
                       </div>
                     )}
@@ -315,25 +315,25 @@ export function CardBimestres() {
                 </div>
 
                 {/* Título e Descrição */}
-                <div className="space-y-1">
-                  <h3 className="text-sm font-bold text-foreground leading-snug group-hover:text-primary transition-colors">
+                <div className="space-y-1.5">
+                  <h3 className="text-sm sm:text-base lg:text-lg font-bold text-foreground leading-snug group-hover:text-primary transition-colors">
                     {item.titulo}
                   </h3>
                   {item.descricao && (
-                    <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                    <p className="text-xs sm:text-[13px] lg:text-sm text-muted-foreground leading-relaxed line-clamp-2 lg:line-clamp-3">
                       {item.descricao}
                     </p>
                   )}
                 </div>
 
                 {/* Rodapé do Card */}
-                <div className="pt-1 flex items-center justify-between text-[11px] text-muted-foreground/80 font-medium">
-                  <span className="text-[10px] font-semibold uppercase text-primary/80">
+                <div className="pt-1 flex items-center justify-between text-[11px] lg:text-xs text-muted-foreground/80 font-medium">
+                  <span className="text-[10px] lg:text-xs font-semibold uppercase text-primary/80">
                     {bimestreAtivo}º Bimestre
                   </span>
-                  <span className="text-[10px] text-primary font-semibold group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
+                  <span className="text-[10px] lg:text-xs text-primary font-semibold group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
                     {hasLink ? "Abrir link" : "Ver detalhes"}
-                    <ChevronRight className="h-3 w-3" />
+                    <ChevronRight className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
                   </span>
                 </div>
               </div>
