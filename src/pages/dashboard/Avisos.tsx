@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { 
   Megaphone, 
   Plus, 
@@ -8,7 +8,9 @@ import {
   ExternalLink, 
   X,
   ChevronRight,
-  BookOpen
+  BookOpen,
+  Search,
+  Filter
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/contexts/AuthContext"
@@ -60,6 +62,9 @@ export function Avisos() {
   const [avisos, setAvisos] = useState<Aviso[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isVerTodosOpen, setIsVerTodosOpen] = useState(false)
+  const [buscaVerTodos, setBuscaVerTodos] = useState("")
+  const [categoriaFiltro, setCategoriaFiltro] = useState<string>("TODAS")
   const [editingAviso, setEditingAviso] = useState<Partial<Aviso> | null>(null)
   const [visualizandoAviso, setVisualizandoAviso] = useState<Aviso | null>(null)
   
@@ -90,12 +95,8 @@ export function Avisos() {
   }
 
   function handleCardClick(aviso: Aviso) {
-    if (aviso.link && aviso.link.trim()) {
-      window.open(formatarUrl(aviso.link), "_blank", "noopener,noreferrer")
-    } else {
-      // Se for texto puro ou informativo, abre o modal detalhado
-      setVisualizandoAviso(aviso)
-    }
+    // Sempre abre a leitura completa do aviso para permitir leitura do texto integral
+    setVisualizandoAviso(aviso)
   }
 
   async function handleSave() {
@@ -129,6 +130,9 @@ export function Avisos() {
     try {
       await deleteAviso(id)
       toast.success("Aviso removido")
+      if (visualizandoAviso?.id === id) {
+        setVisualizandoAviso(null)
+      }
       loadAvisos()
     } catch (error: any) {
       console.error("Erro ao excluir aviso:", error)
@@ -137,6 +141,19 @@ export function Avisos() {
       })
     }
   }
+
+  const avisosFiltradosModal = useMemo(() => {
+    return avisos.filter(aviso => {
+      const matchBusca = !buscaVerTodos.trim() || 
+        aviso.titulo.toLowerCase().includes(buscaVerTodos.toLowerCase()) ||
+        aviso.conteudo.toLowerCase().includes(buscaVerTodos.toLowerCase())
+      
+      const matchCategoria = categoriaFiltro === "TODAS" || 
+        (aviso.categoria || "COMUNICADO").toUpperCase().trim() === categoriaFiltro
+      
+      return matchBusca && matchCategoria
+    })
+  }, [avisos, buscaVerTodos, categoriaFiltro])
 
   return (
     <div className="flex flex-col gap-8">
@@ -151,9 +168,15 @@ export function Avisos() {
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-xs lg:text-sm font-bold uppercase tracking-wider text-[#ad6020] dark:text-[#f0aa70] cursor-pointer hover:underline">
-              VER TODOS
-            </span>
+            {avisos.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setIsVerTodosOpen(true)}
+                className="text-xs lg:text-sm font-bold uppercase tracking-wider text-[#ad6020] dark:text-[#f0aa70] hover:underline cursor-pointer transition-colors"
+              >
+                VER TODOS ({avisos.length})
+              </button>
+            )}
 
             {canManage && (
               <Button 
@@ -181,7 +204,7 @@ export function Avisos() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 lg:gap-4">
-            {avisos.map((aviso) => {
+            {avisos.slice(0, 6).map((aviso) => {
               const badge = getCategoriaBadge(aviso.categoria)
               const hasLink = Boolean(aviso.link && aviso.link.trim())
 
@@ -191,24 +214,36 @@ export function Avisos() {
                   onClick={() => handleCardClick(aviso)}
                   role="button"
                   tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault()
+                      handleCardClick(aviso)
+                    }
+                  }}
                   className="group relative text-left rounded-xl border border-border/80 bg-card p-4 sm:p-4.5 lg:p-5 hover:border-primary/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer flex flex-col justify-between gap-3 lg:gap-3.5 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary select-none"
                 >
-                  {/* Linha de Categoria e Ações de Gestão */}
+                  {/* Linha de Categoria e Ações */}
                   <div className="flex items-center justify-between gap-2">
                     <span className={`text-[10px] sm:text-[11px] lg:text-xs font-bold tracking-wider uppercase px-2.5 lg:px-3 py-0.5 lg:py-1 rounded-md border ${badge.cor}`}>
                       {badge.rotulo}
                     </span>
 
                     <div className="flex items-center gap-1.5">
-                      {/* Indicador sutil de link ou texto expansível */}
-                      {hasLink ? (
-                        <span className="text-[11px] lg:text-xs font-semibold text-primary inline-flex items-center gap-0.5 group-hover:underline">
+                      {/* Botão de Acesso ao Link no Card (Acessível e sem mostrar a URL bruta) */}
+                      {hasLink && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            window.open(formatarUrl(aviso.link), "_blank", "noopener,noreferrer")
+                          }}
+                          className="inline-flex items-center gap-1 text-[11px] lg:text-xs font-semibold text-primary bg-primary/10 hover:bg-primary hover:text-primary-foreground transition-colors px-2.5 py-0.5 lg:py-1 rounded-md border border-primary/20 shadow-2xs z-10"
+                          title="Acessar Link Externo"
+                          aria-label={`Acessar link anexo do aviso: ${aviso.titulo}`}
+                        >
                           <ExternalLink className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
-                        </span>
-                      ) : (
-                        <span className="text-[10px] lg:text-xs font-medium text-muted-foreground inline-flex items-center gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
-                          <BookOpen className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
-                        </span>
+                          <span>Acessar Link</span>
+                        </button>
                       )}
 
                       {/* Botões de Ação para Administrador / Coordenador */}
@@ -223,6 +258,7 @@ export function Avisos() {
                             className="h-6 w-6 lg:h-7 lg:w-7 text-muted-foreground hover:text-foreground" 
                             onClick={(e) => { e.stopPropagation(); setEditingAviso(aviso); setIsModalOpen(true); }} 
                             title="Editar aviso"
+                            aria-label={`Editar aviso: ${aviso.titulo}`}
                           >
                             <Edit2 className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
                           </Button>
@@ -232,6 +268,7 @@ export function Avisos() {
                             className="h-6 w-6 lg:h-7 lg:w-7 text-destructive/80 hover:text-destructive hover:bg-destructive/10" 
                             onClick={(e) => { e.stopPropagation(); handleDelete(aviso.id); }} 
                             title="Excluir aviso"
+                            aria-label={`Excluir aviso: ${aviso.titulo}`}
                           >
                             <Trash2 className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
                           </Button>
@@ -252,14 +289,15 @@ export function Avisos() {
                     {aviso.conteudo}
                   </p>
 
-                  {/* Data / Hora no rodapé do Card */}
-                  <div className="pt-1 flex items-center justify-between text-[11px] lg:text-xs text-muted-foreground/80 font-medium">
+                  {/* Data / Hora e Ação "Ler aviso" no rodapé do Card */}
+                  <div className="pt-1 flex items-center justify-between text-[11px] lg:text-xs text-muted-foreground/80 font-medium border-t border-border/40">
                     <span className="inline-flex items-center gap-1">
                       <Calendar className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-primary/70" />
                       {format(new Date(aviso.data_publicacao), "dd 'de' MMMM", { locale: ptBR })}
                     </span>
-                    <span className="text-[10px] lg:text-xs text-primary font-semibold group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
-                      {hasLink ? "Acessar link" : "Ler aviso"}
+                    <span className="text-[11px] lg:text-xs text-primary font-semibold group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
+                      <BookOpen className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
+                      <span>Ler aviso</span>
                       <ChevronRight className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
                     </span>
                   </div>
@@ -273,13 +311,13 @@ export function Avisos() {
       {/* SEÇÃO 2: INFORMAÇÕES POR BIMESTRE */}
       <CardBimestres />
 
-      {/* MODAL 1: VISUALIZAR AVISO COMPLETO (TEXTO PURO / EXPANDIDO) */}
+      {/* MODAL 1: VISUALIZAR AVISO COMPLETO (TEXTO PURO / EXPANDIDO / ACESSÍVEL) */}
       <Dialog open={!!visualizandoAviso} onOpenChange={(open) => !open && setVisualizandoAviso(null)}>
         <DialogContent className="sm:max-w-lg">
           {visualizandoAviso && (
             <>
               <DialogHeader>
-                <div className="flex items-center gap-2 mb-1.5">
+                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                   <span className={`text-[10px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-md border ${getCategoriaBadge(visualizandoAviso.categoria).cor}`}>
                     {getCategoriaBadge(visualizandoAviso.categoria).rotulo}
                   </span>
@@ -289,7 +327,7 @@ export function Avisos() {
                   </div>
                 </div>
 
-                <DialogTitle className="text-lg sm:text-xl font-bold text-foreground leading-snug">
+                <DialogTitle className="text-lg sm:text-xl font-bold text-foreground leading-snug text-left">
                   {visualizandoAviso.titulo}
                 </DialogTitle>
               </DialogHeader>
@@ -306,34 +344,49 @@ export function Avisos() {
                   </div>
                 )}
 
-                {/* Conteúdo Completo com quebra de linha */}
-                <div className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap rounded-lg bg-muted/10 p-3 border border-border/50">
+                {/* Conteúdo Completo com formatação e quebra de linha */}
+                <div className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap rounded-lg bg-muted/15 p-3.5 border border-border/60">
                   {visualizandoAviso.conteudo}
                 </div>
 
-                {/* Link se houver */}
+                {/* Link Anexo (Acessível, sem mostrar URL bruta) */}
                 {visualizandoAviso.link && (
                   <div className="pt-1">
                     <a
                       href={formatarUrl(visualizandoAviso.link)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-xs font-semibold text-primary hover:underline bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/20"
+                      className="flex items-center justify-between p-3 rounded-xl bg-primary/10 hover:bg-primary/15 border border-primary/25 transition-all text-primary group"
+                      aria-label="Abrir link complementar em nova aba"
                     >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                      <span>{visualizandoAviso.link}</span>
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-2 rounded-lg bg-primary/20 text-primary">
+                          <ExternalLink className="h-4 w-4" />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-sm font-semibold text-foreground">Link / Material Complementar</p>
+                          <p className="text-xs text-muted-foreground">Clique para abrir o link externo anexo</p>
+                        </div>
+                      </div>
+                      <span className="text-xs font-bold text-primary flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                        Acessar
+                        <ChevronRight className="h-4 w-4" />
+                      </span>
                     </a>
                   </div>
                 )}
               </div>
 
-              <DialogFooter className="pt-2">
+              <DialogFooter className="pt-2 flex flex-row items-center justify-between sm:justify-between w-full">
                 <Button variant="outline" onClick={() => setVisualizandoAviso(null)}>
                   Fechar
                 </Button>
                 {visualizandoAviso.link && (
-                  <Button onClick={() => window.open(formatarUrl(visualizandoAviso.link), '_blank')}>
-                    <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Acessar Link
+                  <Button 
+                    onClick={() => window.open(formatarUrl(visualizandoAviso.link), '_blank', 'noopener,noreferrer')}
+                    className="gap-1.5 font-semibold"
+                  >
+                    <ExternalLink className="h-4 w-4" /> Acessar Link
                   </Button>
                 )}
               </DialogFooter>
@@ -342,7 +395,122 @@ export function Avisos() {
         </DialogContent>
       </Dialog>
 
-      {/* MODAL 2: CRIAR / EDITAR AVISO (ADMIN) */}
+      {/* MODAL 2: VER TODOS OS AVISOS */}
+      <Dialog open={isVerTodosOpen} onOpenChange={setIsVerTodosOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-lg sm:text-xl font-bold flex items-center gap-2">
+              <Megaphone className="h-5 w-5 text-primary" />
+              Todos os Avisos Institucionais
+            </DialogTitle>
+          </DialogHeader>
+
+          {/* Filtros de Busca e Categoria */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 pb-3">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar avisos por título ou texto..."
+                value={buscaVerTodos}
+                onChange={(e) => setBuscaVerTodos(e.target.value)}
+                className="pl-8.5 h-9 text-xs sm:text-sm"
+              />
+            </div>
+            <div className="relative">
+              <Select value={categoriaFiltro} onValueChange={setCategoriaFiltro}>
+                <SelectTrigger className="h-9 text-xs sm:text-sm">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+                    <SelectValue placeholder="Filtrar por Categoria" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="TODAS">Todas as Categorias</SelectItem>
+                  {CATEGORIAS_PADRAO.map(cat => (
+                    <SelectItem key={cat.valor} value={cat.valor}>
+                      {cat.rotulo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Lista Rolável de Avisos */}
+          <div className="overflow-y-auto pr-1 flex-1 space-y-3 min-h-[250px]">
+            {avisosFiltradosModal.length === 0 ? (
+              <div className="text-center py-10 text-muted-foreground text-sm">
+                Nenhum aviso encontrado com os filtros selecionados.
+              </div>
+            ) : (
+              avisosFiltradosModal.map((aviso) => {
+                const badge = getCategoriaBadge(aviso.categoria)
+                const hasLink = Boolean(aviso.link && aviso.link.trim())
+
+                return (
+                  <div
+                    key={aviso.id}
+                    className="p-3.5 sm:p-4 rounded-xl border border-border/80 bg-card hover:border-primary/40 transition-all flex flex-col gap-2.5"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`text-[10px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-md border ${badge.cor}`}>
+                        {badge.rotulo}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                        <Calendar className="h-3 w-3 text-primary/70" />
+                        {format(new Date(aviso.data_publicacao), "dd/MM/yyyy", { locale: ptBR })}
+                      </span>
+                    </div>
+
+                    <h4 className="text-sm sm:text-base font-bold text-foreground leading-snug">
+                      {aviso.titulo}
+                    </h4>
+
+                    <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                      {aviso.conteudo}
+                    </p>
+
+                    <div className="flex items-center justify-between pt-1 border-t border-border/40">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setIsVerTodosOpen(false)
+                          setVisualizandoAviso(aviso)
+                        }}
+                        className="h-7 px-2 text-xs font-semibold text-primary hover:text-primary gap-1"
+                      >
+                        <BookOpen className="h-3.5 w-3.5" />
+                        Ler aviso completo
+                      </Button>
+
+                      {hasLink && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(formatarUrl(aviso.link), "_blank", "noopener,noreferrer")}
+                          className="h-7 px-2.5 text-xs font-semibold text-primary border-primary/30 hover:bg-primary hover:text-primary-foreground gap-1"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          Acessar Link
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button variant="outline" onClick={() => setIsVerTodosOpen(false)}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL 3: CRIAR / EDITAR AVISO (ADMIN) */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -378,7 +546,7 @@ export function Avisos() {
               <Label htmlFor="aviso-titulo" className="text-xs font-semibold">Título do Aviso *</Label>
               <Input 
                 id="aviso-titulo" 
-                placeholder="Ex: Conselho de Classe Extraordinário..."
+                placeholder="Ex: Reunião Pedagógica Extraordinária..."
                 value={editingAviso?.titulo || ""} 
                 onChange={(e) => setEditingAviso(prev => ({ ...prev, titulo: e.target.value }))} 
                 required
@@ -386,11 +554,11 @@ export function Avisos() {
               />
             </div>
 
-            {/* Link Externo (Se preenchido, o card atua como botão de link direto) */}
+            {/* Link Externo Opcional */}
             <div className="grid gap-1.5">
               <Label htmlFor="aviso-link" className="text-xs font-semibold flex items-center gap-1.5">
                 <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
-                Link de Acesso Direto (Opcional)
+                Link Complementar / Material Externo (Opcional)
               </Label>
               <Input 
                 id="aviso-link" 
@@ -400,7 +568,7 @@ export function Avisos() {
                 className="h-9 text-sm"
               />
               <p className="text-[11px] text-muted-foreground">
-                Se informado, ao clicar no card o usuário será redirecionado para este link.
+                Se informado, um botão seguro e acessível "Acessar Link" ficará disponível no card e na leitura detalhada do aviso.
               </p>
             </div>
 
@@ -430,7 +598,7 @@ export function Avisos() {
 
             {/* Conteúdo */}
             <div className="grid gap-1.5">
-              <Label htmlFor="aviso-conteudo" className="text-xs font-semibold">Conteúdo / Descrição *</Label>
+              <Label htmlFor="aviso-conteudo" className="text-xs font-semibold">Conteúdo / Descrição do Aviso *</Label>
               <Textarea 
                 id="aviso-conteudo" 
                 rows={4} 
