@@ -731,18 +731,21 @@ export default function Agendamentos() {
                                             )}
 
                                             {/* Exibição em destaque do Nome do Projeto / Motivo */}
-                                            {ag.motivo && (
+                                            {ag.tipo === 'Fixo' ? (
                                               <div 
-                                                className={`text-[10px] leading-tight font-bold px-1.5 py-0.5 rounded mt-0.5 truncate max-w-full ${
-                                                  ag.tipo === 'Fixo' 
-                                                    ? 'bg-blue-100 text-blue-900 border border-blue-300 dark:bg-transparent dark:border dark:border-[#3b82f6]/80 dark:text-[#60a5fa] dark:px-3 dark:py-1 dark:rounded-md dark:text-[11.5px] dark:font-semibold dark:mt-0.5' 
-                                                    : 'bg-muted text-foreground/90 border border-border dark:bg-transparent dark:border-emerald-700 dark:text-emerald-300'
-                                                }`}
-                                                title={`Projeto / Motivo: ${ag.motivo}`}
+                                                className="text-[10px] leading-tight font-bold px-1.5 py-0.5 rounded mt-0.5 truncate max-w-full bg-blue-100 text-blue-900 border border-blue-300 dark:bg-transparent dark:border dark:border-[#3b82f6]/80 dark:text-[#60a5fa] dark:px-3 dark:py-1 dark:rounded-md dark:text-[11.5px] dark:font-semibold dark:mt-0.5"
+                                                title={`Projeto: ${ag.motivo || 'Projeto'}`}
+                                              >
+                                                {ag.motivo || 'Projeto'}
+                                              </div>
+                                            ) : ag.motivo ? (
+                                              <div 
+                                                className="text-[10px] leading-tight font-bold px-1.5 py-0.5 rounded mt-0.5 truncate max-w-full bg-muted text-foreground/90 border border-border dark:bg-transparent dark:border-emerald-700 dark:text-emerald-300"
+                                                title={`Motivo: ${ag.motivo}`}
                                               >
                                                 {ag.motivo}
                                               </div>
-                                            )}
+                                            ) : null}
 
                                             {/* Quem agendou aparece apenas para agendamentos não fixos */}
                                             {ag.tipo !== 'Fixo' && ag.agendado_por && ag.agendado_por !== ag.usuario_id && (
