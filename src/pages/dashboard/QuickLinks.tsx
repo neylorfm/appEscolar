@@ -193,8 +193,8 @@ export function QuickLinks() {
                       <span className="font-bold text-foreground text-sm leading-tight group-hover:text-[#7f1d1d] dark:group-hover:text-[#f8b4bc] transition-colors truncate">
                         {link.titulo}
                       </span>
-                      <span className="text-[11px] text-muted-foreground truncate mt-0.5">
-                        {link.url}
+                      <span className="text-[11px] text-muted-foreground mt-0.5">
+                        Acesso rápido
                       </span>
                     </div>
                   </div>
