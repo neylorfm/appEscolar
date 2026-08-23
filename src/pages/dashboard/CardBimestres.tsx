@@ -8,9 +8,9 @@ import {
   Link as LinkIcon, 
   FileText, 
   CalendarCheck,
+  ChevronRight,
   Info
 } from "lucide-react"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/contexts/AuthContext"
 import { 
@@ -53,6 +53,8 @@ export function CardBimestres() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [editingItem, setEditingItem] = useState<Partial<InformacaoBimestre> | null>(null)
+
+  const [visualizandoInfo, setVisualizandoInfo] = useState<InformacaoBimestre | null>(null)
 
   const canManage = usuario?.papel === 'Administrador' || usuario?.papel === 'Coordenador'
 
@@ -110,6 +112,22 @@ export function CardBimestres() {
     return `https://${trimmed}`
   }
 
+  function handleItemClick(item: InformacaoBimestre) {
+    if (item.link && item.link.trim()) {
+      window.open(formatarUrl(item.link), "_blank", "noopener,noreferrer")
+    } else {
+      setVisualizandoInfo(item)
+    }
+  }
+
+  // Ícones e cores para os cards do bimestre
+  const ICON_COLORS = [
+    { bg: "bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300 border-rose-200 dark:border-rose-900" },
+    { bg: "bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border-amber-200 dark:border-amber-900" },
+    { bg: "bg-sky-100 text-sky-800 dark:bg-sky-950/80 dark:text-sky-300 border-sky-200 dark:border-sky-900" },
+    { bg: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900" },
+  ]
+
   async function handleSalvar() {
     if (!editingItem?.titulo || !editingItem.titulo.trim()) {
       toast.error("O título é obrigatório")
@@ -160,168 +178,226 @@ export function CardBimestres() {
   }
 
   return (
-    <>
-      <Card className="overflow-hidden border-border/80 shadow-xs bg-card transition-all">
-        {/* Cabeçalho compacto do Card */}
-        <CardHeader className="p-4 pb-3 border-b border-border/60 bg-muted/20">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
-                <FolderKanban className="h-4 w-4" />
-              </div>
-              <div>
-                <CardTitle className="text-base font-bold text-foreground tracking-tight leading-tight">
-                  Informações por Bimestre
-                </CardTitle>
-                <p className="text-xs text-muted-foreground hidden sm:block">
-                  Links, avisos e documentos organizados por período letivo
-                </p>
-              </div>
-            </div>
-
-            {canManage && (
-              <Button 
-                size="sm" 
-                onClick={handleOpenNovo} 
-                className="h-8 text-xs font-semibold rounded-lg px-3 shadow-2xs gap-1.5 shrink-0"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Adicionar</span>
-                <span className="sm:hidden">+</span>
-              </Button>
-            )}
+    <div className="flex flex-col gap-4">
+      {/* Cabeçalho de Informações por Bimestre */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-0.5">
+        <div className="flex items-center gap-2.5">
+          <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+            <FolderKanban className="h-5 w-5" />
           </div>
+          <h2 className="text-xl font-bold tracking-tight text-foreground">
+            Informações por Bimestre
+          </h2>
+        </div>
 
-          {/* Abas dos 4 Bimestres */}
-          <div className="grid grid-cols-4 gap-1.5 pt-3">
-            {BIMESTRES.map((bim) => {
-              const ativo = bimestreAtivo === bim.valor
-              const count = contagemPorBimestre[bim.valor] || 0
-              return (
-                <button
-                  key={bim.valor}
-                  type="button"
-                  onClick={() => setBimestreAtivo(bim.valor)}
-                  className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold transition-all select-none border ${
-                    ativo
-                      ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                      : "bg-background hover:bg-muted text-foreground/80 hover:text-foreground border-border"
+        {canManage && (
+          <Button 
+            size="sm" 
+            onClick={handleOpenNovo} 
+            className="h-8 text-xs font-semibold rounded-lg px-3 shadow-xs gap-1.5 self-start sm:self-auto"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span>Adicionar Informação</span>
+          </Button>
+        )}
+      </div>
+
+      {/* Abas dos 4 Bimestres (Estilo Sublinhado Elegante) */}
+      <div className="flex items-center border-b border-border gap-6 overflow-x-auto select-none pt-1">
+        {BIMESTRES.map((bim) => {
+          const ativo = bimestreAtivo === bim.valor
+          const count = contagemPorBimestre[bim.valor] || 0
+          return (
+            <button
+              key={bim.valor}
+              type="button"
+              onClick={() => setBimestreAtivo(bim.valor)}
+              className={`pb-2.5 text-xs sm:text-sm uppercase tracking-wider font-bold transition-all relative shrink-0 flex items-center gap-1.5 ${
+                ativo
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-muted-foreground hover:text-foreground border-b-2 border-transparent"
+              }`}
+            >
+              <span>{bim.rotulo}</span>
+              {count > 0 && (
+                <span 
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold leading-tight ${
+                    ativo 
+                      ? "bg-primary text-primary-foreground" 
+                      : "bg-muted text-muted-foreground"
                   }`}
                 >
-                  <span className="truncate hidden sm:inline">{bim.rotulo}</span>
-                  <span className="truncate sm:hidden">{bim.curto}</span>
-                  {count > 0 && (
-                    <span 
-                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold leading-tight ${
-                        ativo 
-                          ? "bg-primary-foreground/20 text-primary-foreground" 
-                          : "bg-muted-foreground/15 text-foreground"
-                      }`}
-                    >
-                      {count}
-                    </span>
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        </CardHeader>
-
-        {/* Conteúdo do Bimestre Ativo */}
-        <CardContent className="p-3 sm:p-4">
-          {loading ? (
-            <div className="py-6 text-center text-xs text-muted-foreground font-medium">
-              Carregando informações do bimestre...
-            </div>
-          ) : itensDoBimestre.length === 0 ? (
-            <div className="py-6 px-4 text-center rounded-xl border border-dashed border-border/80 bg-muted/20 flex flex-col items-center justify-center">
-              <Info className="h-5 w-5 text-muted-foreground mb-1.5" />
-              <p className="text-xs font-semibold text-foreground/80">
-                Nenhuma informação cadastrada no {bimestreAtivo}º Bimestre.
-              </p>
-              {canManage && (
-                <Button
-                  variant="link"
-                  size="sm"
-                  onClick={handleOpenNovo}
-                  className="h-7 text-xs font-semibold text-primary mt-1 p-0"
-                >
-                  + Inserir primeira informação
-                </Button>
+                  {count}
+                </span>
               )}
-            </div>
-          ) : (
-            <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
-              {itensDoBimestre.map((item) => (
-                <div
-                  key={item.id}
-                  className="group relative rounded-xl border border-border bg-background p-3 sm:p-3.5 hover:border-primary/50 hover:shadow-2xs transition-all flex flex-col gap-1.5"
-                >
-                  {/* Linha de Título e Ações */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <div className="p-1 rounded-md bg-primary/10 text-primary shrink-0">
-                        <FileText className="h-3.5 w-3.5" />
-                      </div>
-                      <h4 className="text-xs sm:text-sm font-bold text-foreground leading-snug break-words">
-                        {item.titulo}
-                      </h4>
-                    </div>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Conteúdo do Bimestre Ativo em Grid */}
+      {loading ? (
+        <div className="py-8 text-center text-xs text-muted-foreground">
+          Carregando informações do bimestre...
+        </div>
+      ) : itensDoBimestre.length === 0 ? (
+        <div className="py-10 px-4 text-center rounded-2xl border-2 border-dashed border-border/80 bg-muted/20 flex flex-col items-center justify-center">
+          <Info className="h-8 w-8 text-muted-foreground/60 mb-2" />
+          <p className="text-sm font-semibold text-foreground/80">
+            Nenhuma informação cadastrada no {bimestreAtivo}º Bimestre.
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Documentos, links e roteiros do período aparecerão aqui.
+          </p>
+          {canManage && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleOpenNovo}
+              className="h-8 text-xs font-semibold text-primary mt-3 border-primary/30"
+            >
+              + Inserir informação
+            </Button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
+          {itensDoBimestre.map((item, index) => {
+            const colorTheme = ICON_COLORS[index % ICON_COLORS.length]
+            const hasLink = Boolean(item.link && item.link.trim())
+
+            return (
+              <div
+                key={item.id}
+                onClick={() => handleItemClick(item)}
+                role="button"
+                tabIndex={0}
+                className="group relative text-left rounded-xl border border-border/80 bg-card p-4 hover:border-primary/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer flex flex-col justify-between gap-3 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary select-none"
+              >
+                {/* Linha de Ícone e Ações */}
+                <div className="flex items-center justify-between">
+                  <div className={`h-8 w-8 rounded-full border flex items-center justify-center ${colorTheme.bg}`}>
+                    <FileText className="h-4 w-4" />
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    {hasLink ? (
+                      <span className="text-[11px] font-semibold text-primary inline-flex items-center gap-0.5 group-hover:underline">
+                        <ExternalLink className="h-3 w-3" />
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-medium text-muted-foreground inline-flex items-center gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                        <Info className="h-3 w-3" />
+                      </span>
+                    )}
 
                     {/* Botões de Ação para Admin / Coordenador */}
                     {canManage && (
-                      <div className="flex items-center gap-1 shrink-0 opacity-80 sm:opacity-0 group-hover:opacity-100 transition-opacity bg-background/90 p-0.5 rounded-lg border border-border shadow-2xs">
+                      <div 
+                        className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-background/90 p-0.5 rounded-lg border border-border shadow-2xs z-10"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                          onClick={() => handleOpenEditar(item)}
+                          className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                          onClick={(e) => { e.stopPropagation(); handleOpenEditar(item); }}
                           title="Editar informação"
                         >
-                          <Edit2 className="h-3.5 w-3.5" />
+                          <Edit2 className="h-3 w-3" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7 text-destructive/80 hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => handleExcluir(item.id)}
+                          className="h-6 w-6 text-destructive/80 hover:text-destructive hover:bg-destructive/10"
+                          onClick={(e) => { e.stopPropagation(); handleExcluir(item.id); }}
                           title="Excluir informação"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
                     )}
                   </div>
+                </div>
 
-                  {/* Descrição */}
+                {/* Título e Descrição */}
+                <div className="space-y-1">
+                  <h3 className="text-sm font-bold text-foreground leading-snug group-hover:text-primary transition-colors">
+                    {item.titulo}
+                  </h3>
                   {item.descricao && (
-                    <p className="text-xs text-foreground/80 leading-relaxed whitespace-pre-wrap pl-7">
+                    <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
                       {item.descricao}
                     </p>
                   )}
-
-                  {/* Link (se cadastrado) */}
-                  {item.link && (
-                    <div className="pl-7 pt-1">
-                      <a
-                        href={formatarUrl(item.link)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline bg-primary/10 hover:bg-primary/15 px-2.5 py-1 rounded-md border border-primary/20 group/link transition-colors"
-                      >
-                        <ExternalLink className="h-3 w-3 shrink-0" />
-                        <span className="truncate max-w-[260px] sm:max-w-md">
-                          {item.link}
-                        </span>
-                      </a>
-                    </div>
-                  )}
                 </div>
-              ))}
-            </div>
+
+                {/* Rodapé do Card */}
+                <div className="pt-1 flex items-center justify-between text-[11px] text-muted-foreground/80 font-medium">
+                  <span className="text-[10px] font-semibold uppercase text-primary/80">
+                    {bimestreAtivo}º Bimestre
+                  </span>
+                  <span className="text-[10px] text-primary font-semibold group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
+                    {hasLink ? "Abrir link" : "Ver detalhes"}
+                    <ChevronRight className="h-3 w-3" />
+                  </span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* MODAL 1: VISUALIZAR INFORMAÇÃO COMPLETA (TEXTO PURO) */}
+      <Dialog open={!!visualizandoInfo} onOpenChange={(open) => !open && setVisualizandoInfo(null)}>
+        <DialogContent className="sm:max-w-md">
+          {visualizandoInfo && (
+            <>
+              <DialogHeader>
+                <div className="text-[10px] font-bold tracking-wider uppercase text-primary mb-1">
+                  {visualizandoInfo.bimestre}º Bimestre
+                </div>
+                <DialogTitle className="text-lg font-bold text-foreground leading-snug">
+                  {visualizandoInfo.titulo}
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-3 py-2 max-h-[60vh] overflow-y-auto">
+                {visualizandoInfo.descricao && (
+                  <div className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap rounded-lg bg-muted/10 p-3.5 border border-border/60">
+                    {visualizandoInfo.descricao}
+                  </div>
+                )}
+
+                {visualizandoInfo.link && (
+                  <div className="pt-1">
+                    <a
+                      href={formatarUrl(visualizandoInfo.link)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-xs font-semibold text-primary hover:underline bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/20"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      <span className="truncate max-w-[280px]">{visualizandoInfo.link}</span>
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              <DialogFooter className="pt-2">
+                <Button variant="outline" onClick={() => setVisualizandoInfo(null)}>
+                  Fechar
+                </Button>
+                {visualizandoInfo.link && (
+                  <Button onClick={() => window.open(formatarUrl(visualizandoInfo.link), '_blank')}>
+                    <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Acessar Link
+                  </Button>
+                )}
+              </DialogFooter>
+            </>
           )}
-        </CardContent>
-      </Card>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal de Adição / Edição */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -425,6 +501,7 @@ export function CardBimestres() {
           </form>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   )
 }
+

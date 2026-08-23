@@ -15,6 +15,8 @@ export interface Aviso {
   titulo: string
   conteudo: string
   imagem_url?: string | null
+  link?: string | null
+  categoria?: string | null
   data_publicacao: string
   autor_id: string | null
   tags: string[]
@@ -124,40 +126,65 @@ export async function getAvisos() {
 }
 
 export async function upsertAviso(aviso: Partial<Aviso>) {
+  const payload: any = {
+    titulo: aviso.titulo,
+    conteudo: aviso.conteudo,
+    imagem_url: aviso.imagem_url ? aviso.imagem_url.trim() : null,
+    link: aviso.link ? aviso.link.trim() : null,
+    categoria: aviso.categoria ? aviso.categoria.trim() : 'COMUNICADO',
+    tags: aviso.tags || [],
+    data_publicacao: aviso.data_publicacao || new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }
+
   if (aviso.id) {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('avisos')
-      .update({
-        titulo: aviso.titulo,
-        conteudo: aviso.conteudo,
-        imagem_url: aviso.imagem_url ? aviso.imagem_url.trim() : null,
-        tags: aviso.tags || [],
-        data_publicacao: aviso.data_publicacao || new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
+      .update(payload)
       .eq('id', aviso.id)
       .select()
       .single()
     
+    // Fallback se as colunas link/categoria ainda não existirem no Supabase
+    if (error && (error.message.includes('link') || error.message.includes('categoria'))) {
+      delete payload.link
+      delete payload.categoria
+      const res = await supabase
+        .from('avisos')
+        .update(payload)
+        .eq('id', aviso.id)
+        .select()
+        .single()
+      data = res.data
+      error = res.error
+    }
+
     if (error) {
       console.error('Erro ao atualizar aviso:', error)
       throw error
     }
     return data as Aviso
   } else {
-    const { data, error } = await supabase
+    payload.autor_id = aviso.autor_id || null
+    let { data, error } = await supabase
       .from('avisos')
-      .insert([{
-        titulo: aviso.titulo,
-        conteudo: aviso.conteudo,
-        imagem_url: aviso.imagem_url ? aviso.imagem_url.trim() : null,
-        autor_id: aviso.autor_id || null,
-        tags: aviso.tags || [],
-        data_publicacao: aviso.data_publicacao || new Date().toISOString()
-      }])
+      .insert([payload])
       .select()
       .single()
     
+    // Fallback se as colunas link/categoria ainda não existirem no Supabase
+    if (error && (error.message.includes('link') || error.message.includes('categoria'))) {
+      delete payload.link
+      delete payload.categoria
+      const res = await supabase
+        .from('avisos')
+        .insert([payload])
+        .select()
+        .single()
+      data = res.data
+      error = res.error
+    }
+
     if (error) {
       console.error('Erro ao criar aviso:', error)
       throw error
