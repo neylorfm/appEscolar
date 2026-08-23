@@ -402,65 +402,65 @@ export function Avisos() {
       {/* SEÇÃO 2: INFORMAÇÕES POR BIMESTRE */}
       <CardBimestres />
 
-      {/* MODAL 1: VISUALIZAR AVISO COMPLETO (TEXTO PURO / EXPANDIDO / ACESSÍVEL) */}
+      {/* MODAL 1: VISUALIZAR AVISO COMPLETO (TEXTO PURO / EXPANDIDO / ACESSÍVEL - LARGURA AMPLA) */}
       <Dialog open={!!visualizandoAviso} onOpenChange={(open) => !open && setVisualizandoAviso(null)}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="w-[96vw] max-w-[96vw] sm:max-w-4xl lg:max-w-5xl xl:max-w-6xl max-h-[92vh] flex flex-col p-4 sm:p-6 lg:p-8">
           {visualizandoAviso && (
             <>
-              <DialogHeader>
-                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                  <span className={`text-[10px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-md border ${getCategoriaBadge(visualizandoAviso.categoria).cor}`}>
+              <DialogHeader className="pb-2 border-b border-border/40">
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <span className={`text-[11px] sm:text-xs font-bold tracking-wider uppercase px-3 py-1 rounded-md border ${getCategoriaBadge(visualizandoAviso.categoria).cor}`}>
                     {getCategoriaBadge(visualizandoAviso.categoria).rotulo}
                   </span>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Calendar className="h-3 w-3 text-primary" />
-                    {format(new Date(visualizandoAviso.data_publicacao), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+                  <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground font-medium">
+                    <Calendar className="h-3.5 w-3.5 text-primary" />
+                    {format(new Date(visualizandoAviso.data_publicacao), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
                   </div>
                 </div>
 
-                <DialogTitle className="text-lg sm:text-xl font-bold text-foreground leading-snug text-left">
+                <DialogTitle className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-foreground leading-tight text-left">
                   {visualizandoAviso.titulo}
                 </DialogTitle>
               </DialogHeader>
 
-              <div className="space-y-4 py-2 max-h-[65vh] overflow-y-auto pr-1">
+              <div className="space-y-5 py-3 flex-1 overflow-y-auto pr-1">
                 {/* Imagem do Aviso se existir */}
                 {visualizandoAviso.imagem_url && (
-                  <div className="rounded-xl border border-border bg-muted/20 overflow-hidden flex justify-center items-center">
+                  <div className="rounded-2xl border border-border bg-muted/20 overflow-hidden flex justify-center items-center p-2">
                     <img 
                       src={visualizandoAviso.imagem_url} 
                       alt={visualizandoAviso.titulo} 
-                      className="max-h-72 w-full object-contain rounded-lg"
+                      className="max-h-96 w-full object-contain rounded-xl"
                     />
                   </div>
                 )}
 
                 {/* Conteúdo Completo com formatação e quebra de linha */}
-                <div className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap rounded-lg bg-muted/15 p-3.5 border border-border/60">
+                <div className="text-sm sm:text-base lg:text-lg text-foreground/90 leading-relaxed whitespace-pre-wrap rounded-2xl bg-muted/15 p-4 sm:p-6 border border-border/60">
                   {visualizandoAviso.conteudo}
                 </div>
 
                 {/* Link Anexo (Acessível, sem mostrar URL bruta) */}
                 {visualizandoAviso.link && (
-                  <div className="pt-1">
+                  <div className="pt-2">
                     <a
                       href={formatarUrl(visualizandoAviso.link)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-between p-3 rounded-xl bg-primary/10 hover:bg-primary/15 border border-primary/25 transition-all text-primary group"
+                      className="flex items-center justify-between p-4 sm:p-4.5 rounded-2xl bg-primary/10 hover:bg-primary/15 border border-primary/25 transition-all text-primary group"
                       aria-label="Abrir link complementar em nova aba"
                     >
-                      <div className="flex items-center gap-2.5">
-                        <div className="p-2 rounded-lg bg-primary/20 text-primary">
-                          <ExternalLink className="h-4 w-4" />
+                      <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-xl bg-primary/20 text-primary">
+                          <ExternalLink className="h-5 w-5" />
                         </div>
                         <div className="text-left">
-                          <p className="text-sm font-semibold text-foreground">Link / Material Complementar</p>
-                          <p className="text-xs text-muted-foreground">Clique para abrir o link externo anexo</p>
+                          <p className="text-sm sm:text-base font-bold text-foreground">Link / Material Complementar</p>
+                          <p className="text-xs sm:text-sm text-muted-foreground">Clique para abrir o link externo anexo</p>
                         </div>
                       </div>
-                      <span className="text-xs font-bold text-primary flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                        Acessar
+                      <span className="text-xs sm:text-sm font-bold text-primary flex items-center gap-1 group-hover:translate-x-1.5 transition-transform">
+                        Acessar Link
                         <ChevronRight className="h-4 w-4" />
                       </span>
                     </a>
@@ -468,14 +468,15 @@ export function Avisos() {
                 )}
               </div>
 
-              <DialogFooter className="pt-2 flex flex-row items-center justify-between sm:justify-between w-full">
-                <Button variant="outline" onClick={() => setVisualizandoAviso(null)}>
+              <DialogFooter className="pt-3 border-t border-border/40 flex flex-row items-center justify-between sm:justify-between w-full">
+                <Button variant="outline" size="default" onClick={() => setVisualizandoAviso(null)} className="px-5 font-semibold">
                   Fechar
                 </Button>
                 {visualizandoAviso.link && (
                   <Button 
+                    size="default"
                     onClick={() => window.open(formatarUrl(visualizandoAviso.link), '_blank', 'noopener,noreferrer')}
-                    className="gap-1.5 font-semibold"
+                    className="gap-2 font-semibold px-5"
                   >
                     <ExternalLink className="h-4 w-4" /> Acessar Link
                   </Button>
