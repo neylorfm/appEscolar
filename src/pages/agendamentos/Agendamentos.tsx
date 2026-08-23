@@ -656,77 +656,103 @@ export default function Agendamentos() {
                         
                         // Determinar a cor base do fundo
                         let cellBg = '';
-                        if (hasFixo) cellBg = 'bg-blue-100 hover:bg-blue-200 border-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:border-blue-800';
-                        else if (isConfirmado) cellBg = 'bg-emerald-100 hover:bg-emerald-200 border-emerald-200 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 dark:border-emerald-800';
-                        else if (isPreReserva) cellBg = 'bg-amber-100/50 hover:bg-amber-100 border-amber-200 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 dark:border-amber-800';
+                        if (hasFixo) cellBg = 'bg-blue-100 hover:bg-blue-200 border-blue-200 dark:bg-[#0e1626]/90 dark:hover:bg-[#131d33] dark:border-blue-900/50';
+                        else if (isConfirmado) cellBg = 'bg-emerald-100 hover:bg-emerald-200 border-emerald-200 dark:bg-[#072418]/90 dark:hover:bg-[#0c3121] dark:border-emerald-900/50';
+                        else if (isPreReserva) cellBg = 'bg-amber-100/50 hover:bg-amber-100 border-amber-200 dark:bg-[#201509]/90 dark:hover:bg-[#2b1c0c] dark:border-amber-900/50';
 
-                                        const isPreReservaCell = (!hasFixo && !isConfirmado && isPreReserva);
-                                        const dateOfCell = getBaseMonday();
-                                        dateOfCell.setDate(dateOfCell.getDate() + (semanaOffset * 7) + idx);
-                                        const cellDateStr = toLocalYYYYMMDD(dateOfCell);
-                                        const cacheKey = `${horario.id}_${cellDateStr}`;
-                                        const myRank = rankCache[cacheKey];
+                        const isPreReservaCell = (!hasFixo && !isConfirmado && isPreReserva);
+                        const dateOfCell = getBaseMonday();
+                        dateOfCell.setDate(dateOfCell.getDate() + (semanaOffset * 7) + idx);
+                        const cellDateStr = toLocalYYYYMMDD(dateOfCell);
+                        const cacheKey = `${horario.id}_${cellDateStr}`;
+                        const myRank = rankCache[cacheKey];
+
+                        return (
+                          <td 
+                            key={`${horario.id}-${idx}`} 
+                            className={`group border p-2 text-center relative cursor-pointer hover:bg-muted/30 min-h-[80px] align-top transition-colors ${cellBg}`}
+                            onClick={() => handleCellClick(horario.id, idx)}
+                          >
+                            <div className="flex flex-col gap-1 min-h-[60px] w-full items-center justify-center">
+                              {cellAgendamentos.length === 0 ? (
+                                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-background/50 transition-opacity">
+                                    <span className="text-sm font-medium text-primary bg-background px-2 py-1 rounded shadow">+ Agendar</span>
+                                  </div>
+                                ) : (
+                                  <>
+                                    {isPreReservaCell ? (
+                                      <div className="text-xs bg-white/80 rounded px-1.5 py-2 w-full flex flex-col items-center justify-center text-center shadow-sm border border-amber-300 cursor-pointer hover:bg-white transition-colors relative z-10 gap-1 min-h-[48px] dark:bg-[#1f1915] dark:border-2 dark:border-[#d97706] dark:rounded-xl dark:py-3.5 dark:px-3 sm:dark:py-4 dark:shadow-md dark:hover:border-[#f59e0b] dark:gap-2 dark:min-h-[68px]">
+                                        <div className="font-bold text-slate-800 text-[11px] leading-tight uppercase tracking-wide dark:text-white dark:font-bold dark:text-[13.5px] sm:dark:text-[14.5px]">
+                                          {cellAgendamentos[0]?.usuario_id === null ? "ESCOLA" : (cellAgendamentos[0]?.usuarios?.apelido || cellAgendamentos[0]?.usuarios?.nome_completo?.split(' ')[0] || "Pré-reserva")}
+                                        </div>
+                                        <div className="border border-transparent dark:border-[#f59e0b]/80 dark:text-[#fbbf24] dark:bg-transparent dark:px-3 dark:py-1 dark:rounded-md dark:text-[11.5px] dark:font-bold dark:uppercase dark:tracking-wider leading-none">
+                                          PRÉ-RESERVA
+                                        </div>
+                                        {cellAgendamentos.some(ag => ag.usuario_id === usuario?.id) && (
+                                          <div className="text-[10px] text-emerald-800 dark:text-emerald-400 font-bold leading-tight bg-emerald-100 dark:bg-emerald-900/50 rounded px-1.5 py-0.5 shadow-sm border border-emerald-200 dark:border-emerald-800 mt-0.5">
+                                            {myRank ? `Registrado (${myRank}º)` : 'Registrado'}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      cellAgendamentos.map(ag => {
+                                        const isFixo = ag.tipo === 'Fixo';
+                                        const isConf = ag.tipo === 'Confirmado';
+                                        const isPre = ag.tipo === 'Pre-Reserva';
+
+                                        let darkCardClass = '';
+                                        if (isFixo) {
+                                          darkCardClass = 'dark:bg-[#141b27] dark:border-2 dark:border-[#2563eb] dark:rounded-xl dark:py-3.5 dark:px-3 sm:dark:py-4 dark:shadow-md dark:hover:border-[#3b82f6] dark:gap-2.5 dark:min-h-[68px]';
+                                        } else if (isConf) {
+                                          darkCardClass = 'dark:bg-[#1a211e] dark:border-2 dark:border-[#059669] dark:rounded-xl dark:py-3.5 dark:px-3 sm:dark:py-4 dark:shadow-md dark:hover:border-[#10b981] dark:gap-2 dark:min-h-[68px]';
+                                        } else if (isPre) {
+                                          darkCardClass = 'dark:bg-[#1f1915] dark:border-2 dark:border-[#d97706] dark:rounded-xl dark:py-3.5 dark:px-3 sm:dark:py-4 dark:shadow-md dark:hover:border-[#f59e0b] dark:gap-2.5 dark:min-h-[68px]';
+                                        }
 
                                         return (
-                                          <td 
-                                            key={`${horario.id}-${idx}`} 
-                                            className={`group border p-2 text-center relative cursor-pointer hover:bg-muted/30 min-h-[80px] align-top transition-colors ${cellBg}`}
-                                            onClick={() => handleCellClick(horario.id, idx)}
+                                          <div 
+                                            key={ag.id} 
+                                            onClick={(e) => handleEditClick(ag, cellDateStr, e)} 
+                                            className={`text-xs bg-white/80 rounded-lg px-2 py-1.5 w-full text-center shadow-xs border border-black/10 cursor-pointer hover:bg-white transition-all relative z-10 flex flex-col gap-0.5 ${darkCardClass}`}
                                           >
-                                            <div className="flex flex-col gap-1 min-h-[60px] w-full items-center justify-center">
-                                              {cellAgendamentos.length === 0 ? (
-                                                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-background/50 transition-opacity">
-                                                    <span className="text-sm font-medium text-primary bg-background px-2 py-1 rounded shadow">+ Agendar</span>
-                                                  </div>
-                                                ) : (
-                                                  <>
-                                                    {isPreReservaCell ? (
-                                                      <div className="text-xs bg-white/80 dark:bg-slate-800/80 rounded px-1.5 py-2 w-full flex flex-col items-center justify-center text-center shadow-sm border border-amber-300 dark:border-amber-700 cursor-pointer hover:bg-white dark:hover:bg-slate-800 transition-colors relative z-10 gap-1 min-h-[48px]">
-                                                        <div className="font-bold text-slate-800 dark:text-slate-200 text-[11px] leading-tight uppercase tracking-wide">
-                                                          Pré-reserva
-                                                        </div>
-                                                        {cellAgendamentos.some(ag => ag.usuario_id === usuario?.id) && (
-                                                          <div className="text-[10px] text-emerald-800 dark:text-emerald-400 font-bold leading-tight bg-emerald-100 dark:bg-emerald-900/50 rounded px-1.5 py-0.5 shadow-sm border border-emerald-200 dark:border-emerald-800">
-                                                            {myRank ? `Registrado (${myRank}º)` : 'Registrado'}
-                                                          </div>
-                                                        )}
-                                                      </div>
-                                                    ) : (
-                                      cellAgendamentos.map(ag => (
-                                        <div key={ag.id} onClick={(e) => handleEditClick(ag, cellDateStr, e)} className="text-xs bg-white/80 dark:bg-slate-800/90 rounded-lg px-2 py-1.5 w-full text-center shadow-xs border border-black/10 dark:border-white/10 cursor-pointer hover:bg-white dark:hover:bg-slate-700 transition-all relative z-10 flex flex-col gap-0.5">
-                                          <div className="font-bold text-slate-900 dark:text-slate-100 text-[11px] leading-tight truncate" title={ag.usuarios?.nome_completo || "Prof"}>
-                                            {ag.usuario_id === null ? "ESCOLA" : (ag.usuarios?.apelido || ag.usuarios?.nome_completo?.split(' ')[0] || "Prof")}
+                                            <div className="font-bold text-slate-900 dark:text-white dark:font-bold text-[11px] dark:text-[13.5px] sm:dark:text-[14.5px] leading-tight truncate" title={ag.usuarios?.nome_completo || "Prof"}>
+                                              {ag.usuario_id === null ? "ESCOLA" : (ag.usuarios?.apelido || ag.usuarios?.nome_completo?.split(' ')[0] || "Prof")}
+                                            </div>
+                                            
+                                            {ag.tipo === 'Pre-Reserva' && (
+                                              <div className="text-[10px] text-amber-700 font-bold leading-tight dark:border dark:border-[#f59e0b]/80 dark:text-[#fbbf24] dark:bg-transparent dark:px-3 dark:py-1 dark:rounded-md dark:text-[11.5px] dark:font-bold dark:uppercase dark:tracking-wider dark:mt-0.5">
+                                                Pré-reserva
+                                              </div>
+                                            )}
+                                            {ag.tipo === 'Confirmado' && (
+                                              <div className="text-[10px] text-emerald-700 font-bold leading-tight dark:text-emerald-400 dark:text-[12px] dark:font-semibold">
+                                                Confirmado
+                                              </div>
+                                            )}
+
+                                            {/* Exibição em destaque do Nome do Projeto / Motivo */}
+                                            {ag.motivo && (
+                                              <div 
+                                                className={`text-[10px] leading-tight font-bold px-1.5 py-0.5 rounded mt-0.5 truncate max-w-full ${
+                                                  ag.tipo === 'Fixo' 
+                                                    ? 'bg-blue-100 text-blue-900 border border-blue-300 dark:bg-transparent dark:border dark:border-[#3b82f6]/80 dark:text-[#60a5fa] dark:px-3 dark:py-1 dark:rounded-md dark:text-[11.5px] dark:font-semibold dark:mt-0.5' 
+                                                    : 'bg-muted text-foreground/90 border border-border dark:bg-transparent dark:border-emerald-700 dark:text-emerald-300'
+                                                }`}
+                                                title={`Projeto / Motivo: ${ag.motivo}`}
+                                              >
+                                                {ag.motivo}
+                                              </div>
+                                            )}
+
+                                            {/* Quem agendou aparece apenas para agendamentos não fixos */}
+                                            {ag.tipo !== 'Fixo' && ag.agendado_por && ag.agendado_por !== ag.usuario_id && (
+                                              <div className="text-[9px] text-muted-foreground dark:text-zinc-400 leading-tight italic truncate">
+                                                por {ag.agendado_por_usuario?.nome_completo?.split(' ')[0]}
+                                              </div>
+                                            )}
                                           </div>
-                                          
-                                          {ag.tipo === 'Pre-Reserva' && (
-                                            <div className="text-[10px] text-amber-700 dark:text-amber-400 font-bold leading-tight">Pré-reserva</div>
-                                          )}
-                                          {ag.tipo === 'Confirmado' && (
-                                            <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold leading-tight">Confirmado</div>
-                                          )}
-
-                                          {/* Exibição em destaque do Nome do Projeto / Motivo */}
-                                          {ag.motivo && (
-                                            <div 
-                                              className={`text-[10px] leading-tight font-bold px-1.5 py-0.5 rounded mt-0.5 truncate max-w-full ${
-                                                ag.tipo === 'Fixo' 
-                                                  ? 'bg-blue-100 text-blue-900 dark:bg-blue-950/80 dark:text-blue-200 border border-blue-300 dark:border-blue-700' 
-                                                  : 'bg-muted text-foreground/90 border border-border'
-                                              }`}
-                                              title={`Projeto / Motivo: ${ag.motivo}`}
-                                            >
-                                              {ag.motivo}
-                                            </div>
-                                          )}
-
-                                          {/* Quem agendou aparece apenas para agendamentos não fixos */}
-                                          {ag.tipo !== 'Fixo' && ag.agendado_por && ag.agendado_por !== ag.usuario_id && (
-                                            <div className="text-[9px] text-muted-foreground leading-tight italic truncate">
-                                              por {ag.agendado_por_usuario?.nome_completo?.split(' ')[0]}
-                                            </div>
-                                          )}
-                                        </div>
-                                      ))
+                                        );
+                                      })
                                     )}
                                   </>
                                 )}
