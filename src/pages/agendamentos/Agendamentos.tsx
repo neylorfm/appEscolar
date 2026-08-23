@@ -77,6 +77,7 @@ export default function Agendamentos() {
   const [agendarEscola, setAgendarEscola] = useState(false);
   const [agendamentoFixo, setAgendamentoFixo] = useState(false);
   const [dataFimFixo, setDataFimFixo] = useState<string>('');
+  const [motivo, setMotivo] = useState<string>('');
   // Para fins de simplificacao visual na criação inicial
   const diasSemanas = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'];
 
@@ -251,6 +252,7 @@ export default function Agendamentos() {
     setSelectedHorarioId(horarioId);
     setAgendamentoFixo(false);
     setDataFimFixo('');
+    setMotivo('');
     setIsEditingDataFim(false);
     setAgendarEscola(false);
     setAgendarPara('');
@@ -292,6 +294,7 @@ export default function Agendamentos() {
        setSelectedHorarioId(agendamento.horario_id);
        setModalMode('edit');
        setDataFimFixo(agendamento.data_fim_fixo || '');
+       setMotivo(agendamento.motivo || '');
        setIsEditingDataFim(false);
        setIsModalOpen(true);
     }
@@ -417,6 +420,7 @@ export default function Agendamentos() {
         tipo: tipo,
         usuario_id: finalUserId,
         agendado_por: usuario.id,
+        motivo: motivo ? motivo.trim() : null,
       };
 
       if (tipo === 'Fixo') {
@@ -444,9 +448,9 @@ export default function Agendamentos() {
     if (!selectedAgendamento) return;
     setIsSubmitting(true);
     try {
-      await atualizarDataFimFixo(selectedAgendamento.id, dataFimFixo || null as any);
+      await atualizarDataFimFixo(selectedAgendamento.id, dataFimFixo || null as any, motivo ? motivo.trim() : null);
       setIsModalOpen(false);
-      toast.success("Atualizado", { description: "Data atualizada com sucesso." });
+      toast.success("Atualizado", { description: "Informações atualizadas com sucesso." });
     } catch (e: any) {
       toast.error("Erro ao atualizar data", { description: e.message });
     } finally {
@@ -689,21 +693,37 @@ export default function Agendamentos() {
                                                       </div>
                                                     ) : (
                                       cellAgendamentos.map(ag => (
-                                        <div key={ag.id} onClick={(e) => handleEditClick(ag, cellDateStr, e)} className="text-xs bg-white/70 dark:bg-slate-800/80 rounded px-1.5 py-1 w-full text-center shadow-sm border border-black/10 dark:border-white/10 whitespace-nowrap overflow-hidden text-ellipsis cursor-pointer hover:bg-white dark:hover:bg-slate-700 transition-colors relative z-10">
-                                          <div className="font-semibold text-slate-800 dark:text-slate-200 text-[11px]">
+                                        <div key={ag.id} onClick={(e) => handleEditClick(ag, cellDateStr, e)} className="text-xs bg-white/80 dark:bg-slate-800/90 rounded-lg px-2 py-1.5 w-full text-center shadow-xs border border-black/10 dark:border-white/10 cursor-pointer hover:bg-white dark:hover:bg-slate-700 transition-all relative z-10 flex flex-col gap-0.5">
+                                          <div className="font-bold text-slate-900 dark:text-slate-100 text-[11px] leading-tight truncate" title={ag.usuarios?.nome_completo || "Prof"}>
                                             {ag.usuario_id === null ? "ESCOLA" : (ag.usuarios?.apelido || ag.usuarios?.nome_completo?.split(' ')[0] || "Prof")}
                                           </div>
+                                          
                                           {ag.tipo === 'Pre-Reserva' && (
-                                            <div className="text-[10px] text-amber-700 dark:text-amber-400 font-bold leading-tight mt-0.5">Pré-reserva</div>
+                                            <div className="text-[10px] text-amber-700 dark:text-amber-400 font-bold leading-tight">Pré-reserva</div>
                                           )}
                                           {ag.tipo === 'Fixo' && (
-                                            <div className="text-[10px] text-blue-700 dark:text-blue-400 font-bold leading-tight mt-0.5">Fixo</div>
+                                            <div className="text-[10px] text-blue-700 dark:text-blue-400 font-extrabold leading-tight">Fixo</div>
                                           )}
                                           {ag.tipo === 'Confirmado' && (
-                                            <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold leading-tight mt-0.5">Confirmado</div>
+                                            <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold leading-tight">Confirmado</div>
                                           )}
+
+                                          {/* Exibição em destaque do Nome do Projeto / Motivo */}
+                                          {ag.motivo && (
+                                            <div 
+                                              className={`text-[10px] leading-tight font-bold px-1.5 py-0.5 rounded mt-0.5 truncate max-w-full ${
+                                                ag.tipo === 'Fixo' 
+                                                  ? 'bg-blue-100 text-blue-900 dark:bg-blue-950/80 dark:text-blue-200 border border-blue-300 dark:border-blue-700' 
+                                                  : 'bg-muted text-foreground/90 border border-border'
+                                              }`}
+                                              title={`Projeto / Motivo: ${ag.motivo}`}
+                                            >
+                                              {ag.motivo}
+                                            </div>
+                                          )}
+
                                           {ag.agendado_por && ag.agendado_por !== ag.usuario_id && (
-                                            <div className="text-[9px] text-muted-foreground leading-tight italic truncate mt-0.5">
+                                            <div className="text-[9px] text-muted-foreground leading-tight italic truncate">
                                               por {ag.agendado_por_usuario?.nome_completo?.split(' ')[0]}
                                             </div>
                                           )}
@@ -832,7 +852,6 @@ export default function Agendamentos() {
              </div>
           ) : modalMode === 'create' ? (
             <div className="grid gap-4 py-4">
-               {/* Componente de Form aqui nas proximas iteracoes */}
                
                <div className="flex flex-col gap-2 p-3 bg-muted/30 rounded-md border">
                  <span className="text-sm font-medium">Tipo Previsto:</span>
@@ -848,6 +867,28 @@ export default function Agendamentos() {
                    </p>
                  )}
                </div>
+
+                {/* Campo Nome do Projeto / Motivo */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="motivo" className="text-sm font-semibold flex items-center justify-between">
+                    <span>Nome do Projeto / Motivo:</span>
+                    {agendamentoFixo && (
+                      <span className="text-[11px] text-blue-600 dark:text-blue-400 font-bold uppercase">Essencial para Projeto Fixo</span>
+                    )}
+                  </Label>
+                  <Input 
+                    id="motivo"
+                    placeholder={agendamentoFixo ? "Ex: Projeto Robótica, Clube de Leitura, Monitoria..." : "Ex: Aula Prática, Projeto Integrador..."}
+                    value={motivo}
+                    onChange={(e) => setMotivo(e.target.value)}
+                    className="w-full"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    {agendamentoFixo 
+                      ? "O nome do projeto será destacado diretamente no quadro de horários semanais." 
+                      : "Identificação da atividade ou projeto que será desenvolvido."}
+                  </p>
+                </div>
 
                {isCoordenadorOuAdmin && (
                  <div className="space-y-4 pt-4 border-t">
@@ -929,10 +970,13 @@ export default function Agendamentos() {
                  <Badge variant={selectedAgendamento?.tipo === 'Confirmado' || selectedAgendamento?.tipo === 'Fixo' ? 'default' : 'secondary'} className="w-fit">
                    {selectedAgendamento?.tipo}
                  </Badge>
-                 <div className="mt-2 text-sm text-muted-foreground">
+                 <div className="mt-2 text-sm text-muted-foreground space-y-1">
                     <p><strong>Agendado para:</strong> {selectedAgendamento?.usuario_id ? selectedAgendamento.usuarios?.nome_completo : 'ESCOLA'}</p>
+                    {selectedAgendamento?.motivo && (
+                       <p className="text-foreground"><strong>Projeto / Motivo:</strong> <span className="font-semibold text-blue-900 dark:text-blue-200">{selectedAgendamento.motivo}</span></p>
+                    )}
                     {selectedAgendamento?.agendado_por && selectedAgendamento.agendado_por !== selectedAgendamento.usuario_id && (
-                      <div className="mt-2 p-2 bg-slate-100 border border-slate-200 rounded text-xs text-slate-700">
+                      <div className="mt-2 p-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-xs text-slate-700 dark:text-slate-300">
                         <strong>Log de Auditoria:</strong> O registro foi efetuado no nome do professor, porém o procedimento foi realizado de forma sistêmica por <strong>{selectedAgendamento.agendado_por_usuario?.nome_completo}</strong>.
                       </div>
                     )}
@@ -948,9 +992,22 @@ export default function Agendamentos() {
                {selectedAgendamento?.tipo === 'Fixo' && isCoordenadorOuAdmin && (
                  <div className="space-y-4 pt-4 border-t">
                    <h4 className="text-sm font-semibold">Editar Agendamento Fixo</h4>
+
+                   {/* Editar Nome do Projeto / Motivo */}
+                   <div className="space-y-1.5">
+                     <Label htmlFor="editMotivoFixo" className="text-sm font-semibold">Nome do Projeto / Motivo:</Label>
+                     <Input 
+                       id="editMotivoFixo"
+                       value={motivo} 
+                       onChange={(e) => setMotivo(e.target.value)}
+                       placeholder="Ex: Projeto Robótica..."
+                       className="w-full"
+                     />
+                   </div>
+
                    <div className="space-y-2">
                      <div className="flex justify-between items-center">
-                        <Label className="text-sm">Data Final (Opcional):</Label>
+                        <Label className="text-sm font-semibold">Data Final (Opcional):</Label>
                         {!isEditingDataFim && (
                           <Button type="button" variant="outline" size="sm" onClick={() => setIsEditingDataFim(true)}>Modificar Data Final</Button>
                         )}
@@ -966,16 +1023,19 @@ export default function Agendamentos() {
                              min={selectedAgendamento.data_inicio_fixo || selectedDateStr}
                            />
                          </div>
-                         <Button type="button" onClick={handleAtualizarFixo} disabled={isSubmitting}>Salvar Mudança</Button>
                        </div>
                      ) : (
-                       <p className="text-sm bg-slate-50 border p-2 rounded-md text-slate-700">
+                       <p className="text-sm bg-slate-50 dark:bg-slate-800 border p-2 rounded-md text-slate-700 dark:text-slate-300">
                          {selectedAgendamento.data_fim_fixo 
                             ? new Date(selectedAgendamento.data_fim_fixo + 'T12:00:00').toLocaleDateString('pt-BR') 
                             : 'Contínuo (Sem data final definida)'}
                        </p>
                      )}
                    </div>
+                   
+                   <Button type="button" onClick={handleAtualizarFixo} disabled={isSubmitting} className="w-full mt-2">
+                     Salvar Alterações do Projeto Fixo
+                   </Button>
                  </div>
                )}
             </div>

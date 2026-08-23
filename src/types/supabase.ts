@@ -24,6 +24,7 @@ export type Database = {
           dia_semana_fixo: number | null
           horario_id: string
           id: string
+          motivo: string | null
           recurso_id: string
           status: string
           tipo: string
@@ -39,6 +40,7 @@ export type Database = {
           dia_semana_fixo?: number | null
           horario_id: string
           id?: string
+          motivo?: string | null
           recurso_id: string
           status?: string
           tipo: string
@@ -54,6 +56,7 @@ export type Database = {
           dia_semana_fixo?: number | null
           horario_id?: string
           id?: string
+          motivo?: string | null
           recurso_id?: string
           status?: string
           tipo?: string

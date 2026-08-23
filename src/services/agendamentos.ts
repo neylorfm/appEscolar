@@ -108,10 +108,14 @@ export async function cancelarOuExcluirAgendamento(agendamentoId: string, tipo: 
   }
 }
 
-export async function atualizarDataFimFixo(id: string, novaDataFim: string) {
+export async function atualizarDataFimFixo(id: string, novaDataFim: string | null, novoMotivo?: string | null) {
+  const updatePayload: any = { data_fim_fixo: novaDataFim };
+  if (novoMotivo !== undefined) {
+    updatePayload.motivo = novoMotivo;
+  }
   const { error } = await supabase
     .from('agendamentos')
-    .update({ data_fim_fixo: novaDataFim })
+    .update(updatePayload)
     .eq('id', id);
 
   if (error) throw error;
