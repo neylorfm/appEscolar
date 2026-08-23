@@ -32,6 +32,11 @@ const SERIES_OPCOES = [
   '3º ANO'
 ]
 
+const TURNOS_OPCOES = [
+  'Integral',
+  'Noturno'
+] as const
+
 export function TurmasTab() {
   const [turmas, setTurmas] = useState<Turma[]>([])
   const [loading, setLoading] = useState(true)
@@ -40,12 +45,13 @@ export function TurmasTab() {
   const [duplicateError, setDuplicateError] = useState<string | null>(null)
   
   // Para novas linhas
-  const [newRow, setNewRow] = useState<{ serie: string; nome: string } | null>(null)
+  const [newRow, setNewRow] = useState<{ serie: string; nome: string; turno: string } | null>(null)
   
   // Para edição em linha
   const [editingRowId, setEditingRowId] = useState<string | null>(null)
   const [editSerie, setEditSerie] = useState('')
   const [editNome, setEditNome] = useState('')
+  const [editTurno, setEditTurno] = useState('Integral')
 
   const { usuario } = useAuth()
   const podeEditar = usuario?.papel === 'Administrador'
@@ -76,7 +82,7 @@ export function TurmasTab() {
   }
 
   const handleAddNewRow = () => {
-    setNewRow({ serie: SERIES_OPCOES[1], nome: '' })
+    setNewRow({ serie: SERIES_OPCOES[0], nome: '', turno: 'Integral' })
   }
 
   const handleSaveNewRow = async () => {
@@ -89,7 +95,8 @@ export function TurmasTab() {
       setError(null)
       const novaTurma = await criarTurma({
         serie: newRow.serie,
-        nome: newRow.nome.trim().toUpperCase()
+        nome: newRow.nome.trim().toUpperCase(),
+        turno: newRow.turno || 'Integral'
       })
       
       setTurmas(prev => [...prev, novaTurma].sort((a,b) => {
@@ -110,6 +117,7 @@ export function TurmasTab() {
     setEditingRowId(turma.id)
     setEditSerie(turma.serie)
     setEditNome(turma.nome)
+    setEditTurno(turma.turno || 'Integral')
   }
 
   const handleSaveEdit = async (id: string) => {
@@ -122,7 +130,8 @@ export function TurmasTab() {
       setError(null)
       const turmaAtualizada = await atualizarTurma(id, {
         serie: editSerie,
-        nome: editNome.trim().toUpperCase()
+        nome: editNome.trim().toUpperCase(),
+        turno: editTurno
       })
       
       setTurmas(prev => prev.map(t => t.id === id ? turmaAtualizada : t).sort((a,b) => {
@@ -156,7 +165,7 @@ export function TurmasTab() {
       <div>
         <h2 className="text-xl font-semibold">Turmas</h2>
         <p className="text-sm text-muted-foreground">
-          Gerencie as séries e as turmas
+          Gerencie as séries, turmas e a jornada curricular (Integral ou Noturno).
         </p>
       </div>
 
@@ -193,9 +202,10 @@ export function TurmasTab() {
 
           <div className="w-full text-sm">
             {/* Header */}
-            <div className={`grid ${isEditMode ? 'grid-cols-[1fr_2fr_100px]' : 'grid-cols-[1fr_2fr]'} gap-4 mb-2 pb-2 border-b text-xs font-semibold text-muted-foreground uppercase tracking-wider`}>
+            <div className={`grid ${isEditMode ? 'grid-cols-[1.2fr_1fr_1.2fr_100px]' : 'grid-cols-[1.2fr_1fr_1.2fr]'} gap-4 mb-2 pb-2 border-b text-xs font-semibold text-muted-foreground uppercase tracking-wider`}>
                <div>Série</div>
                <div>Turma</div>
+               <div>Turno</div>
                {isEditMode && <div className="text-right">Ação</div>}
             </div>
 
@@ -205,9 +215,9 @@ export function TurmasTab() {
             ) : turmas.length === 0 && !newRow ? (
               <div className="py-8 text-center text-muted-foreground">Nenhuma turma cadastrada.</div>
             ) : (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-gray-100 dark:divide-slate-800">
                 {turmas.map(turma => (
-                  <div key={turma.id} className={`grid ${isEditMode ? 'grid-cols-[1fr_2fr_100px]' : 'grid-cols-[1fr_2fr]'} gap-4 py-3 items-center group`}>
+                  <div key={turma.id} className={`grid ${isEditMode ? 'grid-cols-[1.2fr_1fr_1.2fr_100px]' : 'grid-cols-[1.2fr_1fr_1.2fr]'} gap-4 py-3 items-center group`}>
                     
                     {/* Linha em modo de edição e foco neste ID */}
                     {isEditMode && editingRowId === turma.id ? (
@@ -228,9 +238,21 @@ export function TurmasTab() {
                           <Input 
                             value={editNome} 
                             onChange={(e) => setEditNome(e.target.value)} 
-                            className="h-9 uppercase"
+                            className="h-9 uppercase font-bold"
                             placeholder="Ex: A, B, C..."
                           />
+                        </div>
+                        <div>
+                          <Select value={editTurno} onValueChange={setEditTurno}>
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {TURNOS_OPCOES.map(opt => (
+                                <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                         <div className="flex items-center justify-end gap-2">
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50" onClick={() => handleSaveEdit(turma.id)}>
@@ -244,8 +266,17 @@ export function TurmasTab() {
                     ) : (
                       <>
                         {/* Linha normal (View mode ou Edit mode em outra linha) */}
-                        <div className="font-medium text-slate-800">{turma.serie}</div>
-                        <div className="text-slate-600">{turma.nome}</div>
+                        <div className="font-medium text-slate-800 dark:text-slate-200">{turma.serie}</div>
+                        <div className="font-bold text-slate-900 dark:text-slate-100">{turma.nome}</div>
+                        <div>
+                          <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                            turma.turno === 'Noturno'
+                              ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300'
+                              : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                          }`}>
+                            {turma.turno || 'Integral'}
+                          </span>
+                        </div>
                         {isEditMode && (
                           <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(turma.id)}>
@@ -263,10 +294,10 @@ export function TurmasTab() {
 
                 {/* Nova Linha para Inserção */}
                 {isEditMode && newRow && (
-                  <div className="grid grid-cols-[1fr_2fr_100px] gap-4 py-3 items-center bg-muted/30 -mx-4 px-4 border-l-2 border-l-primary">
+                  <div className="grid grid-cols-[1.2fr_1fr_1.2fr_100px] gap-4 py-3 items-center bg-muted/30 -mx-4 px-4 border-l-2 border-l-primary">
                     <div>
                       <Select value={newRow.serie} onValueChange={(val) => setNewRow({ ...newRow, serie: val })}>
-                        <SelectTrigger className="h-9 bg-white">
+                        <SelectTrigger className="h-9 bg-white dark:bg-slate-900">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -280,13 +311,25 @@ export function TurmasTab() {
                       <Input 
                         value={newRow.nome} 
                         onChange={(e) => setNewRow({ ...newRow, nome: e.target.value })} 
-                        className="h-9 truncate uppercase bg-white"
-                        placeholder="Nome da Turma (Ex: A)"
+                        className="h-9 truncate uppercase font-bold bg-white dark:bg-slate-900"
+                        placeholder="Ex: A"
                         autoFocus
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') handleSaveNewRow()
                         }}
                       />
+                    </div>
+                    <div>
+                      <Select value={newRow.turno} onValueChange={(val) => setNewRow({ ...newRow, turno: val })}>
+                        <SelectTrigger className="h-9 bg-white dark:bg-slate-900">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TURNOS_OPCOES.map(opt => (
+                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="flex items-center justify-end gap-2">
                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500" onClick={() => setNewRow(null)}>

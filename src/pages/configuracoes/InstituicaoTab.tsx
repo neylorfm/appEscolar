@@ -25,6 +25,7 @@ export function InstituicaoTab() {
   const [timeoutProf, setTimeoutProf] = useState(60)
   const [timeoutCoord, setTimeoutCoord] = useState(60)
   const [timeoutAdmin, setTimeoutAdmin] = useState(20)
+  const [moduloHorariosAtivo, setModuloHorariosAtivo] = useState(true)
 
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
@@ -49,6 +50,7 @@ export function InstituicaoTab() {
       setTimeoutProf(configuracoes.timeout_professor_min || 60)
       setTimeoutCoord(configuracoes.timeout_coordenador_min || 60)
       setTimeoutAdmin(configuracoes.timeout_administrador_min || 20)
+      setModuloHorariosAtivo(configuracoes.modulo_horarios_ativo !== false)
       setPreviewUrl(configuracoes.logo_url || null)
     }
   }, [configuracoes])
@@ -113,6 +115,7 @@ export function InstituicaoTab() {
           timeout_professor_min: timeoutProf,
           timeout_coordenador_min: timeoutCoord,
           timeout_administrador_min: timeoutAdmin,
+          modulo_horarios_ativo: moduloHorariosAtivo,
           logo_url: finalLogoUrl
         })
         .eq('id', configuracoes.id)
@@ -135,7 +138,7 @@ export function InstituicaoTab() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Escola & Visual</h2>
           <p className="text-muted-foreground text-sm">
-            Defina o nome da sua instituição, logotipo, paleta de cores e limites de sessão.
+            Defina o nome da sua instituição, logotipo, paleta de cores, módulos ativos e limites de sessão.
           </p>
         </div>
         <Button onClick={handleSave} disabled={loading}>
@@ -153,6 +156,34 @@ export function InstituicaoTab() {
           {error}
         </div>
       )}
+
+      {/* Módulos do Sistema */}
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-lg border shadow-sm space-y-4">
+        <div>
+          <h3 className="text-lg font-semibold border-b pb-2">Módulos da Plataforma</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            Ative ou desative os recursos visíveis para a escola.
+          </p>
+        </div>
+
+        <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/20">
+          <div>
+            <Label htmlFor="toggle-horarios" className="text-sm font-bold cursor-pointer">
+              Quadro de Horários dos Professores
+            </Label>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Disponibiliza a grade de horários interativa no menu lateral para consulta e edição.
+            </p>
+          </div>
+          <input
+            id="toggle-horarios"
+            type="checkbox"
+            checked={moduloHorariosAtivo}
+            onChange={(e) => setModuloHorariosAtivo(e.target.checked)}
+            className="h-5 w-5 accent-[#7f1d1d] rounded cursor-pointer"
+          />
+        </div>
+      </div>
 
       {/* Identidade Visual */}
       <div className="bg-white p-6 rounded-lg border shadow-sm space-y-6">

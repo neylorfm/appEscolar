@@ -4,6 +4,7 @@ export interface Turma {
   id: string
   serie: string
   nome: string
+  turno?: 'Integral' | 'Noturno' | string
   created_at?: string
   updated_at?: string
 }

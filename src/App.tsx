@@ -15,6 +15,7 @@ import { ThemeProvider } from "./components/ThemeProvider"
 
 import { QuickLinks } from "./pages/dashboard/QuickLinks"
 import { Avisos } from "./pages/dashboard/Avisos"
+import QuadroHorariosPage from "./pages/horarios/QuadroHorariosPage"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { usuario, loading } = useAuth()
@@ -92,6 +93,7 @@ function App() {
                 </ProtectedRoute>
               }>
                 <Route index element={<Dashboard />} />
+                <Route path="horarios" element={<QuadroHorariosPage />} />
                 <Route path="agendamentos" element={<Agendamentos />} />
                 <Route path="avaliacoes">
                   <Route index element={<AvaliacoesList />} />

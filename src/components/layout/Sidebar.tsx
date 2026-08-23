@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Link, useLocation } from "react-router-dom"
-import { Calendar, Home, Settings, ChevronLeft, ChevronRight, LogOut, Building2, FileText } from "lucide-react"
+import { Calendar, Home, Settings, ChevronLeft, ChevronRight, LogOut, Building2, FileText, CalendarRange } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -15,6 +15,11 @@ const routes = [
     path: "/",
     name: "Dashboard",
     icon: Home,
+  },
+  {
+    path: "/horarios",
+    name: "Horários",
+    icon: CalendarRange,
   },
   {
     path: "/agendamentos",
@@ -52,7 +57,7 @@ export function Sidebar({ className }: { className?: string }) {
       
       <div
         className={cn(
-          "fixed top-0 left-0 z-50 border-r bg-white dark:bg-slate-950 transition-all duration-300 shadow-sm",
+          "fixed top-0 left-0 z-50 border-r bg-white dark:bg-slate-950 transition-all duration-300 shadow-sm print:hidden",
           // Desktop behavior
           "md:relative md:h-screen",
           isExpanded 
@@ -117,8 +122,13 @@ export function Sidebar({ className }: { className?: string }) {
         )}>
           <nav className="grid gap-1 px-2">
             {routes.map((route) => {
-              // Only Administrador can see Settings
+              // Somente Administrador pode ver Configurações
               if (route.path === "/configuracoes" && usuario?.papel !== 'Administrador') {
+                return null
+              }
+
+              // Oculta Horários se o administrador desativou o módulo
+              if (route.path === "/horarios" && configuracoes?.modulo_horarios_ativo === false) {
                 return null
               }
 
