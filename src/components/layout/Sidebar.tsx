@@ -28,7 +28,7 @@ const routes = [
   },
   {
     path: "/avaliacoes",
-    name: "Informações por Bimestre",
+    name: "Avaliações",
     icon: BookOpen,
   },
   {

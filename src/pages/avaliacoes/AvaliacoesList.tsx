@@ -205,7 +205,7 @@ export default function AvaliacoesList() {
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-                Informações por Bimestre
+                Avaliações
               </h1>
               <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
                 Roteiros de estudo, links de avaliações, simulados, gabaritos e documentos por período letivo.
@@ -220,7 +220,7 @@ export default function AvaliacoesList() {
             className="h-10 text-xs sm:text-sm font-bold rounded-xl px-4 shadow-sm gap-2 bg-[#7f1d1d] hover:bg-[#661717] text-white shrink-0"
           >
             <Plus className="h-4 w-4" />
-            <span>Adicionar Informação</span>
+            <span>Adicionar Avaliação</span>
           </Button>
         )}
       </div>
@@ -286,15 +286,15 @@ export default function AvaliacoesList() {
       {loading ? (
         <div className="py-16 text-center text-sm text-muted-foreground flex flex-col items-center justify-center gap-2">
           <FolderOpen className="h-8 w-8 animate-bounce text-muted-foreground/60" />
-          <span>Carregando informações do {bimestreAtivo}º Bimestre...</span>
+          <span>Carregando avaliações do {bimestreAtivo}º Bimestre...</span>
         </div>
       ) : itensDoBimestre.length === 0 ? (
         <div className="py-14 px-4 text-center rounded-2xl border-2 border-dashed border-border/80 bg-muted/20 flex flex-col items-center justify-center">
           <Info className="h-10 w-10 text-muted-foreground/60 mb-2.5" />
           <p className="text-base sm:text-lg font-bold text-foreground/80">
             {filtroBusca 
-              ? "Nenhuma informação corresponde à sua busca neste bimestre." 
-              : `Nenhuma informação cadastrada no ${bimestreAtivo}º Bimestre.`}
+              ? "Nenhuma avaliação corresponde à sua busca neste bimestre." 
+              : `Nenhuma avaliação cadastrada no ${bimestreAtivo}º Bimestre.`}
           </p>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-md">
             {filtroBusca 
@@ -308,7 +308,7 @@ export default function AvaliacoesList() {
               onClick={handleOpenNovo}
               className="h-9 text-xs sm:text-sm font-semibold text-primary mt-4 border-primary/30 rounded-xl"
             >
-              + Inserir primeira informação
+              + Inserir primeira avaliação
             </Button>
           )}
         </div>
@@ -453,13 +453,13 @@ export default function AvaliacoesList() {
         </DialogContent>
       </Dialog>
 
-      {/* MODAL: ADIÇÃO / EDIÇÃO DE INFORMAÇÃO */}
+      {/* MODAL: ADIÇÃO / EDIÇÃO DE AVALIAÇÃO */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-md p-6 rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold flex items-center gap-2">
               <CalendarCheck className="h-5 w-5 text-primary" />
-              {editingItem?.id ? "Editar Informação do Bimestre" : "Adicionar Informação ao Bimestre"}
+              {editingItem?.id ? "Editar Avaliação / Documento" : "Adicionar Avaliação / Documento"}
             </DialogTitle>
           </DialogHeader>
 
@@ -549,7 +549,7 @@ export default function AvaliacoesList() {
                 disabled={saving}
                 className="h-9 text-xs font-bold shadow-xs bg-[#7f1d1d] hover:bg-[#661717] text-white"
               >
-                {saving ? "Salvando..." : editingItem?.id ? "Salvar Alterações" : "Adicionar Informação"}
+                {saving ? "Salvando..." : editingItem?.id ? "Salvar Alterações" : "Adicionar Avaliação"}
               </Button>
             </DialogFooter>
           </form>

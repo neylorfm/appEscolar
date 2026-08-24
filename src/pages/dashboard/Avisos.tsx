@@ -16,7 +16,6 @@ import {
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/contexts/AuthContext"
 import { getAvisos, Aviso, deleteAviso, upsertAviso } from "@/services/dashboard"
-import { CardBimestres } from "./CardBimestres"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -398,9 +397,6 @@ export function Avisos() {
           </div>
         )}
       </div>
-
-      {/* SEÇÃO 2: INFORMAÇÕES POR BIMESTRE */}
-      <CardBimestres />
 
       {/* MODAL 1: VISUALIZAR AVISO COMPLETO (TEXTO PURO / EXPANDIDO / ACESSÍVEL - LARGURA AMPLA) */}
       <Dialog open={!!visualizandoAviso} onOpenChange={(open) => !open && setVisualizandoAviso(null)}>
