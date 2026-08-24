@@ -1,7 +1,7 @@
 import { useMemo } from "react"
 import { DIAS_SEMANA, NOMES_DIAS, GradeHorarioItem, getEstiloBadgeCor, obterCorEfetivaProfessor } from "@/services/gradeHorarios"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CalendarDays, Clock, User } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { CalendarDays, Clock, User, Search, X } from "lucide-react"
 
 interface MinhasAulasViewProps {
   itensGrade: GradeHorarioItem[]
@@ -18,11 +18,16 @@ export function MinhasAulasView({
   isCoordinatorOrAdmin,
   onSelecionarProfessor
 }: MinhasAulasViewProps) {
-  // Filtra itens pelo professor selecionado
+  // Filtra itens pelo professor selecionado com normalização de acentos
   const aulasDoProfessor = useMemo(() => {
     if (!professorSelecionado.trim()) return []
-    const busca = professorSelecionado.trim().toUpperCase()
-    return itensGrade.filter(i => i.professor_nome?.toUpperCase() === busca || i.professor_nome?.toUpperCase().includes(busca))
+    const normalizar = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim()
+    const busca = normalizar(professorSelecionado)
+    return itensGrade.filter(i => {
+      if (!i.professor_nome) return false
+      const profNorm = normalizar(i.professor_nome)
+      return profNorm === busca || profNorm.includes(busca)
+    })
   }, [itensGrade, professorSelecionado])
 
   // Agrupa aulas por dia da semana
@@ -94,24 +99,37 @@ export function MinhasAulasView({
           </div>
         </div>
 
-        {/* Seletor para Administradores / Coordenadores escolherem qualquer professor único */}
+        {/* Campo de Busca com Digitação Direta e Sugestões para Coordenadores/Admin */}
         {isCoordinatorOrAdmin && (
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap hidden sm:inline">
-              Ver outro professor:
+            <span className="text-xs font-bold text-muted-foreground whitespace-nowrap hidden sm:inline">
+              Buscar Professor:
             </span>
-            <Select value={professorSelecionado} onValueChange={onSelecionarProfessor}>
-              <SelectTrigger className="h-9 w-full sm:w-60 text-xs font-bold uppercase">
-                <SelectValue placeholder="Selecione o professor" />
-              </SelectTrigger>
-              <SelectContent>
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Digite o nome..."
+                value={professorSelecionado}
+                onChange={(e) => onSelecionarProfessor(e.target.value)}
+                list="lista-professores-minhas-aulas"
+                className="pl-8.5 pr-7 h-9 text-xs font-bold uppercase"
+              />
+              {professorSelecionado && (
+                <button
+                  type="button"
+                  onClick={() => onSelecionarProfessor("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  title="Limpar"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+              <datalist id="lista-professores-minhas-aulas">
                 {listaProfessores.map((profNome) => (
-                  <SelectItem key={profNome} value={profNome} className="font-bold uppercase">
-                    {profNome}
-                  </SelectItem>
+                  <option key={profNome} value={profNome} />
                 ))}
-              </SelectContent>
-            </Select>
+              </datalist>
+            </div>
           </div>
         )}
       </div>

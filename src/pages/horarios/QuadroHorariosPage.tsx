@@ -71,7 +71,8 @@ import {
   Type,
   ChevronUp,
   ChevronDown,
-  Clock
+  Clock,
+  X
 } from "lucide-react"
 
 type AbaSegmento = "INTEGRAL_COMPLETO" | "MANHA" | "TARDE" | "NOTURNO" | "MINHAS_AULAS"
@@ -507,14 +508,25 @@ export default function QuadroHorariosPage() {
             <div className="flex items-center gap-1.5 flex-wrap">
               {abaAtiva !== "MINHAS_AULAS" && (
                 <>
-                  <div className="relative w-32 sm:w-36">
+                  <div className="relative w-36 sm:w-44">
                     <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
                     <Input
-                      placeholder="Prof..."
+                      placeholder="Buscar professor..."
                       value={professorDestaque}
                       onChange={(e) => setProfessorDestaque(e.target.value)}
-                      className="pl-7 h-7 text-xs"
+                      list="lista-professores-destaque"
+                      className="pl-7 pr-6 h-7 text-xs font-semibold"
                     />
+                    {professorDestaque && (
+                      <button
+                        type="button"
+                        onClick={() => setProfessorDestaque("")}
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                        title="Limpar busca"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
                   </div>
 
                   <Select value={turmaFiltro} onValueChange={setTurmaFiltro}>
@@ -983,14 +995,25 @@ export default function QuadroHorariosPage() {
               {/* Filtro Rápido e Seletor de Tipografia */}
               {abaAtiva !== "MINHAS_AULAS" && (
                 <div className="flex items-center gap-2 flex-wrap">
-                  <div className="relative flex-1 sm:w-48">
+                  <div className="relative flex-1 sm:w-56">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                     <Input
-                      placeholder="Destacar professor..."
+                      placeholder="Buscar / destacar professor..."
                       value={professorDestaque}
                       onChange={(e) => setProfessorDestaque(e.target.value)}
-                      className="pl-8.5 h-8.5 text-xs"
+                      list="lista-professores-destaque"
+                      className="pl-8.5 pr-7 h-8.5 text-xs font-semibold"
                     />
+                    {professorDestaque && (
+                      <button
+                        type="button"
+                        onClick={() => setProfessorDestaque("")}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                        title="Limpar busca"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                   </div>
 
                   <Select value={turmaFiltro} onValueChange={setTurmaFiltro}>
@@ -1195,6 +1218,13 @@ export default function QuadroHorariosPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* DATALIST PARA SUGESTÕES AUTOMÁTICAS DURANTE A DIGITAÇÃO DO PROFESSOR */}
+      <datalist id="lista-professores-destaque">
+        {professoresCadastrados.map((prof) => (
+          <option key={prof} value={prof} />
+        ))}
+      </datalist>
 
       {/* MODAL DE PUBLICAÇÃO COM DATA E TURNO */}
       <PublicarHorariosModal

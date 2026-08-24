@@ -191,7 +191,8 @@ export function GradeMatrizTurno({
                         ? obterCorEfetivaProfessor(prof, item?.cor_destaque, mapaCoresProfessores)
                         : ""
                       const estiloProfessor = corDoProfessor ? getEstiloBadgeCor(corDoProfessor) : undefined
-                      const isDragTarget = dragOverCellKey === chave
+                      // Identifica se há filtro ativo digitado
+                      const temFiltroAtivo = Boolean(professorFiltro && professorFiltro.trim().length > 0)
 
                       return (
                         <td
@@ -314,7 +315,9 @@ export function GradeMatrizTurno({
                                 canEdit && !temConflito ? "hover:brightness-95 active:scale-[0.98]" : ""
                               } ${
                                 profMatch && !temConflito
-                                  ? "ring-2 ring-red-600 bg-red-100 dark:bg-red-950/70 text-red-950 dark:text-red-100 font-black shadow-xs relative z-10"
+                                  ? "ring-2 ring-red-600 bg-red-100 dark:bg-red-950/80 text-red-950 dark:text-red-100 font-black shadow-md relative z-20 scale-[1.02]"
+                                  : temFiltroAtivo && item && !temConflito
+                                  ? "opacity-35 grayscale-[60%] transition-opacity"
                                   : ""
                               }`}
                             >
@@ -322,7 +325,7 @@ export function GradeMatrizTurno({
                               {profMatch && !temConflito && (
                                 <div 
                                   className="absolute top-0 right-0 z-20 flex items-center justify-center p-0.5 rounded-bl-md bg-red-600 text-white shadow-xs animate-pulse pointer-events-none"
-                                  title={`Correspondência: ${item?.professor_nome}`}
+                                  title={`Correspondência encontrada: Prof. ${item?.professor_nome}`}
                                 >
                                   <Target className="h-3 w-3 stroke-[2.8]" />
                                 </div>
