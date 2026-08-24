@@ -17,6 +17,7 @@ export interface Aviso {
   imagem_url?: string | null
   link?: string | null
   categoria?: string | null
+  ordem?: number
   data_publicacao: string
   autor_id: string | null
   tags: string[]
@@ -109,11 +110,22 @@ export async function deleteQuickLink(id: string) {
 // Avisos Services
 export async function getAvisos() {
   try {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('avisos')
       .select('*')
+      .order('ordem', { ascending: true })
       .order('data_publicacao', { ascending: false })
     
+    // Fallback caso a coluna ordem ainda não tenha sido aplicada no banco
+    if (error && error.message.includes('ordem')) {
+      const res = await supabase
+        .from('avisos')
+        .select('*')
+        .order('data_publicacao', { ascending: false })
+      data = res.data
+      error = res.error
+    }
+
     if (error) {
       console.warn('Não foi possível carregar avisos (verifique se a tabela foi criada no Supabase):', error.message)
       return []
@@ -132,6 +144,7 @@ export async function upsertAviso(aviso: Partial<Aviso>) {
     imagem_url: aviso.imagem_url ? aviso.imagem_url.trim() : null,
     link: aviso.link ? aviso.link.trim() : null,
     categoria: aviso.categoria ? aviso.categoria.trim() : 'COMUNICADO',
+    ordem: aviso.ordem ?? 0,
     tags: aviso.tags || [],
     data_publicacao: aviso.data_publicacao || new Date().toISOString(),
     updated_at: new Date().toISOString()
@@ -145,10 +158,11 @@ export async function upsertAviso(aviso: Partial<Aviso>) {
       .select()
       .single()
     
-    // Fallback se as colunas link/categoria ainda não existirem no Supabase
-    if (error && (error.message.includes('link') || error.message.includes('categoria'))) {
+    // Fallback se as colunas link/categoria/ordem ainda não existirem no Supabase
+    if (error && (error.message.includes('link') || error.message.includes('categoria') || error.message.includes('ordem'))) {
       delete payload.link
       delete payload.categoria
+      delete payload.ordem
       const res = await supabase
         .from('avisos')
         .update(payload)
@@ -172,10 +186,11 @@ export async function upsertAviso(aviso: Partial<Aviso>) {
       .select()
       .single()
     
-    // Fallback se as colunas link/categoria ainda não existirem no Supabase
-    if (error && (error.message.includes('link') || error.message.includes('categoria'))) {
+    // Fallback se as colunas link/categoria/ordem ainda não existirem no Supabase
+    if (error && (error.message.includes('link') || error.message.includes('categoria') || error.message.includes('ordem'))) {
       delete payload.link
       delete payload.categoria
+      delete payload.ordem
       const res = await supabase
         .from('avisos')
         .insert([payload])
@@ -190,6 +205,23 @@ export async function upsertAviso(aviso: Partial<Aviso>) {
       throw error
     }
     return data as Aviso
+  }
+}
+
+export async function reordenarAvisos(novosAvisos: Aviso[]) {
+  try {
+    const promises = novosAvisos.map((aviso, idx) => 
+      supabase
+        .from('avisos')
+        .update({ 
+          ordem: idx + 1,
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', aviso.id)
+    )
+    await Promise.all(promises)
+  } catch (error) {
+    console.error('Erro ao salvar nova ordem dos avisos:', error)
   }
 }
 

@@ -11,11 +11,18 @@ import {
   ChevronRight,
   BookOpen,
   Search,
-  Filter
+  Filter,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  GripVertical,
+  ChevronsUp
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/contexts/AuthContext"
-import { getAvisos, Aviso, deleteAviso, upsertAviso } from "@/services/dashboard"
+import { getAvisos, Aviso, deleteAviso, upsertAviso, reordenarAvisos } from "@/services/dashboard"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -63,6 +70,8 @@ export function Avisos() {
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isVerTodosOpen, setIsVerTodosOpen] = useState(false)
+  const [isReordenarOpen, setIsReordenarOpen] = useState(false)
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [buscaVerTodos, setBuscaVerTodos] = useState("")
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>("TODAS")
   const [editingAviso, setEditingAviso] = useState<Partial<Aviso> | null>(null)
@@ -111,6 +120,42 @@ export function Avisos() {
     const inicio = paginaAtual * ITENS_POR_PAGINA
     return avisos.slice(inicio, inicio + ITENS_POR_PAGINA)
   }, [avisos, paginaAtual])
+
+  async function handleMoverAviso(fromIndex: number, direcao: -1 | 1) {
+    const toIndex = fromIndex + direcao
+    if (toIndex < 0 || toIndex >= avisos.length) return
+
+    const novaLista = [...avisos]
+    const [removido] = novaLista.splice(fromIndex, 1)
+    novaLista.splice(toIndex, 0, removido)
+
+    setAvisos(novaLista)
+    toast.success("Posição do aviso alterada!")
+    await reordenarAvisos(novaLista)
+  }
+
+  async function handleMoverParaTopo(index: number) {
+    if (index === 0) return
+    const novaLista = [...avisos]
+    const [removido] = novaLista.splice(index, 1)
+    novaLista.unshift(removido)
+
+    setAvisos(novaLista)
+    toast.success("Aviso movido para a 1ª posição!")
+    await reordenarAvisos(novaLista)
+  }
+
+  async function handleDrop(targetIndex: number) {
+    if (draggedIndex === null || draggedIndex === targetIndex) return
+    const novaLista = [...avisos]
+    const [removido] = novaLista.splice(draggedIndex, 1)
+    novaLista.splice(targetIndex, 0, removido)
+
+    setDraggedIndex(null)
+    setAvisos(novaLista)
+    toast.success("Ordem dos avisos atualizada!")
+    await reordenarAvisos(novaLista)
+  }
 
   async function loadAvisos() {
     try {
@@ -245,6 +290,19 @@ export function Avisos() {
               </button>
             )}
 
+            {canManage && avisos.length > 1 && (
+              <Button 
+                variant="outline"
+                size="sm" 
+                onClick={() => setIsReordenarOpen(true)} 
+                className="rounded-lg px-2.5 text-xs lg:text-sm font-semibold shadow-2xs gap-1.5 h-8 lg:h-9 border-border hover:bg-muted"
+                title="Reordenar a posição dos cards de avisos"
+              >
+                <ArrowUpDown className="h-3.5 w-3.5" /> 
+                <span>Reordenar</span>
+              </Button>
+            )}
+
             {canManage && (
               <Button 
                 size="sm" 
@@ -279,6 +337,7 @@ export function Avisos() {
               {avisosVisiveis.map((aviso) => {
                 const badge = getCategoriaBadge(aviso.categoria)
                 const hasLink = Boolean(aviso.link && aviso.link.trim())
+                const globalIndex = avisos.findIndex(a => a.id === aviso.id)
 
                 return (
                   <div
@@ -296,9 +355,16 @@ export function Avisos() {
                   >
                     {/* Linha de Categoria e Ações */}
                     <div className="flex items-center justify-between gap-2">
-                      <span className={`text-[10px] sm:text-[11px] lg:text-xs font-bold tracking-wider uppercase px-2.5 lg:px-3 py-0.5 lg:py-1 rounded-md border shrink-0 whitespace-nowrap ${badge.cor}`}>
-                        {badge.rotulo}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[10px] sm:text-[11px] lg:text-xs font-bold tracking-wider uppercase px-2.5 lg:px-3 py-0.5 lg:py-1 rounded-md border shrink-0 whitespace-nowrap ${badge.cor}`}>
+                          {badge.rotulo}
+                        </span>
+                        {canManage && globalIndex >= 0 && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground opacity-60 group-hover:opacity-100 transition-opacity" title={`Posição ${globalIndex + 1} no quadro`}>
+                            #{globalIndex + 1}
+                          </span>
+                        )}
+                      </div>
 
                       <div className="flex items-center gap-1.5 shrink-0">
                         {/* Botão de Acesso ao Link no Card (Acessível, sem quebra de linha) */}
@@ -318,12 +384,40 @@ export function Avisos() {
                           </button>
                         )}
 
-                        {/* Botões de Ação para Administrador / Coordenador */}
+                        {/* Botões de Ação e Reordenação para Administrador / Coordenador */}
                         {canManage && (
                           <div 
-                            className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-background/90 p-0.5 rounded-lg border border-border shadow-2xs z-10 shrink-0"
+                            className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-background/95 p-0.5 rounded-lg border border-border shadow-2xs z-10 shrink-0"
                             onClick={(e) => e.stopPropagation()}
                           >
+                            {/* Botão Mover para Anterior */}
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              disabled={globalIndex <= 0}
+                              className="h-6 w-6 lg:h-7 lg:w-7 text-muted-foreground hover:text-foreground disabled:opacity-30" 
+                              onClick={(e) => { e.stopPropagation(); handleMoverAviso(globalIndex, -1); }} 
+                              title="Mover para posição anterior"
+                              aria-label="Mover para posição anterior"
+                            >
+                              <ArrowLeft className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
+                            </Button>
+
+                            {/* Botão Mover para Próximo */}
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              disabled={globalIndex >= avisos.length - 1}
+                              className="h-6 w-6 lg:h-7 lg:w-7 text-muted-foreground hover:text-foreground disabled:opacity-30" 
+                              onClick={(e) => { e.stopPropagation(); handleMoverAviso(globalIndex, 1); }} 
+                              title="Mover para próxima posição"
+                              aria-label="Mover para próxima posição"
+                            >
+                              <ArrowRight className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
+                            </Button>
+
+                            <div className="w-[1px] h-3.5 bg-border mx-0.5" />
+
                             <Button 
                               variant="ghost" 
                               size="icon" 
@@ -706,6 +800,122 @@ export function Avisos() {
               <Button type="submit">{editingAviso?.id ? "Salvar Alterações" : "Publicar Aviso"}</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL 4: REORDENAR AVISOS (ADMIN / COORDENADOR) */}
+      <Dialog open={isReordenarOpen} onOpenChange={setIsReordenarOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-6 rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <ArrowUpDown className="h-5 w-5 text-primary" />
+              Reordenar Posição dos Avisos
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              Arraste os itens ou use as setas para definir a ordem no painel. Os 4 primeiros avisos serão exibidos na Página 1.
+            </p>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto pr-1 space-y-2 py-3 max-h-[55vh]">
+            {avisos.map((aviso, idx) => {
+              const badge = getCategoriaBadge(aviso.categoria)
+              const pagina = Math.floor(idx / 4) + 1
+              const isFirstPage = pagina === 1
+
+              return (
+                <div
+                  key={aviso.id}
+                  draggable
+                  onDragStart={() => setDraggedIndex(idx)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={() => handleDrop(idx)}
+                  className={`flex items-center justify-between gap-3 p-3 rounded-xl border transition-all bg-card ${
+                    draggedIndex === idx 
+                      ? "opacity-40 border-dashed border-primary" 
+                      : "border-border/80 hover:border-primary/40 shadow-2xs"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="cursor-grab text-muted-foreground/60 hover:text-foreground shrink-0 p-1">
+                      <GripVertical className="h-4 w-4" />
+                    </div>
+
+                    {/* Número da Posição */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="h-7 w-7 rounded-lg bg-primary/10 text-primary font-black text-xs flex items-center justify-center border border-primary/20">
+                        {idx + 1}º
+                      </span>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                        isFirstPage 
+                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" 
+                          : "bg-muted text-muted-foreground"
+                      }`}>
+                        Pág. {pagina}
+                      </span>
+                    </div>
+
+                    {/* Título e Categoria */}
+                    <div className="flex flex-col truncate">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${badge.cor}`}>
+                          {badge.rotulo}
+                        </span>
+                        <span className="font-bold text-xs sm:text-sm text-foreground truncate">
+                          {aviso.titulo}
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-muted-foreground truncate mt-0.5">
+                        {aviso.conteudo}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Controles de Movimentação */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      disabled={idx === 0}
+                      onClick={() => handleMoverParaTopo(idx)}
+                      className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:opacity-30"
+                      title="Mover diretamente para o 1º lugar"
+                    >
+                      <ChevronsUp className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      disabled={idx === 0}
+                      onClick={() => handleMoverAviso(idx, -1)}
+                      className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:opacity-30 rounded-lg"
+                      title="Subir uma posição"
+                    >
+                      <ArrowUp className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      disabled={idx === avisos.length - 1}
+                      onClick={() => handleMoverAviso(idx, 1)}
+                      className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:opacity-30 rounded-lg"
+                      title="Descer uma posição"
+                    >
+                      <ArrowDown className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          <DialogFooter className="pt-2 border-t border-border/40">
+            <Button 
+              onClick={() => setIsReordenarOpen(false)}
+              className="bg-[#7f1d1d] hover:bg-[#661717] text-white font-bold"
+            >
+              Concluir Reordenação
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
