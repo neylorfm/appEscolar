@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useInstituicao } from '../../contexts/InstituicaoContext';
 import { Card, CardContent } from '../../components/ui/card';
 
-import { Calendar, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Trash2, Type } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
@@ -18,6 +18,7 @@ import { criarAgendamento, getAgendamentosPorPeriodo, AgendamentoComDetalhes, ca
 import { getRecursos, Recurso } from '../../services/recursos';
 import { getHorarios, Horario } from '../../services/horarios';
 import { getUsuarios } from '../../services/usuarios';
+import { OPCOES_FONTES_GRADE, IdFonteGrade, getFonteGrade, salvarFonteGrade, getFontFamilyById } from '../../services/gradeHorarios';
 
 const getBaseMonday = () => {
   const d = new Date();
@@ -72,6 +73,16 @@ export default function Agendamentos() {
   const [hasGlobalPreReservas, setHasGlobalPreReservas] = useState(false);
   
   
+  // Tipografia da Tabela
+  const [fonteAgendamento, setFonteAgendamento] = useState<IdFonteGrade>(() => getFonteGrade());
+
+  const handleTrocarFonte = (novaFonte: IdFonteGrade) => {
+    setFonteAgendamento(novaFonte);
+    salvarFonteGrade(novaFonte);
+    const opt = OPCOES_FONTES_GRADE.find(f => f.id === novaFonte);
+    toast.success(`Tipografia alterada para ${opt?.nome || novaFonte}`, { duration: 1500, icon: '🔤' });
+  };
+
   // Form state
   const [agendarPara, setAgendarPara] = useState<string>(''); // Vazio = professor logado
   const [agendarEscola, setAgendarEscola] = useState(false);
@@ -553,26 +564,44 @@ export default function Agendamentos() {
         </div>
         
         <div className="flex flex-col sm:items-end gap-3 mt-4 sm:mt-0">
-          <div className="flex items-center space-x-2 bg-background p-1 rounded-lg border shadow-sm relative overflow-hidden">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => setSemanaOffset(semanaOffset - 1)}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <div className="min-w-[140px] text-center font-medium text-sm flex items-center justify-center gap-2">
-              <Calendar className="h-4 w-4 text-primary" />
-              {getWeekText()}
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {/* Seletor de Tipografia da Tabela */}
+            <Select value={fonteAgendamento} onValueChange={(val) => handleTrocarFonte(val as IdFonteGrade)}>
+              <SelectTrigger className="h-9 text-xs w-40 gap-1.5 font-semibold bg-background shadow-2xs border-border" title="Escolha a tipografia da tabela para melhor legibilidade">
+                <Type className="h-3.5 w-3.5 text-primary shrink-0" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="z-50">
+                {OPCOES_FONTES_GRADE.map((f) => (
+                  <SelectItem key={f.id} value={f.id} className="text-xs">
+                    <span className="font-bold">{f.nome}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Controle de Semanas */}
+            <div className="flex items-center space-x-2 bg-background p-1 rounded-lg border shadow-sm relative overflow-hidden">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setSemanaOffset(semanaOffset - 1)}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="min-w-[140px] text-center font-medium text-sm flex items-center justify-center gap-2">
+                <Calendar className="h-4 w-4 text-primary" />
+                {getWeekText()}
+              </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setSemanaOffset(semanaOffset + 1)}
+                disabled={!podeAvancar}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => setSemanaOffset(semanaOffset + 1)}
-              disabled={!podeAvancar}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
           </div>
         </div>
       </div>
@@ -603,7 +632,10 @@ export default function Agendamentos() {
         </CardContent>
       </Card>
 
-      <Card className="w-full overflow-hidden border-border/50 shadow-sm">
+      <Card 
+        className="w-full overflow-hidden border-border/50 shadow-sm transition-all"
+        style={{ fontFamily: getFontFamilyById(fonteAgendamento) }}
+      >
         <div className="w-full overflow-auto max-h-[600px] touch-pan-x touch-pan-y">
           <div className="min-w-[800px] p-0">
             <table className="w-full border-collapse">

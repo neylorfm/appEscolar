@@ -1,7 +1,10 @@
 import { supabase } from '@/lib/supabase'
 
+export type InstanciaGrade = 'PUBLICADA' | 'RASCUNHO'
+
 export interface GradeHorarioItem {
   id?: string
+  instancia?: InstanciaGrade
   segmento: string // 'INTEGRAL_MANHA' | 'INTEGRAL_TARDE' | 'NOTURNO'
   dia_semana: string // 'SEG' | 'TER' | 'QUA' | 'QUI' | 'SEX'
   numero_aula: number // 1 a 5 (Manhã), 6 a 9 (Tarde Integral), 1 a 4 (Noite)
@@ -86,6 +89,65 @@ export function getCorPadraoPorNome(nome: string): string {
   }
   const index = Math.abs(hash) % PALETA_50_CORES.length
   return PALETA_50_CORES[index]
+}
+
+export type IdFonteGrade = 'sistema' | 'inter' | 'ibm-plex' | 'roboto-condensed'
+
+export interface OpcaoFonteGrade {
+  id: IdFonteGrade
+  nome: string
+  descricao: string
+  fontFamily: string
+}
+
+export const OPCOES_FONTES_GRADE: OpcaoFonteGrade[] = [
+  {
+    id: 'sistema',
+    nome: 'Padrão do Sistema (Original)',
+    descricao: 'Segoe UI / San Francisco',
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+  },
+  {
+    id: 'inter',
+    nome: 'Inter',
+    descricao: 'Moderna e Nítida',
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
+  },
+  {
+    id: 'ibm-plex',
+    nome: 'IBM Plex Sans',
+    descricao: 'Técnica e Estruturada',
+    fontFamily: "'IBM Plex Sans', -apple-system, sans-serif"
+  },
+  {
+    id: 'roboto-condensed',
+    nome: 'Roboto Condensed',
+    descricao: 'Compacta (Mais espaço)',
+    fontFamily: "'Roboto Condensed', sans-serif"
+  }
+]
+
+const CHAVE_STORAGE_FONTE = 'app_escolar_fonte_grade'
+
+export function getFonteGrade(): IdFonteGrade {
+  try {
+    const salva = localStorage.getItem(CHAVE_STORAGE_FONTE) as IdFonteGrade
+    if (salva && OPCOES_FONTES_GRADE.some(f => f.id === salva)) {
+      return salva
+    }
+  } catch {}
+  return 'inter'
+}
+
+export function salvarFonteGrade(fonte: IdFonteGrade) {
+  try {
+    localStorage.setItem(CHAVE_STORAGE_FONTE, fonte)
+  } catch {}
+}
+
+export function getFontFamilyById(id: IdFonteGrade): string {
+  const achada = OPCOES_FONTES_GRADE.find(f => f.id === id)
+  return achada ? achada.fontFamily : OPCOES_FONTES_GRADE[0].fontFamily
 }
 
 const CHAVE_STORAGE_CORES = 'app_escolar_cores_professores'
@@ -196,11 +258,18 @@ export const ESTRUTURA_AULAS = {
   ]
 }
 
-export async function getGradeHorarios(segmento?: string) {
+/**
+ * Busca itens da grade por segmento e instância (PUBLICADA ou RASCUNHO)
+ */
+export async function getGradeHorarios(
+  segmento?: string, 
+  instancia: InstanciaGrade = 'PUBLICADA'
+): Promise<GradeHorarioItem[]> {
   try {
     let query = supabase
       .from('grade_horarios')
       .select('*')
+      .eq('instancia', instancia)
       .order('numero_aula', { ascending: true })
 
     if (segmento && segmento !== 'TODOS') {
@@ -214,7 +283,7 @@ export async function getGradeHorarios(segmento?: string) {
     const { data, error } = await query
 
     if (error) {
-      console.warn('Tabela grade_horarios indisponível ou vazia:', error.message)
+      console.warn(`Tabela grade_horarios para instância ${instancia} indisponível ou vazia:`, error.message)
       return []
     }
 
@@ -232,7 +301,11 @@ export async function getGradeHorarios(segmento?: string) {
   }
 }
 
+/**
+ * Salva ou atualiza uma célula na instância especificada (padrão: RASCUNHO)
+ */
 export async function salvarCelulaGrade(item: {
+  instancia?: InstanciaGrade
   segmento: string
   dia_semana: string
   numero_aula: number
@@ -243,12 +316,14 @@ export async function salvarCelulaGrade(item: {
   professor_id?: string | null
   cor_destaque?: string | null
 }) {
+  const instanciaAlvo = item.instancia || 'RASCUNHO'
   const norm = normalizarNomeTurma(item.turma_nome)
 
-  // 1. Limpa registros anteriores dessa mesma célula para evitar duplicidades
+  // 1. Limpa registros anteriores dessa mesma célula para evitar duplicidades na instância alvo
   await supabase
     .from('grade_horarios')
     .delete()
+    .eq('instancia', instanciaAlvo)
     .eq('segmento', item.segmento)
     .eq('dia_semana', item.dia_semana)
     .eq('numero_aula', item.numero_aula)
@@ -256,6 +331,7 @@ export async function salvarCelulaGrade(item: {
 
   // 2. Insere a célula atualizada
   const payload = {
+    instancia: instanciaAlvo,
     segmento: item.segmento,
     dia_semana: item.dia_semana,
     numero_aula: item.numero_aula,
@@ -282,17 +358,22 @@ export async function salvarCelulaGrade(item: {
   return data as GradeHorarioItem
 }
 
+/**
+ * Limpa uma célula da grade na instância especificada (padrão: RASCUNHO)
+ */
 export async function limparCelulaGrade(
   segmento: string,
   dia_semana: string,
   numero_aula: number,
-  turma_nome: string
+  turma_nome: string,
+  instancia: InstanciaGrade = 'RASCUNHO'
 ) {
   const norm = normalizarNomeTurma(turma_nome)
 
   const { error } = await supabase
     .from('grade_horarios')
     .delete()
+    .eq('instancia', instancia)
     .eq('segmento', segmento)
     .eq('dia_semana', dia_semana)
     .eq('numero_aula', numero_aula)
@@ -301,6 +382,189 @@ export async function limparCelulaGrade(
   if (error) {
     console.error('Erro ao limpar célula da grade:', error)
     throw new Error('Não foi possível remover o horário.')
+  }
+}
+
+/**
+ * Clona todos os registros da instância de Visualização (PUBLICADA) para a instância de Edição (RASCUNHO)
+ */
+export async function copiarInstanciaVisualizacaoParaEdicao(): Promise<number> {
+  // 1. Busca todos os itens da grade publicada
+  const { data: itensPublicados, error: erroPublicados } = await supabase
+    .from('grade_horarios')
+    .select('*')
+    .eq('instancia', 'PUBLICADA')
+
+  if (erroPublicados) {
+    console.error('Erro ao buscar grade publicada para cópia:', erroPublicados)
+    throw new Error('Não foi possível carregar a grade de visualização.')
+  }
+
+  // 2. Limpa todos os itens do rascunho anterior
+  const { error: erroDelete } = await supabase
+    .from('grade_horarios')
+    .delete()
+    .eq('instancia', 'RASCUNHO')
+
+  if (erroDelete) {
+    console.error('Erro ao limpar rascunho de edição:', erroDelete)
+    throw new Error('Falha ao preparar o ambiente de edição.')
+  }
+
+  if (!itensPublicados || itensPublicados.length === 0) {
+    return 0
+  }
+
+  // 3. Prepara os novos itens para inserção no RASCUNHO
+  const novosItens = itensPublicados.map(item => ({
+    instancia: 'RASCUNHO' as InstanciaGrade,
+    segmento: item.segmento,
+    dia_semana: item.dia_semana,
+    numero_aula: item.numero_aula,
+    turma_nome: item.turma_nome,
+    disciplina_nome: item.disciplina_nome,
+    disciplina_id: item.disciplina_id || null,
+    professor_nome: item.professor_nome,
+    professor_id: item.professor_id || null,
+    cor_destaque: item.cor_destaque || null,
+    updated_at: new Date().toISOString()
+  }))
+
+  // Inserção em lotes de 100
+  const BATCH_SIZE = 100
+  for (let i = 0; i < novosItens.length; i += BATCH_SIZE) {
+    const lote = novosItens.slice(i, i + BATCH_SIZE)
+    const { error: erroInsert } = await supabase
+      .from('grade_horarios')
+      .insert(lote)
+
+    if (erroInsert) {
+      console.error('Erro ao inserir lote no rascunho:', erroInsert)
+      throw new Error('Falha ao duplicar dados na instância de edição.')
+    }
+  }
+
+  // Copia a vigência publicada para o rascunho
+  const vigenciaPub = await getVigenciaGrade('PUBLICADA')
+  if (vigenciaPub) {
+    await salvarVigenciaGrade('RASCUNHO', vigenciaPub)
+  }
+
+  return novosItens.length
+}
+
+/**
+ * Publica a grade de Edição (RASCUNHO) para a grade de Visualização (PUBLICADA) com a nova vigência
+ */
+export async function publicarInstanciaEdicao(textoVigencia: string): Promise<number> {
+  // 1. Busca todos os itens do rascunho atual
+  const { data: itensRascunho, error: erroRascunho } = await supabase
+    .from('grade_horarios')
+    .select('*')
+    .eq('instancia', 'RASCUNHO')
+
+  if (erroRascunho) {
+    console.error('Erro ao buscar rascunho para publicação:', erroRascunho)
+    throw new Error('Não foi possível carregar a grade de edição.')
+  }
+
+  // 2. Limpa a grade publicada anterior
+  const { error: erroDelete } = await supabase
+    .from('grade_horarios')
+    .delete()
+    .eq('instancia', 'PUBLICADA')
+
+  if (erroDelete) {
+    console.error('Erro ao limpar grade publicada anterior:', erroDelete)
+    throw new Error('Falha ao preparar publicação.')
+  }
+
+  const itensInseridos = itensRascunho || []
+
+  if (itensInseridos.length > 0) {
+    // 3. Prepara os novos itens para inserção como PUBLICADA
+    const novosPublicados = itensInseridos.map(item => ({
+      instancia: 'PUBLICADA' as InstanciaGrade,
+      segmento: item.segmento,
+      dia_semana: item.dia_semana,
+      numero_aula: item.numero_aula,
+      turma_nome: item.turma_nome,
+      disciplina_nome: item.disciplina_nome,
+      disciplina_id: item.disciplina_id || null,
+      professor_nome: item.professor_nome,
+      professor_id: item.professor_id || null,
+      cor_destaque: item.cor_destaque || null,
+      updated_at: new Date().toISOString()
+    }))
+
+    const BATCH_SIZE = 100
+    for (let i = 0; i < novosPublicados.length; i += BATCH_SIZE) {
+      const lote = novosPublicados.slice(i, i + BATCH_SIZE)
+      const { error: erroInsert } = await supabase
+        .from('grade_horarios')
+        .insert(lote)
+
+      if (erroInsert) {
+        console.error('Erro ao inserir lote publicado:', erroInsert)
+        throw new Error('Falha ao gravar grade publicada.')
+      }
+    }
+  }
+
+  // 4. Salva a nova vigência publicada
+  await salvarVigenciaGrade('PUBLICADA', textoVigencia)
+  localStorage.setItem('grade_horarios_vigencia', textoVigencia)
+
+  return itensInseridos.length
+}
+
+/**
+ * Carrega a legenda de vigência da instância
+ */
+export async function getVigenciaGrade(instancia: InstanciaGrade = 'PUBLICADA'): Promise<string> {
+  try {
+    const chave = instancia === 'PUBLICADA' ? 'grade_vigencia_publicada' : 'grade_vigencia_rascunho'
+    const cached = localStorage.getItem(`grade_horarios_vigencia_${instancia.toLowerCase()}`) || localStorage.getItem('grade_horarios_vigencia')
+    
+    const { data } = await supabase
+      .from('configuracoes_instituicao')
+      .select(chave)
+      .maybeSingle()
+
+    if (data && (data as any)[chave]) {
+      return (data as any)[chave]
+    }
+
+    return cached || 'Válido a partir de 05/02/2026 • 1º Bimestre'
+  } catch {
+    return 'Válido a partir de 05/02/2026 • 1º Bimestre'
+  }
+}
+
+/**
+ * Salva a legenda de vigência da instância
+ */
+export async function salvarVigenciaGrade(instancia: InstanciaGrade, texto: string): Promise<void> {
+  try {
+    const chave = instancia === 'PUBLICADA' ? 'grade_vigencia_publicada' : 'grade_vigencia_rascunho'
+    localStorage.setItem(`grade_horarios_vigencia_${instancia.toLowerCase()}`, texto)
+    if (instancia === 'PUBLICADA') {
+      localStorage.setItem('grade_horarios_vigencia', texto)
+    }
+
+    const { data: config } = await supabase
+      .from('configuracoes_instituicao')
+      .select('id')
+      .maybeSingle()
+
+    if (config?.id) {
+      await supabase
+        .from('configuracoes_instituicao')
+        .update({ [chave]: texto })
+        .eq('id', config.id)
+    }
+  } catch (err) {
+    console.error('Erro ao salvar vigência da grade:', err)
   }
 }
 
@@ -387,17 +651,27 @@ export function detectarChoquesHorario(itens: GradeHorarioItem[]): {
 /**
  * Atualiza a cor de destaque de todas as aulas de um determinado professor
  */
-export async function atualizarCorProfessorGlobal(professorNome: string, novaCor: string) {
+export async function atualizarCorProfessorGlobal(
+  professorNome: string, 
+  novaCor: string,
+  instancia?: InstanciaGrade
+) {
   const prof = professorNome.trim().toUpperCase()
   if (!prof) return
 
   // Salva no cache local instantâneo
   salvarCorProfessorStorage(prof, novaCor)
 
-  const { error } = await supabase
+  let query = supabase
     .from('grade_horarios')
     .update({ cor_destaque: novaCor, updated_at: new Date().toISOString() })
     .ilike('professor_nome', prof)
+
+  if (instancia) {
+    query = query.eq('instancia', instancia)
+  }
+
+  const { error } = await query
 
   if (error) {
     console.error('Erro ao atualizar cor global do professor:', error)
@@ -452,4 +726,5 @@ export async function setVisibilidadeGradeHorarios(publicada: boolean): Promise<
     console.error('Erro ao atualizar visibilidade da grade:', err)
   }
 }
+
 

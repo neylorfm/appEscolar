@@ -9,7 +9,7 @@ import {
 } from "@/services/gradeHorarios"
 import { CelulaEditorPopover } from "./CelulaEditorPopover"
 import { Disciplina } from "@/services/disciplinas"
-import { AlertTriangle, Plus } from "lucide-react"
+import { AlertTriangle, Plus, Target } from "lucide-react"
 
 interface GradeMatrizTurnoProps {
   segmento: string
@@ -174,11 +174,17 @@ export function GradeMatrizTurno({
                         ? `⚠️ CHOQUE DE HORÁRIO: O professor(a) "${prof}" está alocado simultaneamente em 2 ou mais turmas neste mesmo horário (${turmasConflito.join(", ")}).`
                         : undefined
 
+                      // Função para busca insensível a maiúsculas/minúsculas e acentuação (ex: simoes encontra SIMÕES)
+                      const normalizarTextoBusca = (txt: string) =>
+                        txt.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim()
+
                       // Destaque para filtro de professor
-                      const profMatch =
+                      const profMatch = Boolean(
                         professorFiltro &&
+                        professorFiltro.trim().length > 0 &&
                         prof &&
-                        prof.toUpperCase().includes(professorFiltro.toUpperCase())
+                        normalizarTextoBusca(prof).includes(normalizarTextoBusca(professorFiltro))
+                      )
 
                       // Cor exclusiva do professor (personalizada ou padrão estável da paleta de 50)
                       const corDoProfessor = prof
@@ -308,10 +314,20 @@ export function GradeMatrizTurno({
                                 canEdit && !temConflito ? "hover:brightness-95 active:scale-[0.98]" : ""
                               } ${
                                 profMatch && !temConflito
-                                  ? "ring-2 ring-red-600 bg-red-100 text-red-950 font-black shadow-xs"
+                                  ? "ring-2 ring-red-600 bg-red-100 dark:bg-red-950/70 text-red-950 dark:text-red-100 font-black shadow-xs relative z-10"
                                   : ""
                               }`}
                             >
+                              {/* Ícone de Target (Alvo) quando a célula corresponder à busca do professor */}
+                              {profMatch && !temConflito && (
+                                <div 
+                                  className="absolute top-0 right-0 z-20 flex items-center justify-center p-0.5 rounded-bl-md bg-red-600 text-white shadow-xs animate-pulse pointer-events-none"
+                                  title={`Correspondência: ${item?.professor_nome}`}
+                                >
+                                  <Target className="h-3 w-3 stroke-[2.8]" />
+                                </div>
+                              )}
+
                               {item ? (
                                 <>
                                   {temConflito ? (
@@ -330,9 +346,12 @@ export function GradeMatrizTurno({
                                       <span className="font-black text-[9px] sm:text-[9.5px] leading-tight truncate w-full tracking-tighter">
                                         {item.disciplina_nome}
                                       </span>
-                                      {/* Nome do Professor */}
-                                      <span className="font-bold text-[8px] sm:text-[8.5px] leading-tight truncate w-full opacity-90">
-                                        {item.professor_nome}
+                                      {/* Nome do Professor com Ícone de Target se pesquisado */}
+                                      <span className="font-bold text-[8px] sm:text-[8.5px] leading-tight truncate w-full flex items-center justify-center gap-0.5 opacity-90">
+                                        {profMatch && (
+                                          <Target className="h-2.5 w-2.5 text-red-600 shrink-0 inline stroke-[2.5]" />
+                                        )}
+                                        <span className="truncate">{item.professor_nome}</span>
                                       </span>
                                     </>
                                   )}

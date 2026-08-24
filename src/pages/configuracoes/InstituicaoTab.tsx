@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label'
 import { useInstituicao } from '@/contexts/InstituicaoContext'
 import { supabase } from '@/lib/supabase'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { UploadCloud } from 'lucide-react'
+import { UploadCloud, Eye, EyeOff } from 'lucide-react'
 
 export function InstituicaoTab() {
   const { configuracoes, refreshConfiguracoes } = useInstituicao()
@@ -162,26 +162,72 @@ export function InstituicaoTab() {
         <div>
           <h3 className="text-lg font-semibold border-b pb-2">Módulos da Plataforma</h3>
           <p className="text-sm text-muted-foreground mt-1">
-            Ative ou desative os recursos visíveis para a escola.
+            Ative ou desative os recursos visíveis para a escola e professores.
           </p>
         </div>
 
-        <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/20">
-          <div>
-            <Label htmlFor="toggle-horarios" className="text-sm font-bold cursor-pointer">
-              Quadro de Horários dos Professores
-            </Label>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Disponibiliza a grade de horários interativa no menu lateral para consulta e edição.
-            </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-border bg-muted/20">
+          <div className="flex items-start gap-3">
+            <div className={`p-2.5 rounded-xl shrink-0 ${
+              moduloHorariosAtivo 
+                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' 
+                : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+            }`}>
+              {moduloHorariosAtivo ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Label htmlFor="toggle-horarios" className="text-sm font-bold cursor-pointer">
+                  Quadro de Horários dos Professores
+                </Label>
+                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-extrabold ${
+                  moduloHorariosAtivo
+                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
+                    : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
+                }`}>
+                  {moduloHorariosAtivo ? '● Visível / Liberado' : '● Oculto / Em Elaboração'}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {moduloHorariosAtivo 
+                  ? 'Disponibiliza o link e o acesso da grade de horários para todos os professores.'
+                  : 'Mantém o quadro oculto para professores enquanto a grade curricular é configurada.'}
+              </p>
+            </div>
           </div>
-          <input
-            id="toggle-horarios"
-            type="checkbox"
-            checked={moduloHorariosAtivo}
-            onChange={(e) => setModuloHorariosAtivo(e.target.checked)}
-            className="h-5 w-5 accent-[#7f1d1d] rounded cursor-pointer"
-          />
+
+          <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+            <Button
+              type="button"
+              variant={moduloHorariosAtivo ? "outline" : "default"}
+              size="sm"
+              onClick={() => setModuloHorariosAtivo(!moduloHorariosAtivo)}
+              className={`h-8 px-3 rounded-xl text-xs font-bold transition-all gap-1.5 ${
+                moduloHorariosAtivo
+                  ? "border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/15"
+                  : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+              }`}
+            >
+              {moduloHorariosAtivo ? (
+                <>
+                  <EyeOff className="h-3.5 w-3.5 text-amber-600" />
+                  <span>Ocultar</span>
+                </>
+              ) : (
+                <>
+                  <Eye className="h-3.5 w-3.5 text-white" />
+                  <span>Mostrar</span>
+                </>
+              )}
+            </Button>
+            <input
+              id="toggle-horarios"
+              type="checkbox"
+              checked={moduloHorariosAtivo}
+              onChange={(e) => setModuloHorariosAtivo(e.target.checked)}
+              className="h-5 w-5 accent-[#7f1d1d] rounded cursor-pointer"
+            />
+          </div>
         </div>
       </div>
 

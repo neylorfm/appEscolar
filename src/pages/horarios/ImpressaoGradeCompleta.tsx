@@ -5,7 +5,9 @@ import {
   GradeHorarioItem, 
   normalizarNomeTurma, 
   getEstiloBadgeCor, 
-  obterCorEfetivaProfessor 
+  obterCorEfetivaProfessor,
+  IdFonteGrade,
+  getFontFamilyById
 } from "@/services/gradeHorarios"
 
 interface ImpressaoGradeCompletaProps {
@@ -15,6 +17,8 @@ interface ImpressaoGradeCompletaProps {
   turmasIntegral: string[]
   turmasNoturno: string[]
   itensGrade: GradeHorarioItem[]
+  isRascunho?: boolean
+  idFonte?: IdFonteGrade
 }
 
 export function ImpressaoGradeCompleta({
@@ -24,6 +28,8 @@ export function ImpressaoGradeCompleta({
   turmasIntegral,
   turmasNoturno,
   itensGrade,
+  isRascunho,
+  idFonte = "inter",
 }: ImpressaoGradeCompletaProps) {
   // Mapa de itens para acesso O(1)
   const mapaItens = new Map<string, GradeHorarioItem>()
@@ -31,6 +37,8 @@ export function ImpressaoGradeCompleta({
     mapaItens.set(`${item.segmento}_${item.dia_semana}_${item.numero_aula}_${normalizarNomeTurma(item.turma_nome)}`, item)
     mapaItens.set(`${item.segmento}_${item.dia_semana}_${item.numero_aula}_${item.turma_nome}`, item)
   }
+
+  const fontFamilyEfetiva = getFontFamilyById(idFonte)
 
   function renderTabelaTurno(
     tituloTurno: string,
@@ -40,13 +48,23 @@ export function ImpressaoGradeCompleta({
     aulas: { numero: number; rotulo: string }[]
   ) {
     return (
-      <div className="pagina-folha-a4-impressao font-sans text-black bg-white">
+      <div 
+        className="pagina-folha-a4-impressao text-black bg-white"
+        style={{ fontFamily: fontFamilyEfetiva }}
+      >
         {/* Cabeçalho da Folha (Compacto para caber perfeitamente em 1 folha A4 paisagem) */}
         <div className="flex items-center justify-between border-b-2 border-black pb-1 mb-1">
           <div>
-            <h1 className="text-sm font-black tracking-tight uppercase text-black leading-tight">
-              EEMTI ANTONIETA SIQUEIRA • QUADRO DE HORÁRIOS
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-sm font-black tracking-tight uppercase text-black leading-tight">
+                EEMTI ANTONIETA SIQUEIRA • QUADRO DE HORÁRIOS
+              </h1>
+              {isRascunho && (
+                <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 border border-black bg-slate-200">
+                  PRÉ-DIVULGAÇÃO (RASCUNHO)
+                </span>
+              )}
+            </div>
             <h2 className="text-[11px] font-bold text-slate-800 leading-tight">
               {tituloTurno} — <span className="font-normal text-slate-700">{subtitulo}</span>
             </h2>
@@ -56,7 +74,7 @@ export function ImpressaoGradeCompleta({
               {textoVigencia || "Válido a partir de 05/02/2026 • 1º Bimestre"}
             </span>
             <span className="text-[9px] text-slate-600 block leading-tight">
-              Gerado em: {new Date().toLocaleDateString("pt-BR")}
+              {isRascunho ? "Rascunho de Edição • " : ""}Gerado em: {new Date().toLocaleDateString("pt-BR")}
             </span>
           </div>
         </div>

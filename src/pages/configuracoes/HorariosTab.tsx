@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, Edit2, Check, AlertCircle } from 'lucide-react'
+import { Plus, Trash2, Edit2, Check, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -24,7 +24,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Horario, getHorarios, criarHorario, deletarHorario, TipoHorario } from '@/services/horarios'
+import { getVisibilidadeGradeHorarios, setVisibilidadeGradeHorarios } from '@/services/gradeHorarios'
 import { useAuth } from '@/contexts/AuthContext'
+import { useInstituicao } from '@/contexts/InstituicaoContext'
+import { toast } from 'sonner'
 
 const TIPOS_OPCOES: TipoHorario[] = ['Aula', 'Intervalo', 'Almoço', 'Janta']
 
@@ -33,6 +36,10 @@ export function HorariosTab() {
   const [loading, setLoading] = useState(true)
   const [isEditMode, setIsEditMode] = useState(false)
   
+  // Visibilidade do Quadro de Horários
+  const [visibilidadeGrade, setVisibilidadeGrade] = useState<boolean>(true)
+  const [salvandoVisibilidade, setSalvandoVisibilidade] = useState<boolean>(false)
+  
   // Modals and Alerts
   const [errorDesc, setErrorDesc] = useState<string | null>(null)
   
@@ -40,11 +47,43 @@ export function HorariosTab() {
   const [newRow, setNewRow] = useState<{ inicio: string; fim: string; tipo: TipoHorario } | null>(null)
 
   const { usuario } = useAuth()
+  const { refreshConfiguracoes } = useInstituicao()
   const podeEditar = usuario?.papel === 'Administrador'
 
   useEffect(() => {
     loadHorarios()
+    carregarVisibilidade()
   }, [])
+
+  async function carregarVisibilidade() {
+    const vis = await getVisibilidadeGradeHorarios()
+    setVisibilidadeGrade(vis)
+  }
+
+  async function handleToggleVisibilidade() {
+    if (!podeEditar) {
+      toast.error('Apenas administradores podem alterar a visibilidade do quadro de horários.')
+      return
+    }
+
+    try {
+      setSalvandoVisibilidade(true)
+      const novoStatus = !visibilidadeGrade
+      await setVisibilidadeGradeHorarios(novoStatus)
+      setVisibilidadeGrade(novoStatus)
+      await refreshConfiguracoes()
+      if (novoStatus) {
+        toast.success('Quadro de horários liberado para visualização!', { icon: '👁️' })
+      } else {
+        toast.warning('Quadro de horários ocultado (Modo Rascunho / Em Elaboração)', { icon: '🔒' })
+      }
+    } catch (err) {
+      console.error('Erro ao alterar visibilidade:', err)
+      toast.error('Erro ao atualizar visibilidade do quadro de horários.')
+    } finally {
+      setSalvandoVisibilidade(false)
+    }
+  }
 
   async function loadHorarios() {
     try {
@@ -173,11 +212,71 @@ export function HorariosTab() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold">Grade de Horários</h2>
+        <h2 className="text-xl font-semibold">Grade e Estrutura de Horários</h2>
         <p className="text-sm text-muted-foreground">
-          Crie e gerencie os períodos de aula, intervalos e refeições da escola.
+          Controle a visibilidade do quadro de horários para professores e gerencie os períodos de aula, intervalos e refeições da escola.
         </p>
       </div>
+
+      {/* CARD DE VISIBILIDADE / MOSTRAR OU OCULTAR QUADRO DE HORÁRIOS */}
+      <Card className="border-border shadow-xs overflow-hidden">
+        <CardHeader className="bg-muted/30 p-5 border-b">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className={`p-2.5 rounded-xl shrink-0 ${
+                visibilidadeGrade 
+                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' 
+                  : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+              }`}>
+                {visibilidadeGrade ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <CardTitle className="text-base font-bold">Quadro de Horários</CardTitle>
+                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-extrabold ${
+                    visibilidadeGrade
+                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
+                      : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
+                  }`}>
+                    {visibilidadeGrade ? '● Visível para Professores' : '● Oculto (Modo Rascunho)'}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {visibilidadeGrade
+                    ? 'O quadro de horários está ativo e visível para todos os professores no menu lateral e nas consultas.'
+                    : 'O quadro de horários está temporariamente oculto para os professores enquanto a grade é elaborada ou ajustada.'}
+                </p>
+              </div>
+            </div>
+
+            {podeEditar && (
+              <Button
+                type="button"
+                onClick={handleToggleVisibilidade}
+                disabled={salvandoVisibilidade}
+                variant={visibilidadeGrade ? 'outline' : 'default'}
+                className={`h-9 px-4 rounded-xl text-xs font-bold transition-all shrink-0 gap-2 ${
+                  visibilidadeGrade
+                    ? 'border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/15'
+                    : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
+                }`}
+              >
+                {visibilidadeGrade ? (
+                  <>
+                    <EyeOff className="h-4 w-4 text-amber-600" />
+                    <span>Ocultar Quadro de Horários</span>
+                  </>
+                ) : (
+                  <>
+                    <Eye className="h-4 w-4 text-white" />
+                    <span>Mostrar Quadro de Horários</span>
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+      </Card>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">

@@ -7,15 +7,22 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { 
+  OPCOES_FONTES_GRADE, 
+  IdFonteGrade 
+} from "@/services/gradeHorarios"
+import { Printer, FileText, User, Calendar, Type } from "lucide-react"
+
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Printer, FileText, User, Calendar } from "lucide-react"
 
 interface ImpressaoHorariosModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   professoresCadastrados: string[]
   textoVigencia: string
+  fonteSelecionada?: IdFonteGrade
+  onFonteChange?: (fonte: IdFonteGrade) => void
   onConfirmarImpressao: (modo: "TODOS" | "PROFESSOR", professorEscolhido?: string) => void
 }
 
@@ -24,6 +31,8 @@ export function ImpressaoHorariosModal({
   onOpenChange,
   professoresCadastrados,
   textoVigencia,
+  fonteSelecionada = "inter",
+  onFonteChange,
   onConfirmarImpressao,
 }: ImpressaoHorariosModalProps) {
   const [modo, setModo] = useState<"TODOS" | "PROFESSOR">("TODOS")
@@ -49,13 +58,13 @@ export function ImpressaoHorariosModal({
                 Opções de Impressão / PDF
               </DialogTitle>
               <p className="text-xs text-muted-foreground">
-                Selecione o formato desejado para impressão ou exportação.
+                Selecione o formato e a tipografia desejados para a folha A4.
               </p>
             </div>
           </div>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4 py-2">
+        <div className="flex flex-col gap-3.5 py-2">
           {/* Opção 1: Seleção do Modo */}
           <div className="grid grid-cols-2 gap-2.5">
             <button
@@ -110,6 +119,28 @@ export function ImpressaoHorariosModal({
                   {professoresCadastrados.map((prof) => (
                     <SelectItem key={prof} value={prof} className="font-bold uppercase text-xs">
                       {prof}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Seleção de Tipografia para a Grade/Impressão */}
+          {onFonteChange && (
+            <div className="flex flex-col gap-1.5 p-3 rounded-xl border border-border bg-muted/20">
+              <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <Type className="h-3.5 w-3.5 text-primary" />
+                Tipografia da Grade (Legibilidade):
+              </Label>
+              <Select value={fonteSelecionada} onValueChange={(val) => onFonteChange(val as IdFonteGrade)}>
+                <SelectTrigger className="h-9 text-xs font-semibold">
+                  <SelectValue placeholder="Selecione a fonte" />
+                </SelectTrigger>
+                <SelectContent className="z-[300]">
+                  {OPCOES_FONTES_GRADE.map((f) => (
+                    <SelectItem key={f.id} value={f.id} className="text-xs">
+                      <span className="font-bold">{f.nome}</span> — <span className="text-muted-foreground">{f.descricao}</span>
                     </SelectItem>
                   ))}
                 </SelectContent>

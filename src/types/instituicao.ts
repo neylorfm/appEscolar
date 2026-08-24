@@ -18,4 +18,6 @@ export interface ConfiguracoesInstituicao {
   cor_login_form_background?: string
   cor_login_form_text?: string
   modulo_horarios_ativo?: boolean
+  grade_vigencia_publicada?: string
+  grade_vigencia_rascunho?: string
 }
