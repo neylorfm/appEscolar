@@ -54,7 +54,6 @@ import {
   Sun, 
   Sunset, 
   Moon, 
-  UserCheck,
   RefreshCw,
   Maximize2,
   Minimize2,
@@ -70,18 +69,17 @@ import {
   ChevronUp,
   ChevronDown,
   Clock,
-  X
+  X,
+  User
 } from "lucide-react"
 
-type AbaSegmento = "INTEGRAL_COMPLETO" | "MANHA" | "TARDE" | "NOTURNO" | "MINHAS_AULAS"
+type AbaSegmento = "INTEGRAL_COMPLETO" | "MANHA" | "TARDE" | "NOTURNO" | "POR_PROFESSOR"
 
 export default function QuadroHorariosPage() {
   const { usuario } = useAuth()
   const isAdmin = usuario?.papel === "Administrador"
   const isCoordenador = usuario?.papel === "Coordenador"
   const canEdit = isAdmin || isCoordenador
-  const isProfessor = usuario?.papel === "Professor"
-  const meuPrimeiroNome = (usuario?.nome_completo || usuario?.email || "").split(" ")[0].toUpperCase()
 
   // Modo Sanfona / Contrair Controles
   const [painelContraido, setPainelContraido] = useState<boolean>(() => {
@@ -137,7 +135,7 @@ export default function QuadroHorariosPage() {
   // Filtros
   const [professorDestaque, setProfessorDestaque] = useState("")
   const [turmaFiltro, setTurmaFiltro] = useState("TODAS")
-  const [professorSelecionadoMinhasAulas, setProfessorSelecionadoMinhasAulas] = useState(meuPrimeiroNome)
+  const [professorSelecionadoIndividual, setProfessorSelecionadoIndividual] = useState("")
 
   useEffect(() => {
     carregarDados(instanciaAtiva)
@@ -455,16 +453,16 @@ export default function QuadroHorariosPage() {
 
                 <button
                   type="button"
-                  onClick={() => setAbaAtiva("MINHAS_AULAS")}
+                  onClick={() => setAbaAtiva("POR_PROFESSOR")}
                   className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-                    abaAtiva === "MINHAS_AULAS"
+                    abaAtiva === "POR_PROFESSOR"
                       ? "bg-[#7f1d1d] text-white shadow-2xs"
                       : "text-primary hover:bg-primary/10"
                   }`}
-                  title={isProfessor ? "Minhas Aulas" : "Por Professor"}
+                  title="Procure por Professor (Horário Individual)"
                 >
-                  <UserCheck className="h-3 w-3 inline mr-1" />
-                  <span>{isProfessor ? "Minhas" : "Docente"}</span>
+                  <User className="h-3 w-3 inline mr-1" />
+                  <span>Por Professor</span>
                 </button>
               </div>
 
@@ -504,7 +502,7 @@ export default function QuadroHorariosPage() {
 
             {/* LADO DIREITO: Filtros rápidos, Ações e Botão de Expandir Controles */}
             <div className="flex items-center gap-1.5 flex-wrap">
-              {abaAtiva !== "MINHAS_AULAS" && (
+              {abaAtiva !== "POR_PROFESSOR" && (
                 <>
                   <div className="relative w-36 sm:w-44">
                     <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
@@ -978,20 +976,20 @@ export default function QuadroHorariosPage() {
 
                 <button
                   type="button"
-                  onClick={() => setAbaAtiva("MINHAS_AULAS")}
+                  onClick={() => setAbaAtiva("POR_PROFESSOR")}
                   className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-                    abaAtiva === "MINHAS_AULAS"
+                    abaAtiva === "POR_PROFESSOR"
                       ? "bg-primary text-primary-foreground shadow-xs"
                       : "text-primary hover:bg-primary/10"
                   }`}
                 >
-                  <UserCheck className="h-3.5 w-3.5" />
-                  <span>{isProfessor ? "Minhas Aulas" : "Por Professor"}</span>
+                  <User className="h-3.5 w-3.5" />
+                  <span>Procure por Professor</span>
                 </button>
               </div>
 
               {/* Filtro Rápido e Seletor de Tipografia */}
-              {abaAtiva !== "MINHAS_AULAS" && (
+              {abaAtiva !== "POR_PROFESSOR" && (
                 <div className="flex items-center gap-2 flex-wrap">
                   <div className="relative flex-1 sm:w-56">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -1047,7 +1045,7 @@ export default function QuadroHorariosPage() {
             </div>
 
             {/* DICA DE EDIÇÃO QUANDO NO MODO RASCUNHO */}
-            {podeEditarMatriz && abaAtiva !== "MINHAS_AULAS" && (
+            {podeEditarMatriz && abaAtiva !== "POR_PROFESSOR" && (
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] sm:text-xs text-amber-900 dark:text-amber-200 print:hidden select-none">
                 <Sparkles className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
                 <span>
@@ -1153,13 +1151,12 @@ export default function QuadroHorariosPage() {
               />
             )}
 
-            {abaAtiva === "MINHAS_AULAS" && (
+            {abaAtiva === "POR_PROFESSOR" && (
               <MinhasAulasView
                 itensGrade={itensGrade}
-                professorSelecionado={professorSelecionadoMinhasAulas}
+                professorSelecionado={professorSelecionadoIndividual}
                 professoresCadastrados={professoresCadastrados}
-                isCoordinatorOrAdmin={canEdit}
-                onSelecionarProfessor={setProfessorSelecionadoMinhasAulas}
+                onSelecionarProfessor={setProfessorSelecionadoIndividual}
               />
             )}
           </>
@@ -1247,7 +1244,7 @@ export default function QuadroHorariosPage() {
     {/* RENDERIZADOR DEDICADO DE IMPRESSÃO / PDF (Visível apenas em @media print) */}
     <ImpressaoGradeCompleta
       modo={modoImpressao}
-      professorSelecionado={professorImpressao || professorSelecionadoMinhasAulas}
+      professorSelecionado={professorImpressao || professorSelecionadoIndividual}
       textoVigencia={textoVigencia}
       turmasIntegral={turmasIntegral}
       turmasNoturno={turmasNoturno}

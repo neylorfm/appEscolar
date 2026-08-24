@@ -7,7 +7,6 @@ interface MinhasAulasViewProps {
   itensGrade: GradeHorarioItem[]
   professorSelecionado: string
   professoresCadastrados: string[]
-  isCoordinatorOrAdmin: boolean
   onSelecionarProfessor: (nome: string) => void
 }
 
@@ -15,7 +14,6 @@ export function MinhasAulasView({
   itensGrade,
   professorSelecionado,
   professoresCadastrados = [],
-  isCoordinatorOrAdmin,
   onSelecionarProfessor
 }: MinhasAulasViewProps) {
   // Filtra itens pelo professor selecionado com normalização de acentos
@@ -69,70 +67,102 @@ export function MinhasAulasView({
   }, [professoresCadastrados, itensGrade])
 
   const totalAulasSemana = aulasDoProfessor.length
-  const corProfessor = obterCorEfetivaProfessor(professorSelecionado)
-  const estiloBadge = getEstiloBadgeCor(corProfessor)
+  const corProfessor = professorSelecionado ? obterCorEfetivaProfessor(professorSelecionado) : ""
+  const estiloBadge = corProfessor ? getEstiloBadgeCor(corProfessor) : undefined
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Cabeçalho do Filtro / Seletor de Professor */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl border border-border bg-card">
+      {/* Cabeçalho de Busca do Professor */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl border border-border bg-card shadow-xs">
         <div className="flex items-center gap-3">
           <div 
-            className="p-2.5 rounded-xl border flex items-center justify-center font-black"
+            className="p-2.5 rounded-xl border flex items-center justify-center font-black bg-primary/10 text-primary"
             style={estiloBadge}
           >
             <User className="h-6 w-6" />
           </div>
           <div>
             <h3 className="text-base sm:text-lg font-bold text-foreground flex items-center gap-2">
-              Agenda do Professor: 
-              <span 
-                className="px-2.5 py-0.5 rounded-lg border font-black text-sm sm:text-base shadow-2xs"
-                style={estiloBadge}
-              >
-                {professorSelecionado || "Selecione"}
-              </span>
+              Horário do Professor: 
+              {professorSelecionado ? (
+                <span 
+                  className="px-2.5 py-0.5 rounded-lg border font-black text-sm sm:text-base shadow-2xs"
+                  style={estiloBadge}
+                >
+                  {professorSelecionado}
+                </span>
+              ) : (
+                <span className="text-muted-foreground font-medium text-sm">
+                  (Nenhum selecionado)
+                </span>
+              )}
             </h3>
             <p className="text-xs text-muted-foreground">
-              Total de aulas alocadas na semana: <strong className="text-foreground">{totalAulasSemana} aulas</strong>
+              {professorSelecionado ? (
+                <>Total de aulas alocadas na semana: <strong className="text-foreground">{totalAulasSemana} aulas</strong></>
+              ) : (
+                "Selecione ou digite o nome de um professor para carregar a grade semanal"
+              )}
             </p>
           </div>
         </div>
 
-        {/* Campo de Busca com Digitação Direta e Sugestões para Coordenadores/Admin */}
-        {isCoordinatorOrAdmin && (
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <span className="text-xs font-bold text-muted-foreground whitespace-nowrap hidden sm:inline">
-              Buscar Professor:
-            </span>
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Digite o nome..."
-                value={professorSelecionado}
-                onChange={(e) => onSelecionarProfessor(e.target.value)}
-                list="lista-professores-minhas-aulas"
-                className="pl-8.5 pr-7 h-9 text-xs font-bold uppercase"
-              />
-              {professorSelecionado && (
-                <button
-                  type="button"
-                  onClick={() => onSelecionarProfessor("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                  title="Limpar"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
-              <datalist id="lista-professores-minhas-aulas">
-                {listaProfessores.map((profNome) => (
-                  <option key={profNome} value={profNome} />
-                ))}
-              </datalist>
-            </div>
+        {/* Campo de Busca Universal com Digitação Direta e Sugestões */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Digite ou escolha o professor..."
+              value={professorSelecionado}
+              onChange={(e) => onSelecionarProfessor(e.target.value)}
+              list="lista-professores-minhas-aulas"
+              className="pl-8.5 pr-7 h-9 text-xs font-bold uppercase"
+            />
+            {professorSelecionado && (
+              <button
+                type="button"
+                onClick={() => onSelecionarProfessor("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                title="Limpar"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+            <datalist id="lista-professores-minhas-aulas">
+              {listaProfessores.map((profNome) => (
+                <option key={profNome} value={profNome} />
+              ))}
+            </datalist>
           </div>
-        )}
+        </div>
       </div>
+
+      {/* Lista rápida de atalhos de professores se nenhum estiver selecionado */}
+      {!professorSelecionado && listaProfessores.length > 0 && (
+        <div className="flex flex-col gap-2.5 p-4 rounded-2xl border border-dashed border-border bg-muted/20">
+          <span className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
+            <Search className="h-3.5 w-3.5 text-primary" />
+            Professores com aulas cadastradas na grade:
+          </span>
+          <div className="flex flex-wrap gap-1.5">
+            {listaProfessores.map((prof) => {
+              const cor = obterCorEfetivaProfessor(prof)
+              const badgeStyle = cor ? getEstiloBadgeCor(cor) : undefined
+              return (
+                <button
+                  key={prof}
+                  type="button"
+                  onClick={() => onSelecionarProfessor(prof)}
+                  style={badgeStyle}
+                  className="px-2.5 py-1 rounded-lg border text-xs font-black shadow-2xs hover:scale-105 active:scale-95 transition-all"
+                >
+                  {prof}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Grade Semanal de Aulas do Professor (Cards de Segunda a Sexta) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
