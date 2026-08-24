@@ -280,10 +280,30 @@ export async function getGradeHorarios(
       }
     }
 
-    const { data, error } = await query
+    let { data, error } = await query
+
+    // Fallback caso a coluna 'instancia' ainda não exista na tabela
+    if (error && (error.code === '42703' || error.message?.toLowerCase().includes('instancia'))) {
+      let queryFallback = supabase
+        .from('grade_horarios')
+        .select('*')
+        .order('numero_aula', { ascending: true })
+
+      if (segmento && segmento !== 'TODOS') {
+        if (segmento === 'INTEGRAL_COMPLETO') {
+          queryFallback = queryFallback.in('segmento', ['INTEGRAL_MANHA', 'INTEGRAL_TARDE'])
+        } else {
+          queryFallback = queryFallback.eq('segmento', segmento)
+        }
+      }
+
+      const res = await queryFallback
+      data = res.data
+      error = res.error
+    }
 
     if (error) {
-      console.warn(`Tabela grade_horarios para instância ${instancia} indisponível ou vazia:`, error.message)
+      console.warn(`Tabela grade_horarios indisponível ou vazia:`, error.message)
       return []
     }
 
@@ -320,7 +340,7 @@ export async function salvarCelulaGrade(item: {
   const norm = normalizarNomeTurma(item.turma_nome)
 
   // 1. Limpa registros anteriores dessa mesma célula para evitar duplicidades na instância alvo
-  await supabase
+  const { error: deleteError } = await supabase
     .from('grade_horarios')
     .delete()
     .eq('instancia', instanciaAlvo)
@@ -329,8 +349,18 @@ export async function salvarCelulaGrade(item: {
     .eq('numero_aula', item.numero_aula)
     .or(`turma_nome.eq.${item.turma_nome},turma_nome.ilike.%${norm}%`)
 
+  if (deleteError && (deleteError.code === '42703' || deleteError.message?.toLowerCase().includes('instancia'))) {
+    await supabase
+      .from('grade_horarios')
+      .delete()
+      .eq('segmento', item.segmento)
+      .eq('dia_semana', item.dia_semana)
+      .eq('numero_aula', item.numero_aula)
+      .or(`turma_nome.eq.${item.turma_nome},turma_nome.ilike.%${norm}%`)
+  }
+
   // 2. Insere a célula atualizada
-  const payload = {
+  const payload: any = {
     instancia: instanciaAlvo,
     segmento: item.segmento,
     dia_semana: item.dia_semana,
@@ -344,11 +374,22 @@ export async function salvarCelulaGrade(item: {
     updated_at: new Date().toISOString()
   }
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('grade_horarios')
     .insert([payload])
     .select()
     .single()
+
+  if (error && (error.code === '42703' || error.message?.toLowerCase().includes('instancia'))) {
+    delete payload.instancia
+    const res = await supabase
+      .from('grade_horarios')
+      .insert([payload])
+      .select()
+      .single()
+    data = res.data
+    error = res.error
+  }
 
   if (error) {
     console.error('Erro ao salvar célula da grade:', error)
@@ -379,7 +420,15 @@ export async function limparCelulaGrade(
     .eq('numero_aula', numero_aula)
     .or(`turma_nome.eq.${turma_nome},turma_nome.ilike.%${norm}%`)
 
-  if (error) {
+  if (error && (error.code === '42703' || error.message?.toLowerCase().includes('instancia'))) {
+    await supabase
+      .from('grade_horarios')
+      .delete()
+      .eq('segmento', segmento)
+      .eq('dia_semana', dia_semana)
+      .eq('numero_aula', numero_aula)
+      .or(`turma_nome.eq.${turma_nome},turma_nome.ilike.%${norm}%`)
+  } else if (error) {
     console.error('Erro ao limpar célula da grade:', error)
     throw new Error('Não foi possível remover o horário.')
   }
