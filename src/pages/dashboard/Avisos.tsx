@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { 
   Megaphone, 
   Plus, 
@@ -68,10 +68,10 @@ export function Avisos() {
   const [editingAviso, setEditingAviso] = useState<Partial<Aviso> | null>(null)
   const [visualizandoAviso, setVisualizandoAviso] = useState<Aviso | null>(null)
   
-  const carouselRef = useRef<HTMLDivElement>(null)
-  const [canScrollLeft, setCanScrollLeft] = useState(false)
-  const [canScrollRight, setCanScrollRight] = useState(false)
-  const [activeSlide, setActiveSlide] = useState(0)
+  // Paginação e Rotação Automática de 4 Cards
+  const ITENS_POR_PAGINA = 4
+  const [paginaAtual, setPaginaAtual] = useState(0)
+  const [isPausadoRotacao, setIsPausadoRotacao] = useState(false)
 
   const canManage = usuario?.papel === 'Administrador' || usuario?.papel === 'Coordenador'
 
@@ -79,33 +79,38 @@ export function Avisos() {
     loadAvisos()
   }, [])
 
-  const updateScrollButtons = () => {
-    if (!carouselRef.current) return
-    const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current
-    setCanScrollLeft(scrollLeft > 10)
-    setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10)
-    
-    const page = Math.round(scrollLeft / (clientWidth || 1))
-    setActiveSlide(page)
-  }
+  const totalPaginas = Math.ceil(avisos.length / ITENS_POR_PAGINA) || 1
 
+  // Reset da página quando o número de avisos muda
   useEffect(() => {
-    updateScrollButtons()
-    window.addEventListener("resize", updateScrollButtons)
-    return () => window.removeEventListener("resize", updateScrollButtons)
-  }, [avisos])
+    if (paginaAtual >= totalPaginas) {
+      setPaginaAtual(0)
+    }
+  }, [avisos.length, totalPaginas])
+
+  // Rotação automática suave a cada 7 segundos se houver mais de 4 avisos
+  useEffect(() => {
+    if (totalPaginas <= 1 || isPausadoRotacao) return
+
+    const intervalo = setInterval(() => {
+      setPaginaAtual((prev) => (prev + 1) % totalPaginas)
+    }, 7000)
+
+    return () => clearInterval(intervalo)
+  }, [totalPaginas, isPausadoRotacao])
 
   function scrollPrev() {
-    if (!carouselRef.current) return
-    const container = carouselRef.current
-    container.scrollBy({ left: -container.clientWidth, behavior: "smooth" })
+    setPaginaAtual((prev) => (prev - 1 + totalPaginas) % totalPaginas)
   }
 
   function scrollNext() {
-    if (!carouselRef.current) return
-    const container = carouselRef.current
-    container.scrollBy({ left: container.clientWidth, behavior: "smooth" })
+    setPaginaAtual((prev) => (prev + 1) % totalPaginas)
   }
+
+  const avisosVisiveis = useMemo(() => {
+    const inicio = paginaAtual * ITENS_POR_PAGINA
+    return avisos.slice(inicio, inicio + ITENS_POR_PAGINA)
+  }, [avisos, paginaAtual])
 
   async function loadAvisos() {
     try {
@@ -201,27 +206,28 @@ export function Avisos() {
           </div>
 
           <div className="flex items-center gap-2.5 sm:gap-3">
-            {/* Controles de Navegação Lateral (Aparece quando houver avisos para rolar) */}
-            {avisos.length > 1 && (
-              <div className="flex items-center gap-1">
+            {/* Controles de Navegação Lateral (Aparece quando houver mais de 4 avisos) */}
+            {totalPaginas > 1 && (
+              <div className="flex items-center gap-1 bg-muted/30 p-0.5 rounded-lg border border-border/60">
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="icon"
                   onClick={scrollPrev}
-                  disabled={!canScrollLeft}
-                  className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg border-border/80 text-muted-foreground disabled:opacity-30 hover:text-foreground"
-                  title="Avisos anteriores"
+                  className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground"
+                  title="Página anterior de avisos"
                   aria-label="Ver avisos anteriores"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
+                <span className="text-[11px] font-extrabold text-foreground px-1 select-none">
+                  {paginaAtual + 1}/{totalPaginas}
+                </span>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="icon"
                   onClick={scrollNext}
-                  disabled={!canScrollRight}
-                  className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg border-border/80 text-muted-foreground disabled:opacity-30 hover:text-foreground"
-                  title="Próximos avisos"
+                  className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground"
+                  title="Próxima página de avisos"
                   aria-label="Ver próximos avisos"
                 >
                   <ChevronRight className="h-4 w-4" />
@@ -252,7 +258,7 @@ export function Avisos() {
           </div>
         </div>
 
-        {/* Carrossel de Cards de Avisos: 2 no Desktop, 1 no Mobile com Rolagem Horizontal Suave */}
+        {/* Grade 2x2 de até 4 Cards de Avisos com Rotação Suave */}
         {loading ? (
           <div className="py-8 text-center text-xs lg:text-sm text-muted-foreground">
             Carregando quadro de avisos...
@@ -264,13 +270,13 @@ export function Avisos() {
             <p className="text-xs lg:text-sm text-muted-foreground mt-0.5">Novos comunicados institucionais aparecerão aqui.</p>
           </div>
         ) : (
-          <div className="relative">
-            <div 
-              ref={carouselRef}
-              onScroll={updateScrollButtons}
-              className="flex gap-3.5 lg:gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-1 pt-0.5 px-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
-            >
-              {avisos.map((aviso) => {
+          <div 
+            className="relative flex flex-col gap-3"
+            onMouseEnter={() => setIsPausadoRotacao(true)}
+            onMouseLeave={() => setIsPausadoRotacao(false)}
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 lg:gap-4 transition-all duration-300">
+              {avisosVisiveis.map((aviso) => {
                 const badge = getCategoriaBadge(aviso.categoria)
                 const hasLink = Boolean(aviso.link && aviso.link.trim())
 
@@ -286,7 +292,7 @@ export function Avisos() {
                         handleCardClick(aviso)
                       }
                     }}
-                    className="w-full sm:w-[calc(50%-0.5rem)] min-w-full sm:min-w-[calc(50%-0.5rem)] shrink-0 snap-start group relative text-left rounded-xl border border-border/80 bg-card p-4 sm:p-4.5 lg:p-5 hover:border-primary/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer flex flex-col justify-between gap-3 lg:gap-3.5 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary select-none min-h-[175px]"
+                    className="group relative text-left rounded-2xl border border-border/80 bg-card p-4 sm:p-4.5 lg:p-5 hover:border-primary/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer flex flex-col justify-between gap-3 lg:gap-3.5 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary select-none min-h-[170px]"
                   >
                     {/* Linha de Categoria e Ações */}
                     <div className="flex items-center justify-between gap-2">
@@ -372,24 +378,21 @@ export function Avisos() {
               })}
             </div>
 
-            {/* Indicadores de Posição / Bolinhas no Mobile e Desktop (Quando > 1 card no mobile ou > 2 cards no desktop) */}
-            {avisos.length > 1 && (
-              <div className="flex items-center justify-center gap-1.5 pt-2">
-                {Array.from({ length: Math.ceil(avisos.length / 2) }).map((_, idx) => (
+            {/* Indicadores de Posição / Bolinhas (Quando houver mais de 4 avisos) */}
+            {totalPaginas > 1 && (
+              <div className="flex items-center justify-center gap-1.5 pt-1">
+                {Array.from({ length: totalPaginas }).map((_, idx) => (
                   <button
                     key={idx}
                     type="button"
-                    onClick={() => {
-                      if (!carouselRef.current) return
-                      const container = carouselRef.current
-                      container.scrollTo({ left: idx * container.clientWidth, behavior: "smooth" })
-                    }}
-                    className={`h-1.5 rounded-full transition-all ${
-                      activeSlide === idx 
-                        ? "w-5 bg-[#7f1d1d] dark:bg-[#f8b4bc]" 
-                        : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/50"
+                    onClick={() => setPaginaAtual(idx)}
+                    className={`h-2 rounded-full transition-all cursor-pointer ${
+                      paginaAtual === idx 
+                        ? "w-6 bg-[#7f1d1d] dark:bg-[#f8b4bc]" 
+                        : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"
                     }`}
                     aria-label={`Ir para página ${idx + 1}`}
+                    title={`Página ${idx + 1} de ${totalPaginas}`}
                   />
                 ))}
               </div>
