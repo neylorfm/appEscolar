@@ -193,6 +193,7 @@ export function GradeMatrizTurno({
                       const estiloProfessor = corDoProfessor ? getEstiloBadgeCor(corDoProfessor) : undefined
                       // Identifica se há filtro ativo digitado
                       const temFiltroAtivo = Boolean(professorFiltro && professorFiltro.trim().length > 0)
+                      const isDragTarget = dragOverCellKey === chave
 
                       return (
                         <td

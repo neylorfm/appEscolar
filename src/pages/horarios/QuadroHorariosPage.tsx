@@ -65,8 +65,6 @@ import {
   Lock,
   Copy,
   UploadCloud,
-  CheckCircle2,
-  Layers,
   ArrowRight,
   Type,
   ChevronUp,
