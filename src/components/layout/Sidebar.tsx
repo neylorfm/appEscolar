@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Link, useLocation } from "react-router-dom"
-import { Calendar, Home, Settings, ChevronLeft, ChevronRight, LogOut, Building2, FileText, CalendarRange } from "lucide-react"
+import { Calendar, Home, Settings, ChevronLeft, ChevronRight, LogOut, Building2, CalendarRange, BookOpen } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -28,8 +28,8 @@ const routes = [
   },
   {
     path: "/avaliacoes",
-    name: "Avaliações",
-    icon: FileText,
+    name: "Informações por Bimestre",
+    icon: BookOpen,
   },
   {
     path: "/configuracoes",

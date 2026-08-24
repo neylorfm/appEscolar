@@ -134,7 +134,7 @@ export function QuickLinks() {
               <ChevronRight className="h-4 w-4 text-muted-foreground/70 group-hover:text-[#7f1d1d] dark:group-hover:text-[#f8b4bc] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
             </Link>
 
-            {/* Link Padrão 2: Relatórios Gerais / Avaliações */}
+            {/* Link Padrão 2: Informações por Bimestre */}
             <Link 
               to="/avaliacoes" 
               className="flex items-center justify-between p-3 rounded-xl bg-background border border-border/70 hover:border-primary/50 hover:shadow-xs hover:bg-muted/20 transition-all group select-none"
@@ -145,10 +145,10 @@ export function QuickLinks() {
                 </div>
                 <div className="flex flex-col truncate">
                   <span className="font-bold text-foreground text-sm leading-tight group-hover:text-[#7f1d1d] dark:group-hover:text-[#f8b4bc] transition-colors">
-                    Relatórios Gerais
+                    Informações por Bimestre
                   </span>
                   <span className="text-[11px] text-muted-foreground mt-0.5">
-                    Exportar planilhas e gabaritos
+                    Roteiros, gabaritos e documentos
                   </span>
                 </div>
               </div>
