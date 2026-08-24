@@ -7,11 +7,12 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { 
   OPCOES_FONTES_GRADE, 
   IdFonteGrade 
 } from "@/services/gradeHorarios"
-import { Printer, FileText, User, Calendar, Type } from "lucide-react"
+import { Printer, FileText, User, Calendar, Type, Search, X } from "lucide-react"
 
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -29,7 +30,7 @@ interface ImpressaoHorariosModalProps {
 export function ImpressaoHorariosModal({
   open,
   onOpenChange,
-  professoresCadastrados,
+  professoresCadastrados = [],
   textoVigencia,
   fonteSelecionada = "inter",
   onFonteChange,
@@ -44,6 +45,15 @@ export function ImpressaoHorariosModal({
     onConfirmarImpressao(modo, modo === "PROFESSOR" ? professorEscolhido : undefined)
     onOpenChange(false)
   }
+
+  // Função para busca insensível a maiúsculas/minúsculas e acentuação
+  const normalizar = (txt: string) =>
+    txt.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim()
+
+  const professoresFiltrados = professoresCadastrados.filter((p) => {
+    if (!professorEscolhido.trim()) return true
+    return normalizar(p).includes(normalizar(professorEscolhido))
+  })
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -104,25 +114,67 @@ export function ImpressaoHorariosModal({
             </button>
           </div>
 
-          {/* Se for por Professor: Escolha do Docente */}
+          {/* Se for por Professor: Digitação Livre e Filtragem Dinâmica */}
           {modo === "PROFESSOR" && (
-            <div className="flex flex-col gap-1.5 p-3 rounded-xl border border-border bg-muted/20 animate-in fade-in">
-              <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                <User className="h-3.5 w-3.5 text-primary" />
-                Escolha o Professor(a):
+            <div className="flex flex-col gap-2 p-3 rounded-xl border border-border bg-muted/20 animate-in fade-in">
+              <Label className="text-xs font-bold text-foreground flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5 text-primary" />
+                  Escolha o Professor(a):
+                </span>
+                {professorEscolhido && (
+                  <span className="text-[10.5px] font-extrabold text-primary uppercase truncate max-w-[160px]">
+                    {professorEscolhido}
+                  </span>
+                )}
               </Label>
-              <Select value={professorEscolhido} onValueChange={setProfessorEscolhido}>
-                <SelectTrigger className="h-9 text-xs font-bold uppercase">
-                  <SelectValue placeholder="Selecione o professor" />
-                </SelectTrigger>
-                <SelectContent className="max-h-56 z-[300]">
+
+              <div className="relative w-full">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Digite o nome para filtrar..."
+                  value={professorEscolhido}
+                  onChange={(e) => setProfessorEscolhido(e.target.value)}
+                  list="lista-professores-modal-impressao"
+                  className="pl-8.5 pr-7 h-9 text-xs font-bold uppercase"
+                  autoFocus
+                />
+                {professorEscolhido && (
+                  <button
+                    type="button"
+                    onClick={() => setProfessorEscolhido("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                    title="Limpar"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+                <datalist id="lista-professores-modal-impressao">
                   {professoresCadastrados.map((prof) => (
-                    <SelectItem key={prof} value={prof} className="font-bold uppercase text-xs">
-                      {prof}
-                    </SelectItem>
+                    <option key={prof} value={prof} />
                   ))}
-                </SelectContent>
-              </Select>
+                </datalist>
+              </div>
+
+              {/* Chips Rápidos Filtrados em Tempo Real */}
+              {professoresFiltrados.length > 0 && (
+                <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto pt-1">
+                  {professoresFiltrados.map((prof) => (
+                    <button
+                      key={prof}
+                      type="button"
+                      onClick={() => setProfessorEscolhido(prof)}
+                      className={`px-2 py-0.5 rounded-md text-[10.5px] font-bold uppercase transition-all ${
+                        professorEscolhido.toUpperCase().trim() === prof.toUpperCase().trim()
+                          ? "bg-primary text-primary-foreground shadow-2xs scale-105"
+                          : "bg-background hover:bg-muted border border-border text-foreground"
+                      }`}
+                    >
+                      {prof}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
