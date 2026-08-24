@@ -70,10 +70,11 @@ import {
   ArrowRight,
   Type,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  Clock
 } from "lucide-react"
 
-type AbaSegmento = "MANHA" | "TARDE" | "NOTURNO" | "MINHAS_AULAS"
+type AbaSegmento = "INTEGRAL_COMPLETO" | "MANHA" | "TARDE" | "NOTURNO" | "MINHAS_AULAS"
 
 export default function QuadroHorariosPage() {
   const { usuario } = useAuth()
@@ -397,6 +398,20 @@ export default function QuadroHorariosPage() {
             {/* LADO ESQUERDO: Abas de Turnos + Instância Ativa + Alertas */}
             <div className="flex items-center gap-1.5 flex-wrap">
               <div className="flex items-center gap-0.5 p-0.5 bg-muted/80 rounded-xl border border-border/60">
+                <button
+                  type="button"
+                  onClick={() => setAbaAtiva("INTEGRAL_COMPLETO")}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                    abaAtiva === "INTEGRAL_COMPLETO"
+                      ? "bg-[#7f1d1d] text-white shadow-2xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  title="Integral Completo • Manhã e Tarde (1ª a 9ª)"
+                >
+                  <Clock className="h-3 w-3 inline mr-1 text-yellow-300" />
+                  <span>Integral (1ª-9ª)</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => setAbaAtiva("MANHA")}
@@ -901,6 +916,19 @@ export default function QuadroHorariosPage() {
               <div className="flex items-center gap-1.5 p-1 bg-muted/70 rounded-2xl border border-border/80 overflow-x-auto select-none">
                 <button
                   type="button"
+                  onClick={() => setAbaAtiva("INTEGRAL_COMPLETO")}
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                    abaAtiva === "INTEGRAL_COMPLETO"
+                      ? "bg-background text-primary shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Clock className="h-3.5 w-3.5 text-yellow-500" />
+                  <span>Integral • Completo (1ª a 9ª)</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => setAbaAtiva("MANHA")}
                   className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                     abaAtiva === "MANHA"
@@ -1032,6 +1060,24 @@ export default function QuadroHorariosPage() {
           </div>
         ) : (
           <>
+            {abaAtiva === "INTEGRAL_COMPLETO" && (
+              <GradeMatrizTurno
+                segmento="INTEGRAL_COMPLETO"
+                turmas={turmasIntegral}
+                aulas={ESTRUTURA_AULAS.INTEGRAL_COMPLETO}
+                itensGrade={itensGrade.filter(i => i.segmento === "INTEGRAL_MANHA" || i.segmento === "INTEGRAL_TARDE")}
+                conflitosSet={conflitosSet}
+                conflitosMap={conflitosMap}
+                disciplinasDisponiveis={disciplinas}
+                professoresCadastrados={professoresCadastrados}
+                canEdit={podeEditarMatriz}
+                professorFiltro={professorDestaque}
+                turmaFiltro={turmaFiltro}
+                onSalvarCelula={handleSalvarCelula}
+                onLimparCelula={handleLimparCelula}
+              />
+            )}
+
             {abaAtiva === "MANHA" && (
               <GradeMatrizTurno
                 segmento="INTEGRAL_MANHA"
