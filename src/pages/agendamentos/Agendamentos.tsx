@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useInstituicao } from '../../contexts/InstituicaoContext';
 import { Card, CardContent } from '../../components/ui/card';
 
-import { Calendar, ChevronLeft, ChevronRight, Trash2, Type } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Trash2, Type, Search, X, User } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
@@ -85,10 +85,17 @@ export default function Agendamentos() {
 
   // Form state
   const [agendarPara, setAgendarPara] = useState<string>(''); // Vazio = professor logado
+  const [buscaProfFila, setBuscaProfFila] = useState<string>('');
+  const [buscaProfCriacao, setBuscaProfCriacao] = useState<string>('');
   const [agendarEscola, setAgendarEscola] = useState(false);
   const [agendamentoFixo, setAgendamentoFixo] = useState(false);
   const [dataFimFixo, setDataFimFixo] = useState<string>('');
   const [motivo, setMotivo] = useState<string>('');
+
+  // Busca insensível a acentuação e maiúsculas
+  const normalizarTextoBusca = (txt: string) =>
+    (txt || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+
   // Para fins de simplificacao visual na criação inicial
   const diasSemanas = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'];
 
@@ -267,6 +274,8 @@ export default function Agendamentos() {
     setIsEditingDataFim(false);
     setAgendarEscola(false);
     setAgendarPara('');
+    setBuscaProfFila('');
+    setBuscaProfCriacao('');
     setSelectedAgendamento(null);
 
     let isPreReservaCell = false;
@@ -282,6 +291,7 @@ export default function Agendamentos() {
        setModalMode('queue');
        setIsModalOpen(true);
        setAgendarPara('');
+       setBuscaProfFila('');
        await carregarFila(selectedRecurso, horarioId, dateStr);
     } else {
        setModalMode('create');
@@ -298,6 +308,7 @@ export default function Agendamentos() {
        setModalMode('queue');
        setIsModalOpen(true);
        setAgendarPara('');
+       setBuscaProfFila('');
        await carregarFila(agendamento.recurso_id, agendamento.horario_id, clickedDate);
     } else {
        setSelectedAgendamento(agendamento);
@@ -338,7 +349,10 @@ export default function Agendamentos() {
        });
        await carregarFila(selectedRecurso, selectedHorarioId, selectedDateStr);
        setSemanaOffset(prev => prev);
-       if (isCoordenadorOuAdmin) setAgendarPara('');
+       if (isCoordenadorOuAdmin) {
+         setAgendarPara('');
+         setBuscaProfFila('');
+       }
        toast.success("Sucesso", { description: "Registro adicionado à fila!" });
     } catch(e: any) {
         toast.error("Erro", { description: e.message });
@@ -881,33 +895,105 @@ export default function Agendamentos() {
                  </div>
 
                  <div className="pt-3">
-                   {isCoordenadorOuAdmin ? (
-                     <div className="flex gap-2 items-end bg-slate-50 p-3 rounded-md border border-slate-100">
-                       <div className="flex-1 space-y-1.5">
-                         <Label className="text-xs font-semibold text-slate-700">Gestão: Inserir em nome do Professor</Label>
-                         <Select value={agendarPara} onValueChange={setAgendarPara} disabled={new Date().getDay() === 5 && semanaOffset === 1}>
-                           <SelectTrigger className="h-8 text-sm w-full bg-white">
-                             <SelectValue placeholder="Selecione..." />
-                           </SelectTrigger>
-                           <SelectContent>
-                             {professores.map(p => (
-                               <SelectItem key={p.id} value={p.id} className="text-sm">{p.nome}</SelectItem>
-                             ))}
-                           </SelectContent>
-                         </Select>
-                       </div>
-                       <Button size="sm" className="h-8 shadow-sm px-4" disabled={!agendarPara || isSubmitting || (new Date().getDay() === 5 && semanaOffset === 1)} onClick={handleAdicionarAFila}>Inserir</Button>
-                     </div>
-                   ) : (
-                     <Button 
-                       className="w-full shadow-sm py-5 text-sm font-semibold tracking-wide" 
-                       disabled={isSubmitting || filaPreReserva.some(f => f.usuario_id === usuario?.id) || (new Date().getDay() === 5 && semanaOffset === 1)} 
-                       onClick={() => handleAdicionarAFila()}
-                     >
-                       {new Date().getDay() === 5 && semanaOffset === 1 ? 'Fila bloqueada para novos registros na Sexta-feira' : filaPreReserva.some(f => f.usuario_id === usuario?.id) ? 'Você já está na fila de espera' : 'Entrar na Fila de Reserva'}
-                     </Button>
-                   )}
-                 </div>
+                    {isCoordenadorOuAdmin ? (
+                      <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                            <User className="h-3.5 w-3.5 text-primary" />
+                            Gestão: Inserir em nome do Professor
+                          </Label>
+                          {agendarPara && (
+                            <span className="text-[11px] font-extrabold text-primary truncate max-w-[170px]">
+                              {professores.find(p => p.id === agendarPara)?.nome}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex gap-2 items-center">
+                          <div className="relative flex-1">
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                            <Input
+                              placeholder="Digite o nome do professor..."
+                              value={buscaProfFila}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setBuscaProfFila(val);
+                                const achado = professores.find(p => normalizarTextoBusca(p.nome) === normalizarTextoBusca(val));
+                                if (achado) {
+                                  setAgendarPara(achado.id);
+                                } else if (!val.trim()) {
+                                  setAgendarPara('');
+                                }
+                              }}
+                              list="lista-profs-fila"
+                              disabled={new Date().getDay() === 5 && semanaOffset === 1}
+                              className="pl-8.5 pr-7 h-8.5 text-xs font-semibold bg-white dark:bg-slate-950"
+                            />
+                            {buscaProfFila && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setBuscaProfFila('');
+                                  setAgendarPara('');
+                                }}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                                title="Limpar"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                            <datalist id="lista-profs-fila">
+                              {professores.map(p => (
+                                <option key={p.id} value={p.nome} />
+                              ))}
+                            </datalist>
+                          </div>
+
+                          <Button 
+                            size="sm" 
+                            className="h-8.5 shadow-xs px-4 text-xs font-bold" 
+                            disabled={!agendarPara || isSubmitting || (new Date().getDay() === 5 && semanaOffset === 1)} 
+                            onClick={handleAdicionarAFila}
+                          >
+                            Inserir
+                          </Button>
+                        </div>
+
+                        {/* Chips Rápidos Filtrados */}
+                        {buscaProfFila.trim().length > 0 && (
+                          <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto pt-0.5">
+                            {professores
+                              .filter(p => normalizarTextoBusca(p.nome).includes(normalizarTextoBusca(buscaProfFila)))
+                              .map(p => (
+                                <button
+                                  key={p.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setAgendarPara(p.id);
+                                    setBuscaProfFila(p.nome);
+                                  }}
+                                  className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition-all ${
+                                    agendarPara === p.id
+                                      ? "bg-primary text-primary-foreground shadow-2xs scale-105"
+                                      : "bg-white dark:bg-slate-950 hover:bg-muted border border-border text-foreground"
+                                  }`}
+                                >
+                                  {p.nome}
+                                </button>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <Button 
+                        className="w-full shadow-sm py-5 text-sm font-semibold tracking-wide" 
+                        disabled={isSubmitting || filaPreReserva.some(f => f.usuario_id === usuario?.id) || (new Date().getDay() === 5 && semanaOffset === 1)} 
+                        onClick={() => handleAdicionarAFila()}
+                      >
+                        {new Date().getDay() === 5 && semanaOffset === 1 ? 'Fila bloqueada para novos registros na Sexta-feira' : filaPreReserva.some(f => f.usuario_id === usuario?.id) ? 'Você já está na fila de espera' : 'Entrar na Fila de Reserva'}
+                      </Button>
+                    )}
+                  </div>
              </div>
           ) : modalMode === 'create' ? (
             <div className="grid gap-4 py-4">
@@ -968,31 +1054,91 @@ export default function Agendamentos() {
                    </div>
 
                    {!agendarEscola && (
-                     <div className="space-y-2">
-                       <Label className="text-sm">Agendar em nome de outro Professor:</Label>
-                       <p className="text-xs text-muted-foreground">Deixe vazio para agendar para si mesmo.</p>
-                       <Select value={agendarPara || "vazio"} onValueChange={(val) => setAgendarPara(val === "vazio" ? "" : val)}>
-                         <SelectTrigger className="w-full">
-                           <SelectValue placeholder="Selecione um Professor..." />
-                         </SelectTrigger>
-                         <SelectContent>
-                           <SelectItem value="vazio" className="text-muted-foreground italic">
-                             -- Agendar para mim mesmo --
-                           </SelectItem>
-                           {professores.map(p => (
-                             <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
-                           ))}
-                         </SelectContent>
-                       </Select>
+                      <div className="space-y-2 p-3 bg-muted/20 rounded-xl border border-border">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-semibold flex items-center gap-1.5">
+                            <User className="h-3.5 w-3.5 text-primary" />
+                            Agendar em nome de outro Professor:
+                          </Label>
+                          {agendarPara && (
+                            <span className="text-xs font-extrabold text-primary">
+                              {professores.find(p => p.id === agendarPara)?.nome}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Deixe vazio para agendar para si mesmo ou digite para filtrar.</p>
 
-                       {agendarPara && agendarPara !== "vazio" && (
-                         <div className="mt-3 p-2.5 bg-blue-50 border border-blue-200 rounded-md text-xs text-blue-800 leading-relaxed shadow-sm">
-                           <strong>Atenção:</strong> Você está registrando este agendamento em nome do professor selecionado. 
-                           O registro principal ficará no nome do professor, mas o sistema possui formato de auditoria que registrará 
-                           explicitamente que foi você (<strong>{usuario?.nome_completo?.split(' ')[0] || 'Administrador'}</strong>) quem realizou esta operação em nome dele.
-                         </div>
-                       )}
-                     </div>
+                        <div className="relative w-full">
+                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                          <Input
+                            placeholder="Digite o nome do professor ou deixe vazio para você..."
+                            value={buscaProfCriacao}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setBuscaProfCriacao(val);
+                              const achado = professores.find(p => normalizarTextoBusca(p.nome) === normalizarTextoBusca(val));
+                              if (achado) {
+                                setAgendarPara(achado.id);
+                              } else if (!val.trim()) {
+                                setAgendarPara('');
+                              }
+                            }}
+                            list="lista-profs-criacao"
+                            className="pl-8.5 pr-7 h-9 text-xs font-semibold"
+                          />
+                          {buscaProfCriacao && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setBuscaProfCriacao('');
+                                setAgendarPara('');
+                              }}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                              title="Limpar"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          <datalist id="lista-profs-criacao">
+                            {professores.map(p => (
+                              <option key={p.id} value={p.nome} />
+                            ))}
+                          </datalist>
+                        </div>
+
+                        {/* Sugestões rápidas filtradas */}
+                        {buscaProfCriacao.trim().length > 0 && (
+                          <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto pt-1">
+                            {professores
+                              .filter(p => normalizarTextoBusca(p.nome).includes(normalizarTextoBusca(buscaProfCriacao)))
+                              .map(p => (
+                                <button
+                                  key={p.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setAgendarPara(p.id);
+                                    setBuscaProfCriacao(p.nome);
+                                  }}
+                                  className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition-all ${
+                                    agendarPara === p.id
+                                      ? "bg-primary text-primary-foreground shadow-2xs scale-105"
+                                      : "bg-background hover:bg-muted border border-border text-foreground"
+                                  }`}
+                                >
+                                  {p.nome}
+                                </button>
+                              ))}
+                          </div>
+                        )}
+
+                        {agendarPara && agendarPara !== "vazio" && (
+                          <div className="mt-3 p-2.5 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-md text-xs text-blue-800 dark:text-blue-300 leading-relaxed shadow-xs">
+                            <strong>Atenção:</strong> Você está registrando este agendamento em nome do professor selecionado. 
+                            O registro principal ficará no nome do professor, mas o sistema possui formato de auditoria que registrará 
+                            explicitamente que foi você (<strong>{usuario?.nome_completo?.split(' ')[0] || 'Administrador'}</strong>) quem realizou esta operação em nome dele.
+                          </div>
+                        )}
+                      </div>
                    )}
 
                    <div className="flex flex-col gap-2 mt-4">
