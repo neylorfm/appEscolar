@@ -77,8 +77,8 @@ export function Avisos() {
   const [editingAviso, setEditingAviso] = useState<Partial<Aviso> | null>(null)
   const [visualizandoAviso, setVisualizandoAviso] = useState<Aviso | null>(null)
   
-  // Paginação e Rotação Automática de 4 Cards
-  const ITENS_POR_PAGINA = 4
+  // Paginação e Rotação Automática de 6 Cards (2 colunas x 3 linhas)
+  const ITENS_POR_PAGINA = 6
   const [paginaAtual, setPaginaAtual] = useState(0)
   const [isPausadoRotacao, setIsPausadoRotacao] = useState(false)
 
@@ -97,7 +97,7 @@ export function Avisos() {
     }
   }, [avisos.length, totalPaginas])
 
-  // Rotação automática suave a cada 7 segundos se houver mais de 4 avisos
+  // Rotação automática suave a cada 7 segundos se houver mais de 6 avisos
   useEffect(() => {
     if (totalPaginas <= 1 || isPausadoRotacao) return
 
@@ -249,37 +249,7 @@ export function Avisos() {
               Quadro de Avisos
             </h2>
           </div>
-
           <div className="flex items-center gap-2.5 sm:gap-3">
-            {/* Controles de Navegação Lateral (Aparece quando houver mais de 4 avisos) */}
-            {totalPaginas > 1 && (
-              <div className="flex items-center gap-1 bg-muted/30 p-0.5 rounded-lg border border-border/60">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={scrollPrev}
-                  className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground"
-                  title="Página anterior de avisos"
-                  aria-label="Ver avisos anteriores"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="text-[11px] font-extrabold text-foreground px-1 select-none">
-                  {paginaAtual + 1}/{totalPaginas}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={scrollNext}
-                  className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground"
-                  title="Próxima página de avisos"
-                  aria-label="Ver próximos avisos"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-
             {avisos.length > 0 && (
               <button
                 type="button"
@@ -316,7 +286,7 @@ export function Avisos() {
           </div>
         </div>
 
-        {/* Grade 2x2 de até 4 Cards de Avisos com Rotação Suave */}
+        {/* Grade 2x3 de até 6 Cards de Avisos com Rotação Suave */}
         {loading ? (
           <div className="py-8 text-center text-xs lg:text-sm text-muted-foreground">
             Carregando quadro de avisos...
@@ -329,7 +299,7 @@ export function Avisos() {
           </div>
         ) : (
           <div 
-            className="relative flex flex-col gap-3"
+            className="relative flex flex-col gap-4"
             onMouseEnter={() => setIsPausadoRotacao(true)}
             onMouseLeave={() => setIsPausadoRotacao(false)}
           >
@@ -369,49 +339,55 @@ export function Avisos() {
                       <div className="flex items-center gap-1.5 shrink-0">
                         {/* Botão de Acesso ao Link no Card (Acessível, sem quebra de linha) */}
                         {hasLink && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              window.open(formatarUrl(aviso.link), "_blank", "noopener,noreferrer")
-                            }}
-                            className="inline-flex items-center gap-1 text-[11px] lg:text-xs font-semibold text-primary bg-primary/10 hover:bg-primary hover:text-primary-foreground transition-colors px-2.5 py-0.5 lg:py-1 rounded-md border border-primary/20 shadow-2xs z-10 whitespace-nowrap shrink-0"
-                            title="Acessar Link Externo"
-                            aria-label={`Acessar link anexo do aviso: ${aviso.titulo}`}
+                          <a
+                            href={formatarUrl(aviso.link)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] lg:text-xs font-bold text-[#7f1d1d] dark:text-[#f8b4bc] bg-[#7f1d1d]/10 hover:bg-[#7f1d1d]/20 dark:bg-[#7f1d1d]/30 dark:hover:bg-[#7f1d1d]/40 px-2 lg:px-2.5 py-1 rounded-md transition-colors border border-[#7f1d1d]/20 shrink-0 whitespace-nowrap"
+                            title={`Acessar link externo: ${aviso.link}`}
                           >
-                            <ExternalLink className="h-3 w-3 lg:h-3.5 lg:w-3.5 shrink-0" />
+                            <ExternalLink className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
                             <span>Acessar Link</span>
-                          </button>
+                          </a>
                         )}
 
-                        {/* Botões de Ação e Reordenação para Administrador / Coordenador */}
+                        {/* Ações de Gestão (Reordenar Rápido, Editar, Excluir) */}
                         {canManage && (
                           <div 
-                            className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-background/95 p-0.5 rounded-lg border border-border shadow-2xs z-10 shrink-0"
+                            className="opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity flex items-center gap-0.5 bg-background/95 p-0.5 rounded-lg border border-border/80 shadow-xs"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            {/* Botão Mover para Anterior */}
                             <Button 
                               variant="ghost" 
                               size="icon" 
-                              disabled={globalIndex <= 0}
+                              className="h-6 w-6 lg:h-7 lg:w-7 text-muted-foreground hover:text-foreground disabled:opacity-30" 
+                              onClick={(e) => { e.stopPropagation(); handleMoverParaTopo(globalIndex); }} 
+                              disabled={globalIndex === 0}
+                              title="Mover para o topo (1º lugar)"
+                              aria-label={`Mover aviso ${aviso.titulo} para o topo`}
+                            >
+                              <ChevronsUp className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
                               className="h-6 w-6 lg:h-7 lg:w-7 text-muted-foreground hover:text-foreground disabled:opacity-30" 
                               onClick={(e) => { e.stopPropagation(); handleMoverAviso(globalIndex, -1); }} 
-                              title="Mover para posição anterior"
-                              aria-label="Mover para posição anterior"
+                              disabled={globalIndex === 0}
+                              title="Mover para a esquerda/anterior"
+                              aria-label={`Mover aviso ${aviso.titulo} para a esquerda`}
                             >
                               <ArrowLeft className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
                             </Button>
-
-                            {/* Botão Mover para Próximo */}
                             <Button 
                               variant="ghost" 
                               size="icon" 
-                              disabled={globalIndex >= avisos.length - 1}
                               className="h-6 w-6 lg:h-7 lg:w-7 text-muted-foreground hover:text-foreground disabled:opacity-30" 
                               onClick={(e) => { e.stopPropagation(); handleMoverAviso(globalIndex, 1); }} 
-                              title="Mover para próxima posição"
-                              aria-label="Mover para próxima posição"
+                              disabled={globalIndex >= avisos.length - 1}
+                              title="Mover para a direita/próximo"
+                              aria-label={`Mover aviso ${aviso.titulo} para a direita`}
                             >
                               <ArrowRight className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
                             </Button>
@@ -472,23 +448,62 @@ export function Avisos() {
               })}
             </div>
 
-            {/* Indicadores de Posição / Bolinhas (Quando houver mais de 4 avisos) */}
+            {/* ========================================================================= */}
+            {/* CONTROLADOR DE SLIDES MODERNO, DESTACADO E DE FÁCIL VISUALIZAÇÃO/MANUSEIO */}
+            {/* ========================================================================= */}
             {totalPaginas > 1 && (
-              <div className="flex items-center justify-center gap-1.5 pt-1">
-                {Array.from({ length: totalPaginas }).map((_, idx) => (
-                  <button
-                    key={idx}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 pb-2 border-t border-border/50 mt-1 select-none">
+                {/* Contador de páginas */}
+                <div className="text-xs font-semibold text-muted-foreground order-2 sm:order-1">
+                  Página <span className="text-foreground font-bold">{paginaAtual + 1}</span> de <span className="text-foreground font-bold">{totalPaginas}</span> • {avisos.length} avisos
+                </div>
+
+                {/* Barra de Controle de Slides Central */}
+                <div className="flex items-center gap-2 sm:gap-3 order-1 sm:order-2 bg-card border border-border/90 shadow-sm px-3 py-1.5 rounded-full">
+                  <Button
                     type="button"
-                    onClick={() => setPaginaAtual(idx)}
-                    className={`h-2 rounded-full transition-all cursor-pointer ${
-                      paginaAtual === idx 
-                        ? "w-6 bg-[#7f1d1d] dark:bg-[#f8b4bc]" 
-                        : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"
-                    }`}
-                    aria-label={`Ir para página ${idx + 1}`}
-                    title={`Página ${idx + 1} de ${totalPaginas}`}
-                  />
-                ))}
+                    variant="ghost"
+                    size="sm"
+                    onClick={scrollPrev}
+                    className="h-8 px-2.5 sm:px-3 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted rounded-full gap-1"
+                    title="Slide anterior"
+                    aria-label="Ver slide anterior"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    <span className="hidden sm:inline">Anterior</span>
+                  </Button>
+
+                  {/* Indicadores Visuais de Slide (Pills) */}
+                  <div className="flex items-center gap-1.5 px-1.5">
+                    {Array.from({ length: totalPaginas }).map((_, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setPaginaAtual(idx)}
+                        className={`h-3 rounded-full transition-all duration-300 cursor-pointer ${
+                          paginaAtual === idx 
+                            ? "w-8 bg-[#7f1d1d] dark:bg-[#f8b4bc] shadow-xs" 
+                            : "w-3 bg-muted-foreground/30 hover:bg-muted-foreground/60 hover:scale-110"
+                        }`}
+                        aria-label={`Ir para slide ${idx + 1}`}
+                        title={`Slide ${idx + 1} de ${totalPaginas}`}
+                      />
+                    ))}
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={scrollNext}
+                    className="h-8 px-2.5 sm:px-3 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted rounded-full gap-1"
+                    title="Próximo slide"
+                    aria-label="Ver próximo slide"
+                  >
+                    <span className="hidden sm:inline">Próximo</span>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             )}
           </div>
