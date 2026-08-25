@@ -28,19 +28,85 @@ AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName
 const AlertDialogContent = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content>
->(({ className, ...props }, ref) => (
-  <AlertDialogPortal>
-    <AlertDialogOverlay />
-    <AlertDialogPrimitive.Content
-      ref={ref}
-      className={cn(
-        "fixed left-[50%] top-[50%] z-[500] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
-        className
-      )}
-      {...props}
-    />
-  </AlertDialogPortal>
-))
+>(({ className, children, ...props }, ref) => {
+  const [position, setPosition] = React.useState({ x: 0, y: 0 })
+  const isDraggingRef = React.useRef(false)
+  const startPosRef = React.useRef({ x: 0, y: 0 })
+  const currentPosRef = React.useRef({ x: 0, y: 0 })
+
+  React.useEffect(() => {
+    setPosition({ x: 0, y: 0 })
+    currentPosRef.current = { x: 0, y: 0 }
+  }, [])
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement
+    if (
+      target.closest("button") ||
+      target.closest("input") ||
+      target.closest("textarea") ||
+      target.closest("select") ||
+      target.closest("[role=button]")
+    ) {
+      return
+    }
+
+    isDraggingRef.current = true
+    startPosRef.current = {
+      x: e.clientX - currentPosRef.current.x,
+      y: e.clientY - currentPosRef.current.y
+    }
+    try {
+      ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+    } catch {}
+  }
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDraggingRef.current) return
+    const newX = e.clientX - startPosRef.current.x
+    const newY = e.clientY - startPosRef.current.y
+    currentPosRef.current = { x: newX, y: newY }
+    setPosition({ x: newX, y: newY })
+  }
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isDraggingRef.current) {
+      isDraggingRef.current = false
+      try {
+        ;(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
+      } catch {}
+    }
+  }
+
+  return (
+    <AlertDialogPortal>
+      <AlertDialogOverlay />
+      <AlertDialogPrimitive.Content
+        ref={ref}
+        style={{
+          transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px))`
+        }}
+        className={cn(
+          "fixed left-[50%] top-[50%] z-[500] grid w-[calc(100%-1.5rem)] sm:w-full max-w-lg max-h-[88dvh] overflow-y-auto gap-4 border bg-background p-5 sm:p-6 shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 rounded-2xl sm:rounded-2xl",
+          className
+        )}
+        {...props}
+      >
+        <div
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          className="w-full -mt-2 pb-1.5 pt-0.5 flex flex-col items-center justify-center cursor-grab active:cursor-grabbing touch-none select-none group"
+          title="Toque e arraste para mover o diálogo"
+        >
+          <div className="w-12 h-1.5 bg-muted-foreground/30 group-hover:bg-muted-foreground/50 rounded-full transition-colors" />
+        </div>
+        {children}
+      </AlertDialogPrimitive.Content>
+    </AlertDialogPortal>
+  )
+})
 AlertDialogContent.displayName = AlertDialogPrimitive.Content.displayName
 
 const AlertDialogHeader = ({
