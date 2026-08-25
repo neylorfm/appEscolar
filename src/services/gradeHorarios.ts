@@ -91,7 +91,7 @@ export function getCorPadraoPorNome(nome: string): string {
   return PALETA_50_CORES[index]
 }
 
-export type IdFonteGrade = 'sistema' | 'inter' | 'ibm-plex' | 'roboto-condensed'
+export type IdFonteGrade = 'sistema' | 'inter' | 'ibm-plex' | 'roboto-condensed' | 'verdana'
 
 export interface OpcaoFonteGrade {
   id: IdFonteGrade
@@ -124,6 +124,12 @@ export const OPCOES_FONTES_GRADE: OpcaoFonteGrade[] = [
     nome: 'Roboto Condensed',
     descricao: 'Compacta (Mais espaço)',
     fontFamily: "'Roboto Condensed', sans-serif"
+  },
+  {
+    id: 'verdana',
+    nome: 'Verdana',
+    descricao: 'Ampla e Alta Legibilidade',
+    fontFamily: "Verdana, Geneva, Tahoma, sans-serif"
   }
 ]
 
@@ -148,6 +154,78 @@ export function salvarFonteGrade(fonte: IdFonteGrade) {
 export function getFontFamilyById(id: IdFonteGrade): string {
   const achada = OPCOES_FONTES_GRADE.find(f => f.id === id)
   return achada ? achada.fontFamily : OPCOES_FONTES_GRADE[0].fontFamily
+}
+
+export type TamanhoFonteRascunho = 'padrao' | 'medio' | 'grande' | 'muito_grande' | 'extra_grande'
+
+export interface OpcaoTamanhoFonteRascunho {
+  id: TamanhoFonteRascunho
+  label: string
+  descricao: string
+  classeDisciplina: string
+  classeProfessor: string
+  classeCelula: string
+}
+
+export const OPCOES_TAMANHO_FONTE_RASCUNHO: OpcaoTamanhoFonteRascunho[] = [
+  {
+    id: 'padrao',
+    label: '100% (Padrão)',
+    descricao: 'Tamanho padrão compacto',
+    classeDisciplina: 'text-[9px] sm:text-[9.5px]',
+    classeProfessor: 'text-[8px] sm:text-[8.5px]',
+    classeCelula: 'h-[28px] sm:h-[30px] lg:h-[32px]'
+  },
+  {
+    id: 'medio',
+    label: '120% (Médio)',
+    descricao: 'Aumento suave para melhor leitura',
+    classeDisciplina: 'text-[10.5px] sm:text-[11.5px]',
+    classeProfessor: 'text-[9.5px] sm:text-[10.5px]',
+    classeCelula: 'min-h-[34px] sm:min-h-[36px]'
+  },
+  {
+    id: 'grande',
+    label: '140% (Grande)',
+    descricao: 'Destaque visual reforçado',
+    classeDisciplina: 'text-[12px] sm:text-[13px]',
+    classeProfessor: 'text-[11px] sm:text-[12px]',
+    classeCelula: 'min-h-[40px] sm:min-h-[42px]'
+  },
+  {
+    id: 'muito_grande',
+    label: '160% (Muito Grande)',
+    descricao: 'Alta legibilidade',
+    classeDisciplina: 'text-[14px] sm:text-[15px]',
+    classeProfessor: 'text-[12.5px] sm:text-[13.5px]',
+    classeCelula: 'min-h-[46px] sm:min-h-[48px]'
+  },
+  {
+    id: 'extra_grande',
+    label: '180% (Extra Grande)',
+    descricao: 'Máximo tamanho e contraste',
+    classeDisciplina: 'text-[16px] sm:text-[17px]',
+    classeProfessor: 'text-[14px] sm:text-[15px]',
+    classeCelula: 'min-h-[52px] sm:min-h-[56px]'
+  }
+]
+
+const CHAVE_STORAGE_TAMANHO_FONTE_RASCUNHO = 'app_escolar_tamanho_fonte_rascunho'
+
+export function getTamanhoFonteRascunho(): TamanhoFonteRascunho {
+  try {
+    const salva = localStorage.getItem(CHAVE_STORAGE_TAMANHO_FONTE_RASCUNHO) as TamanhoFonteRascunho
+    if (salva && OPCOES_TAMANHO_FONTE_RASCUNHO.some(f => f.id === salva)) {
+      return salva
+    }
+  } catch {}
+  return 'padrao'
+}
+
+export function salvarTamanhoFonteRascunho(tamanho: TamanhoFonteRascunho) {
+  try {
+    localStorage.setItem(CHAVE_STORAGE_TAMANHO_FONTE_RASCUNHO, tamanho)
+  } catch {}
 }
 
 const CHAVE_STORAGE_CORES = 'app_escolar_cores_professores'

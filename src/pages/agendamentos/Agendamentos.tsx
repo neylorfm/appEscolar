@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useInstituicao } from '../../contexts/InstituicaoContext';
 import { Card, CardContent } from '../../components/ui/card';
 
-import { Calendar, ChevronLeft, ChevronRight, Trash2, Type, Search, X, User } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Maximize2, Minimize2, Trash2, Type, Search, X, User } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
@@ -82,6 +82,38 @@ export default function Agendamentos() {
     const opt = OPCOES_FONTES_GRADE.find(f => f.id === novaFonte);
     toast.success(`Tipografia alterada para ${opt?.nome || novaFonte}`, { duration: 1500, icon: '🔤' });
   };
+
+  // Modo Tela Cheia e Painel Contraído (Sanfona)
+  const [isTelaCheia, setIsTelaCheia] = useState(false);
+  const [painelContraido, setPainelContraido] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("agendamentos_painel_contraido") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleTelaCheia = () => setIsTelaCheia(prev => !prev);
+
+  const togglePainelContraido = () => {
+    setPainelContraido(prev => {
+      const novo = !prev;
+      try {
+        localStorage.setItem("agendamentos_painel_contraido", String(novo));
+      } catch {}
+      return novo;
+    });
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isTelaCheia) {
+        setIsTelaCheia(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isTelaCheia]);
 
   // Form state
   const [agendarPara, setAgendarPara] = useState<string>(''); // Vazio = professor logado
@@ -550,42 +582,44 @@ export default function Agendamentos() {
   })();
 
   return (
-    <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8">
-      <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-        <div className="flex flex-col gap-3">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Agendamentos</h1>
-            <p className="text-muted-foreground mt-1 text-base">
-              Gerencie reservas de salas e laboratórios da instituição.
-            </p>
+    <div className={`print:hidden ${
+      isTelaCheia 
+        ? "fixed inset-0 z-[100] w-screen h-screen bg-background text-foreground flex flex-col p-2 sm:p-3 gap-2 overflow-hidden" 
+        : painelContraido
+          ? "flex flex-col gap-2 max-w-7xl mx-auto p-2 sm:p-4"
+          : "flex flex-col gap-6 w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8"
+    }`}>
+      {/* ========================================================================= */}
+      {/* MODO CONTRAÍDO (BARRA COMPACTA)                                           */}
+      {/* ========================================================================= */}
+      {painelContraido ? (
+        <div className="flex flex-wrap items-center justify-between gap-1.5 p-1.5 px-3 rounded-2xl bg-card border border-border/80 shadow-2xs text-xs print:hidden select-none">
+          {/* Lado Esquerdo: Recurso Ativo */}
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold text-muted-foreground hidden sm:inline">Recurso:</span>
+            <Select value={selectedRecurso} onValueChange={setSelectedRecurso}>
+              <SelectTrigger className="h-7.5 text-xs font-bold w-48 sm:w-64 border-border text-[#7f1d1d] dark:text-[#f8b4bc]">
+                <SelectValue placeholder="Selecione..." />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border shadow-lg z-[300]">
+                {recursos.map(r => (
+                  <SelectItem key={r.id} value={r.id} className="text-xs font-bold">
+                    {r.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          
-          {isCoordenadorOuAdmin && (
-             <div className="flex flex-col items-start gap-1 mt-2">
-                 <Button 
-                    variant="outline" 
-                    onClick={handleProcessarFilaSemanas} 
-                    disabled={isProcessingQueue || (!hasGlobalPreReservas && semanaOffset === 1)}
-                    className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
-                 >
-                    {isProcessingQueue ? "Processando..." : (!hasGlobalPreReservas && semanaOffset === 1) ? "Fila já processada ✔️" : "Processar Fila da Próxima Semana"}
-                 </Button>
-                 <span className="text-xs text-muted-foreground">
-                    Utilize esta rotina para converter manualmente as pré-reservas em agendamentos confirmados para a próxima semana.
-                 </span>
-             </div>
-          )}
-        </div>
-        
-        <div className="flex flex-col sm:items-end gap-3 mt-4 sm:mt-0">
-          <div className="flex items-center gap-2 flex-wrap justify-end">
-            {/* Seletor de Tipografia da Tabela */}
+
+          {/* Lado Direito: Tipografia, Semanas, Processar Fila, Tela Cheia e Botão Expandir */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {/* Seletor de Tipografia */}
             <Select value={fonteAgendamento} onValueChange={(val) => handleTrocarFonte(val as IdFonteGrade)}>
-              <SelectTrigger className="h-9 text-xs w-40 gap-1.5 font-semibold bg-background shadow-2xs border-border" title="Escolha a tipografia da tabela para melhor legibilidade">
-                <Type className="h-3.5 w-3.5 text-primary shrink-0" />
+              <SelectTrigger className="h-7 text-xs w-28 gap-1 font-semibold bg-background border-border shadow-2xs" title="Escolha a tipografia da tabela">
+                <Type className="h-3 w-3 text-primary shrink-0" />
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="z-50">
+              <SelectContent className="z-[300]">
                 {OPCOES_FONTES_GRADE.map((f) => (
                   <SelectItem key={f.id} value={f.id} className="text-xs">
                     <span className="font-bold">{f.nome}</span>
@@ -594,63 +628,209 @@ export default function Agendamentos() {
               </SelectContent>
             </Select>
 
-            {/* Controle de Semanas */}
-            <div className="flex items-center space-x-2 bg-background p-1 rounded-lg border shadow-sm relative overflow-hidden">
+            {/* Navegador de Semanas Compacto */}
+            <div className="flex items-center space-x-1 bg-background px-1 py-0.5 rounded-lg border shadow-2xs">
               <Button 
                 variant="ghost" 
                 size="icon" 
+                className="h-6 w-6" 
                 onClick={() => setSemanaOffset(semanaOffset - 1)}
+                title="Semana anterior"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-3.5 w-3.5" />
               </Button>
-              <div className="min-w-[140px] text-center font-medium text-sm flex items-center justify-center gap-2">
-                <Calendar className="h-4 w-4 text-primary" />
-                {getWeekText()}
+              <div className="text-center font-bold text-xs flex items-center justify-center gap-1 px-1">
+                <Calendar className="h-3 w-3 text-primary" />
+                <span className="truncate max-w-[120px]">{getWeekText()}</span>
               </div>
               <Button 
                 variant="ghost" 
                 size="icon" 
+                className="h-6 w-6" 
                 onClick={() => setSemanaOffset(semanaOffset + 1)}
                 disabled={!podeAvancar}
+                title="Próxima semana"
               >
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-3.5 w-3.5" />
               </Button>
             </div>
+
+            {/* Processar Fila se Coordenador/Admin */}
+            {isCoordenadorOuAdmin && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleProcessarFilaSemanas} 
+                disabled={isProcessingQueue || (!hasGlobalPreReservas && semanaOffset === 1)}
+                className="h-7 px-2 text-[11px] font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
+                title="Processar fila de espera da próxima semana"
+              >
+                {isProcessingQueue ? "Processando..." : "Processar Fila"}
+              </Button>
+            )}
+
+            {/* Botão de Tela Cheia */}
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={toggleTelaCheia}
+              className="h-7 w-7 text-xs font-bold bg-background shadow-2xs"
+              title={isTelaCheia ? "Sair da Tela Cheia (ESC)" : "Modo Tela Cheia"}
+            >
+              {isTelaCheia ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+            </Button>
+
+            {/* Botão Expandir Controles */}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={togglePainelContraido}
+              className="h-7 px-2.5 text-xs font-bold gap-1 bg-background shadow-2xs text-muted-foreground hover:text-foreground"
+              title="Expandir painel completo de controles e cabeçalho"
+            >
+              <ChevronDown className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Expandir</span>
+            </Button>
           </div>
         </div>
-      </div>
+      ) : (
+        /* ========================================================================= */
+        /* MODO COMPLETO: CABEÇALHO E CONTROLES EXPANDIDOS                           */
+        /* ========================================================================= */
+        <>
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+            <div className="flex flex-col gap-3">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">Agendamentos</h1>
+                <p className="text-muted-foreground mt-1 text-base">
+                  Gerencie reservas de salas e laboratórios da instituição.
+                </p>
+              </div>
+              
+              {isCoordenadorOuAdmin && (
+                 <div className="flex flex-col items-start gap-1 mt-2">
+                     <Button 
+                        variant="outline" 
+                        onClick={handleProcessarFilaSemanas} 
+                        disabled={isProcessingQueue || (!hasGlobalPreReservas && semanaOffset === 1)}
+                        className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
+                     >
+                        {isProcessingQueue ? "Processando..." : (!hasGlobalPreReservas && semanaOffset === 1) ? "Fila já processada ✔️" : "Processar Fila da Próxima Semana"}
+                     </Button>
+                     <span className="text-xs text-muted-foreground">
+                        Utilize esta rotina para converter manualmente as pré-reservas em agendamentos confirmados para a próxima semana.
+                     </span>
+                 </div>
+              )}
+            </div>
+            
+            <div className="flex flex-col sm:items-end gap-3 mt-4 sm:mt-0">
+              <div className="flex items-center gap-2 flex-wrap justify-end">
+                {/* Seletor de Tipografia da Tabela */}
+                <Select value={fonteAgendamento} onValueChange={(val) => handleTrocarFonte(val as IdFonteGrade)}>
+                  <SelectTrigger className="h-9 text-xs w-40 gap-1.5 font-semibold bg-background shadow-2xs border-border" title="Escolha a tipografia da tabela para melhor legibilidade">
+                    <Type className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="z-50">
+                    {OPCOES_FONTES_GRADE.map((f) => (
+                      <SelectItem key={f.id} value={f.id} className="text-xs">
+                        <span className="font-bold">{f.nome}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-      <Card className="w-full border-border/80 shadow-xs bg-card">
-        <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row items-center gap-4">
-          <label className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-[#7f1d1d] dark:text-[#f8b4bc] whitespace-nowrap">
-            Selecione o Recurso:
-          </label>
-          <div className="w-full sm:w-80 md:w-96 lg:w-[420px]">
-            <Select value={selectedRecurso} onValueChange={setSelectedRecurso}>
-              <SelectTrigger className="w-full h-12 lg:h-14 text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-[#7f1d1d] dark:text-[#f8b4bc] border-border hover:border-[#7f1d1d]/50 shadow-2xs">
-                <SelectValue placeholder="Selecione..." />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border shadow-lg">
-                {recursos.map(r => (
-                  <SelectItem 
-                    key={r.id} 
-                    value={r.id} 
-                    className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-[#7f1d1d] dark:text-[#f8b4bc] focus:bg-[#7f1d1d]/10 focus:text-[#7f1d1d] dark:focus:bg-[#7f1d1d]/30 dark:focus:text-[#f8b4bc] cursor-pointer py-3"
+                {/* Controle de Semanas */}
+                <div className="flex items-center space-x-2 bg-background p-1 rounded-lg border shadow-sm relative overflow-hidden">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => setSemanaOffset(semanaOffset - 1)}
                   >
-                    {r.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <div className="min-w-[140px] text-center font-medium text-sm flex items-center justify-center gap-2">
+                    <Calendar className="h-4 w-4 text-primary" />
+                    {getWeekText()}
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => setSemanaOffset(semanaOffset + 1)}
+                    disabled={!podeAvancar}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* Botão de Tela Cheia */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={toggleTelaCheia}
+                  className="h-9 w-9 text-xs font-bold bg-background shadow-2xs border-border"
+                  title={isTelaCheia ? "Sair da Tela Cheia (ESC)" : "Modo Tela Cheia"}
+                >
+                  {isTelaCheia ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                </Button>
+
+                {/* Botão Contrair Controles */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={togglePainelContraido}
+                  className="h-9 px-3 text-xs font-bold gap-1 bg-background shadow-2xs border-border text-muted-foreground hover:text-foreground"
+                  title="Contrair controles para ganhar espaço na tela"
+                >
+                  <ChevronUp className="h-4 w-4" />
+                  <span className="hidden sm:inline">Contrair</span>
+                </Button>
+              </div>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+
+          <Card className="w-full border-border/80 shadow-xs bg-card">
+            <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row items-center gap-4">
+              <label className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-[#7f1d1d] dark:text-[#f8b4bc] whitespace-nowrap">
+                Selecione o Recurso:
+              </label>
+              <div className="w-full sm:w-80 md:w-96 lg:w-[420px]">
+                <Select value={selectedRecurso} onValueChange={setSelectedRecurso}>
+                  <SelectTrigger className="w-full h-12 lg:h-14 text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-[#7f1d1d] dark:text-[#f8b4bc] border-border hover:border-[#7f1d1d]/50 shadow-2xs">
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border shadow-lg">
+                    {recursos.map(r => (
+                      <SelectItem 
+                        key={r.id} 
+                        value={r.id} 
+                        className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-[#7f1d1d] dark:text-[#f8b4bc] focus:bg-[#7f1d1d]/10 focus:text-[#7f1d1d] dark:focus:bg-[#7f1d1d]/30 dark:focus:text-[#f8b4bc] cursor-pointer py-3"
+                      >
+                        {r.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
 
       <Card 
-        className="w-full overflow-hidden border-border/50 shadow-sm transition-all"
+        className={`w-full overflow-hidden border-border/50 shadow-sm transition-all ${
+          isTelaCheia ? "flex-1 flex flex-col min-h-0" : ""
+        }`}
         style={{ fontFamily: getFontFamilyById(fonteAgendamento) }}
       >
-        <div className="w-full overflow-auto max-h-[600px] touch-pan-x touch-pan-y">
+        <div className={`w-full overflow-auto touch-pan-x touch-pan-y ${
+          isTelaCheia ? "flex-1 h-full" : "max-h-[calc(100vh-230px)]"
+        }`}>
           <div className="min-w-[800px] p-0">
             <table className="w-full border-collapse">
                 <thead className="sticky top-0 z-20 shadow-sm">

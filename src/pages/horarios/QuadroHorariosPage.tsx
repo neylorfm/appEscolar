@@ -21,6 +21,10 @@ import {
   getFonteGrade,
   salvarFonteGrade,
   getFontFamilyById,
+  TamanhoFonteRascunho,
+  OPCOES_TAMANHO_FONTE_RASCUNHO,
+  getTamanhoFonteRascunho,
+  salvarTamanhoFonteRascunho,
   TURMAS_INTEGRAL_PADRAO,
   TURMAS_NOTURNO_PADRAO,
   ESTRUTURA_AULAS,
@@ -70,7 +74,8 @@ import {
   ChevronDown,
   Clock,
   X,
-  User
+  User,
+  ZoomIn
 } from "lucide-react"
 
 type AbaSegmento = "INTEGRAL_COMPLETO" | "MANHA" | "TARDE" | "NOTURNO" | "POR_PROFESSOR"
@@ -130,6 +135,16 @@ export default function QuadroHorariosPage() {
     salvarFonteGrade(novaFonte)
     const opt = OPCOES_FONTES_GRADE.find(f => f.id === novaFonte)
     toast.success(`Tipografia alterada para ${opt?.nome || novaFonte}`, { duration: 1500, icon: '🔤' })
+  }
+
+  // Controle de Tamanho de Fonte da Grade (Professores e Disciplinas)
+  const [tamanhoFonteRascunho, setTamanhoFonteRascunho] = useState<TamanhoFonteRascunho>(() => getTamanhoFonteRascunho())
+
+  function handleTrocarTamanhoFonteRascunho(novoTamanho: TamanhoFonteRascunho) {
+    setTamanhoFonteRascunho(novoTamanho)
+    salvarTamanhoFonteRascunho(novoTamanho)
+    const opt = OPCOES_TAMANHO_FONTE_RASCUNHO.find(f => f.id === novoTamanho)
+    toast.success(`Tamanho da fonte das aulas: ${opt?.label || novoTamanho}`, { duration: 1500, icon: '🔍' })
   }
 
   // Filtros
@@ -552,6 +567,27 @@ export default function QuadroHorariosPage() {
                       ))}
                     </SelectContent>
                   </Select>
+
+                  {/* Opção de Tamanho de Fonte das Aulas */}
+                  <Select 
+                    value={tamanhoFonteRascunho} 
+                    onValueChange={(val) => handleTrocarTamanhoFonteRascunho(val as TamanhoFonteRascunho)}
+                  >
+                    <SelectTrigger 
+                      className="h-7 text-xs w-32 gap-1 font-bold bg-amber-500/10 border-amber-500/30 text-amber-950 dark:text-amber-200 hover:bg-amber-500/20" 
+                      title="Ajustar tamanho do texto de Disciplina e Professor na tabela de horários"
+                    >
+                      <ZoomIn className="h-3 w-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {OPCOES_TAMANHO_FONTE_RASCUNHO.map((opt) => (
+                        <SelectItem key={opt.id} value={opt.id} className="text-xs">
+                          <span className="font-bold">{opt.label}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </>
               )}
 
@@ -795,6 +831,27 @@ export default function QuadroHorariosPage() {
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap shrink-0 self-end md:self-center">
+                  {/* Seletor de Tamanho de Fonte na barra de Rascunho */}
+                  <div className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-900/80 px-2.5 py-1 rounded-xl border border-amber-500/30">
+                    <ZoomIn className="h-3.5 w-3.5 text-amber-700 dark:text-amber-300 shrink-0" />
+                    <span className="text-xs font-bold text-amber-900 dark:text-amber-200">Fonte Aulas:</span>
+                    <Select 
+                      value={tamanhoFonteRascunho} 
+                      onValueChange={(val) => handleTrocarTamanhoFonteRascunho(val as TamanhoFonteRascunho)}
+                    >
+                      <SelectTrigger className="h-7 text-xs w-36 font-bold">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {OPCOES_TAMANHO_FONTE_RASCUNHO.map((opt) => (
+                          <SelectItem key={opt.id} value={opt.id} className="text-xs">
+                            <span className="font-bold">{opt.label}</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <Button
                     type="button"
                     variant="outline"
@@ -1040,6 +1097,27 @@ export default function QuadroHorariosPage() {
                       ))}
                     </SelectContent>
                   </Select>
+
+                  {/* Seletor de Tamanho de Fonte da Grade */}
+                  <Select 
+                    value={tamanhoFonteRascunho} 
+                    onValueChange={(val) => handleTrocarTamanhoFonteRascunho(val as TamanhoFonteRascunho)}
+                  >
+                    <SelectTrigger 
+                      className="h-8.5 text-xs w-40 gap-1.5 font-bold bg-amber-500/10 border-amber-500/30 text-amber-950 dark:text-amber-200 hover:bg-amber-500/20" 
+                      title="Ajustar tamanho do texto de Disciplina e Professor na tabela de horários"
+                    >
+                      <ZoomIn className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {OPCOES_TAMANHO_FONTE_RASCUNHO.map((opt) => (
+                        <SelectItem key={opt.id} value={opt.id} className="text-xs">
+                          <span className="font-bold">{opt.label}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
             </div>
@@ -1092,6 +1170,7 @@ export default function QuadroHorariosPage() {
                 canEdit={podeEditarMatriz}
                 professorFiltro={professorDestaque}
                 turmaFiltro={turmaFiltro}
+                tamanhoFonte={tamanhoFonteRascunho}
                 onSalvarCelula={handleSalvarCelula}
                 onLimparCelula={handleLimparCelula}
               />
@@ -1110,6 +1189,7 @@ export default function QuadroHorariosPage() {
                 canEdit={podeEditarMatriz}
                 professorFiltro={professorDestaque}
                 turmaFiltro={turmaFiltro}
+                tamanhoFonte={tamanhoFonteRascunho}
                 onSalvarCelula={handleSalvarCelula}
                 onLimparCelula={handleLimparCelula}
               />
@@ -1128,6 +1208,7 @@ export default function QuadroHorariosPage() {
                 canEdit={podeEditarMatriz}
                 professorFiltro={professorDestaque}
                 turmaFiltro={turmaFiltro}
+                tamanhoFonte={tamanhoFonteRascunho}
                 onSalvarCelula={handleSalvarCelula}
                 onLimparCelula={handleLimparCelula}
               />
@@ -1146,6 +1227,7 @@ export default function QuadroHorariosPage() {
                 canEdit={podeEditarMatriz}
                 professorFiltro={professorDestaque}
                 turmaFiltro={turmaFiltro}
+                tamanhoFonte={tamanhoFonteRascunho}
                 onSalvarCelula={handleSalvarCelula}
                 onLimparCelula={handleLimparCelula}
               />

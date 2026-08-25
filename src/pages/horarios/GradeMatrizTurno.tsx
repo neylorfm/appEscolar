@@ -5,7 +5,9 @@ import {
   GradeHorarioItem, 
   obterCorEfetivaProfessor, 
   getEstiloBadgeCor,
-  normalizarNomeTurma
+  normalizarNomeTurma,
+  TamanhoFonteRascunho,
+  OPCOES_TAMANHO_FONTE_RASCUNHO
 } from "@/services/gradeHorarios"
 import { CelulaEditorPopover } from "./CelulaEditorPopover"
 import { Disciplina } from "@/services/disciplinas"
@@ -23,6 +25,7 @@ interface GradeMatrizTurnoProps {
   canEdit: boolean
   professorFiltro?: string
   turmaFiltro?: string
+  tamanhoFonte?: TamanhoFonteRascunho
   onSalvarCelula: (
     segmento: string,
     dia: string,
@@ -52,10 +55,19 @@ export function GradeMatrizTurno({
   canEdit,
   professorFiltro,
   turmaFiltro,
+  tamanhoFonte = "padrao",
   onSalvarCelula,
   onLimparCelula
 }: GradeMatrizTurnoProps) {
   const [dragOverCellKey, setDragOverCellKey] = useState<string | null>(null)
+
+  // Configuração visual de tamanho de fonte para a grade (apenas para disciplina e professor dentro das células)
+  const configFonte = useMemo(() => {
+    return (
+      OPCOES_TAMANHO_FONTE_RASCUNHO.find((opt) => opt.id === tamanhoFonte) ||
+      OPCOES_TAMANHO_FONTE_RASCUNHO[0]
+    )
+  }, [tamanhoFonte])
 
   // Mapa de cores ativas por professor
   const mapaCoresProfessores = useMemo(() => {
@@ -304,7 +316,7 @@ export function GradeMatrizTurno({
                                   : ""
                               }
                               style={temConflito ? undefined : (item ? estiloProfessor : undefined)}
-                              className={`group relative w-full h-[28px] sm:h-[30px] lg:h-[32px] px-0.5 py-0.5 flex flex-col justify-center items-center text-center overflow-hidden transition-all select-none ${
+                              className={`group relative w-full ${configFonte.classeCelula} px-0.5 py-0.5 flex flex-col justify-center items-center text-center overflow-hidden transition-all select-none ${
                                 temConflito
                                   ? "animacao-conflito-alerta font-black cursor-pointer"
                                   : item
@@ -336,22 +348,22 @@ export function GradeMatrizTurno({
                                 <>
                                   {temConflito ? (
                                     <div className="flex flex-col items-center justify-center w-full leading-none">
-                                      <div className="flex items-center gap-0.5 text-[8.5px] sm:text-[9px] font-black uppercase tracking-tight">
+                                      <div className={`flex items-center gap-0.5 ${configFonte.classeDisciplina} font-black uppercase tracking-tight`}>
                                         <AlertTriangle className="h-2.5 w-2.5 fill-white text-red-700 animate-bounce shrink-0" />
                                         <span>CONFLITO!</span>
                                       </div>
-                                      <span className="font-extrabold text-[8px] sm:text-[8.5px] truncate w-full">
+                                      <span className={`font-extrabold ${configFonte.classeProfessor} truncate w-full`}>
                                         {item.professor_nome}
                                       </span>
                                     </div>
                                   ) : (
                                     <>
                                       {/* Nome da Disciplina */}
-                                      <span className="font-black text-[9px] sm:text-[9.5px] leading-tight truncate w-full tracking-tighter">
+                                      <span className={`font-black ${configFonte.classeDisciplina} leading-tight truncate w-full tracking-tighter`}>
                                         {item.disciplina_nome}
                                       </span>
                                       {/* Nome do Professor com Ícone de Target se pesquisado */}
-                                      <span className="font-bold text-[8px] sm:text-[8.5px] leading-tight truncate w-full flex items-center justify-center gap-0.5 opacity-90">
+                                      <span className={`font-bold ${configFonte.classeProfessor} leading-tight truncate w-full flex items-center justify-center gap-0.5 opacity-90`}>
                                         {profMatch && (
                                           <Target className="h-2.5 w-2.5 text-red-600 shrink-0 inline stroke-[2.5]" />
                                         )}
@@ -365,7 +377,7 @@ export function GradeMatrizTurno({
                                   <Plus className="h-3 w-3 text-muted-foreground" />
                                 </div>
                               ) : (
-                                <span className="text-[9px] text-muted-foreground/30">-</span>
+                                <span className={`${configFonte.classeProfessor} text-muted-foreground/30`}>-</span>
                               )}
                             </div>
                           </CelulaEditorPopover>
