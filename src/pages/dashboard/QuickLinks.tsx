@@ -5,7 +5,6 @@ import {
   Trash2, 
   Edit2, 
   Calendar, 
-  Users, 
   BarChart3, 
   ChevronRight, 
   Sparkles,
@@ -113,21 +112,21 @@ export function QuickLinks() {
         </CardHeader>
         <CardContent className="p-3 sm:p-4">
           <div className="flex flex-col gap-2.5">
-            {/* Link Padrão 1: Turmas e Alunos / Agendamentos */}
+            {/* Link Padrão 1: Agendamentos */}
             <Link 
               to="/agendamentos" 
               className="flex items-center justify-between p-3 rounded-xl bg-background border border-border/70 hover:border-primary/50 hover:shadow-xs hover:bg-muted/20 transition-all group select-none"
             >
               <div className="flex items-center gap-3 min-w-0">
                 <div className="h-10 w-10 rounded-xl bg-[#f2e6e6] text-[#7f1d1d] dark:bg-[#7f1d1d]/30 dark:text-[#f8b4bc] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                  <Users className="h-5 w-5" />
+                  <Calendar className="h-5 w-5" />
                 </div>
                 <div className="flex flex-col truncate">
                   <span className="font-bold text-foreground text-sm leading-tight group-hover:text-[#7f1d1d] dark:group-hover:text-[#f8b4bc] transition-colors">
-                    Turmas e Alunos
+                    Agendamentos
                   </span>
                   <span className="text-[11px] text-muted-foreground mt-0.5">
-                    Gestão de matrículas
+                    Reserva de salas e laboratórios
                   </span>
                 </div>
               </div>

@@ -48,35 +48,32 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-function Dashboard() {
+function LinksView() {
   const { usuario } = useAuth()
   
   return (
-    <div className="flex flex-col gap-8 max-w-6xl mx-auto">
+    <div className="flex flex-col gap-6 max-w-4xl mx-auto pb-10">
       <div>
-        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-slate-50">
+        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-slate-50">
           Olá, {usuario?.nome_completo?.split(' ')[0] || 'Bem-vindo'}!
         </h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg font-medium">
-          Confira os destaques e acessos rápidos de hoje.
+        <p className="text-slate-500 dark:text-slate-400 mt-1.5 text-base sm:text-lg font-medium">
+          Confira os acessos rápidos e atalhos da instituição.
         </p>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        {/* Coluna de Conteúdo Principal (Avisos) */}
-        <div className="lg:col-span-2 order-2 lg:order-1">
-          <Avisos />
-        </div>
-
-        {/* Coluna Lateral (QuickLinks) */}
-        <div className="order-1 lg:order-2 flex flex-col gap-6">
-          <QuickLinks />
-        </div>
-      </div>
+      <QuickLinks />
     </div>
   )
 }
 
+function AvisosView() {
+  return (
+    <div className="flex flex-col gap-6 max-w-5xl mx-auto pb-10">
+      <Avisos />
+    </div>
+  )
+}
 
 function App() {
   return (
@@ -92,7 +89,9 @@ function App() {
                   <Layout />
                 </ProtectedRoute>
               }>
-                <Route index element={<Dashboard />} />
+                <Route index element={<LinksView />} />
+                <Route path="links" element={<LinksView />} />
+                <Route path="avisos" element={<AvisosView />} />
                 <Route path="horarios" element={<QuadroHorariosPage />} />
                 <Route path="agendamentos" element={<Agendamentos />} />
                 <Route path="avaliacoes">

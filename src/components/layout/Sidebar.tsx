@@ -1,6 +1,16 @@
 import { useState } from "react"
 import { Link, useLocation } from "react-router-dom"
-import { Calendar, Home, Settings, ChevronLeft, ChevronRight, LogOut, Building2, CalendarRange, BookOpen } from "lucide-react"
+import { 
+  Link2, 
+  Megaphone, 
+  Calendar, 
+  Settings, 
+  ChevronLeft, 
+  ChevronRight, 
+  LogOut, 
+  Building2, 
+  BookOpen 
+} from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -13,13 +23,13 @@ import { ThemeToggle } from "@/components/ThemeToggle"
 const routes = [
   {
     path: "/",
-    name: "Dashboard",
-    icon: Home,
+    name: "Links",
+    icon: Link2,
   },
   {
-    path: "/horarios",
-    name: "Horários",
-    icon: CalendarRange,
+    path: "/avisos",
+    name: "Avisos",
+    icon: Megaphone,
   },
   {
     path: "/agendamentos",
