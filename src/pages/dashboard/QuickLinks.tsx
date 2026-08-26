@@ -5,6 +5,7 @@ import {
   Trash2, 
   Edit2, 
   Calendar, 
+  CalendarRange,
   BarChart3, 
   ChevronRight, 
   Sparkles,
@@ -14,6 +15,7 @@ import * as LucideIcons from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/contexts/AuthContext"
+import { useInstituicao } from "@/contexts/InstituicaoContext"
 import { getQuickLinks, QuickLink, deleteQuickLink, upsertQuickLink } from "@/services/dashboard"
 import { toast } from "sonner"
 import {
@@ -29,6 +31,7 @@ import { Link } from "react-router-dom"
 
 export function QuickLinks() {
   const { usuario } = useAuth()
+  const { configuracoes } = useInstituicao()
   const [links, setLinks] = useState<QuickLink[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingLink, setEditingLink] = useState<Partial<QuickLink> | null>(null)
@@ -112,7 +115,30 @@ export function QuickLinks() {
         </CardHeader>
         <CardContent className="p-3 sm:p-4">
           <div className="flex flex-col gap-2.5">
-            {/* Link Padrão 1: Agendamentos */}
+            {/* Link Padrão 1: Quadro de Horários (se ativo) */}
+            {configuracoes?.modulo_horarios_ativo !== false && (
+              <Link 
+                to="/horarios" 
+                className="flex items-center justify-between p-3 rounded-xl bg-background border border-border/70 hover:border-primary/50 hover:shadow-xs hover:bg-muted/20 transition-all group select-none"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-10 w-10 rounded-xl bg-[#eef2ff] text-[#4338ca] dark:bg-[#4338ca]/30 dark:text-[#a5b4fc] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <CalendarRange className="h-5 w-5" />
+                  </div>
+                  <div className="flex flex-col truncate">
+                    <span className="font-bold text-foreground text-sm leading-tight group-hover:text-[#7f1d1d] dark:group-hover:text-[#f8b4bc] transition-colors">
+                      Quadro de Horários
+                    </span>
+                    <span className="text-[11px] text-muted-foreground mt-0.5">
+                      Grade horária semanal de aulas e professores
+                    </span>
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground/70 group-hover:text-[#7f1d1d] dark:group-hover:text-[#f8b4bc] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+              </Link>
+            )}
+
+            {/* Link Padrão 2: Agendamentos */}
             <Link 
               to="/agendamentos" 
               className="flex items-center justify-between p-3 rounded-xl bg-background border border-border/70 hover:border-primary/50 hover:shadow-xs hover:bg-muted/20 transition-all group select-none"
@@ -133,7 +159,7 @@ export function QuickLinks() {
               <ChevronRight className="h-4 w-4 text-muted-foreground/70 group-hover:text-[#7f1d1d] dark:group-hover:text-[#f8b4bc] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
             </Link>
 
-            {/* Link Padrão 2: Avaliações */}
+            {/* Link Padrão 3: Avaliações */}
             <Link 
               to="/avaliacoes" 
               className="flex items-center justify-between p-3 rounded-xl bg-background border border-border/70 hover:border-primary/50 hover:shadow-xs hover:bg-muted/20 transition-all group select-none"
@@ -154,7 +180,7 @@ export function QuickLinks() {
               <ChevronRight className="h-4 w-4 text-muted-foreground/70 group-hover:text-[#7f1d1d] dark:group-hover:text-[#f8b4bc] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
             </Link>
 
-            {/* Link Padrão 3: Calendário Acadêmico */}
+            {/* Link Padrão 4: Calendário Acadêmico */}
             <Link 
               to="/calendario" 
               className="flex items-center justify-between p-3 rounded-xl bg-background border border-border/70 hover:border-primary/50 hover:shadow-xs hover:bg-muted/20 transition-all group select-none"

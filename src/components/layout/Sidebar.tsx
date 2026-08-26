@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom"
 import { 
   Link2, 
   Megaphone, 
+  CalendarRange,
   Calendar, 
   Settings, 
   ChevronLeft, 
@@ -30,6 +31,11 @@ const routes = [
     path: "/avisos",
     name: "Avisos",
     icon: Megaphone,
+  },
+  {
+    path: "/horarios",
+    name: "Horários",
+    icon: CalendarRange,
   },
   {
     path: "/agendamentos",
