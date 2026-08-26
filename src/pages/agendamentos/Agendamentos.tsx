@@ -1,8 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useInstituicao } from '../../contexts/InstituicaoContext';
 import { Card, CardContent } from '../../components/ui/card';
 
-import { Calendar, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Maximize2, Minimize2, Trash2, Type, Search, X, User } from 'lucide-react';
+import { 
+  Calendar, 
+  ChevronLeft, 
+  ChevronRight, 
+  ChevronDown, 
+  ChevronUp, 
+  Maximize2, 
+  Minimize2, 
+  Trash2, 
+  Type, 
+  Search, 
+  X, 
+  User, 
+  ZoomIn, 
+  Copy 
+} from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
@@ -18,7 +33,33 @@ import { criarAgendamento, getAgendamentosPorPeriodo, AgendamentoComDetalhes, ca
 import { getRecursos, Recurso } from '../../services/recursos';
 import { getHorarios, Horario } from '../../services/horarios';
 import { getUsuarios } from '../../services/usuarios';
-import { OPCOES_FONTES_GRADE, IdFonteGrade, getFonteGrade, salvarFonteGrade, getFontFamilyById } from '../../services/gradeHorarios';
+import { 
+  OPCOES_FONTES_GRADE, 
+  IdFonteGrade, 
+  getFonteGrade, 
+  salvarFonteGrade, 
+  getFontFamilyById,
+  TamanhoFonteRascunho,
+  OPCOES_TAMANHO_FONTE_RASCUNHO
+} from '../../services/gradeHorarios';
+
+const CHAVE_STORAGE_TAMANHO_FONTE_AGENDAMENTOS = 'app_escolar_tamanho_fonte_agendamentos';
+
+function getTamanhoFonteAgendamentos(): TamanhoFonteRascunho {
+  try {
+    const salva = localStorage.getItem(CHAVE_STORAGE_TAMANHO_FONTE_AGENDAMENTOS) as TamanhoFonteRascunho;
+    if (salva && OPCOES_TAMANHO_FONTE_RASCUNHO.some(f => f.id === salva)) {
+      return salva;
+    }
+  } catch {}
+  return 'padrao';
+}
+
+function salvarTamanhoFonteAgendamentos(tamanho: TamanhoFonteRascunho) {
+  try {
+    localStorage.setItem(CHAVE_STORAGE_TAMANHO_FONTE_AGENDAMENTOS, tamanho);
+  } catch {}
+}
 
 const getBaseMonday = () => {
   const d = new Date();
@@ -72,7 +113,11 @@ export default function Agendamentos() {
   const [isProcessingQueue, setIsProcessingQueue] = useState(false);
   const [hasGlobalPreReservas, setHasGlobalPreReservas] = useState(false);
   
-  
+  // Drag and Drop State
+  const [draggedAgendamento, setDraggedAgendamento] = useState<AgendamentoComDetalhes | null>(null);
+  const [dragOverCell, setDragOverCell] = useState<string | null>(null);
+  const isDraggingRef = useRef(false);
+
   // Tipografia da Tabela
   const [fonteAgendamento, setFonteAgendamento] = useState<IdFonteGrade>(() => getFonteGrade());
 
@@ -82,6 +127,78 @@ export default function Agendamentos() {
     const opt = OPCOES_FONTES_GRADE.find(f => f.id === novaFonte);
     toast.success(`Tipografia alterada para ${opt?.nome || novaFonte}`, { duration: 1500, icon: '🔤' });
   };
+
+  // Tamanho de Fonte das Aulas da Tabela
+  const [tamanhoFonte, setTamanhoFonte] = useState<TamanhoFonteRascunho>(() => getTamanhoFonteAgendamentos());
+
+  const handleTrocarTamanhoFonte = (novoTamanho: TamanhoFonteRascunho) => {
+    setTamanhoFonte(novoTamanho);
+    salvarTamanhoFonteAgendamentos(novoTamanho);
+    const opt = OPCOES_TAMANHO_FONTE_RASCUNHO.find(f => f.id === novoTamanho);
+    toast.success(`Tamanho da fonte: ${opt?.label || novoTamanho}`, { duration: 1500, icon: '🔍' });
+  };
+
+  // Configuração dos tamanhos de fonte dos cartões da tabela (sem afetar cabeçalhos)
+  const configFonte = useMemo(() => {
+    switch (tamanhoFonte) {
+      case 'medio':
+        return {
+          nome: 'text-[12.5px] sm:text-[13.5px] dark:text-[15px] sm:dark:text-[16px]',
+          sub: 'text-[11px] sm:text-[11.5px] dark:text-[12.5px]',
+          motivo: 'text-[11px] sm:text-[11.5px] dark:text-[12.5px]',
+          autor: 'text-[10px] dark:text-[11px]',
+          rank: 'text-[11px] dark:text-[12px]',
+          padding: 'px-2 py-1.5 sm:px-2.5 sm:py-2',
+          gap: 'gap-1',
+          minH: 'min-h-[54px] dark:min-h-[74px]'
+        };
+      case 'grande':
+        return {
+          nome: 'text-[14px] sm:text-[15.5px] dark:text-[16.5px] sm:dark:text-[18px]',
+          sub: 'text-[12px] sm:text-[13px] dark:text-[14px]',
+          motivo: 'text-[12px] sm:text-[13px] dark:text-[14px]',
+          autor: 'text-[11px] dark:text-[12px]',
+          rank: 'text-[12px] dark:text-[13px]',
+          padding: 'px-2.5 py-2 sm:px-3 sm:py-2.5',
+          gap: 'gap-1.5',
+          minH: 'min-h-[62px] dark:min-h-[82px]'
+        };
+      case 'muito_grande':
+        return {
+          nome: 'text-[16px] sm:text-[18px] dark:text-[18.5px] sm:dark:text-[20px]',
+          sub: 'text-[13.5px] sm:text-[14.5px] dark:text-[15.5px]',
+          motivo: 'text-[13.5px] sm:text-[14.5px] dark:text-[15.5px]',
+          autor: 'text-[12px] dark:text-[13px]',
+          rank: 'text-[13px] dark:text-[14px]',
+          padding: 'px-3 py-2.5 sm:px-3.5 sm:py-3',
+          gap: 'gap-2',
+          minH: 'min-h-[72px] dark:min-h-[92px]'
+        };
+      case 'extra_grande':
+        return {
+          nome: 'text-[18px] sm:text-[20.5px] dark:text-[20.5px] sm:dark:text-[22.5px]',
+          sub: 'text-[15px] sm:text-[16px] dark:text-[17px]',
+          motivo: 'text-[15px] sm:text-[16px] dark:text-[17px]',
+          autor: 'text-[13px] dark:text-[14px]',
+          rank: 'text-[14px] dark:text-[15px]',
+          padding: 'px-3.5 py-3 sm:px-4 sm:py-3.5',
+          gap: 'gap-2.5',
+          minH: 'min-h-[82px] dark:min-h-[102px]'
+        };
+      case 'padrao':
+      default:
+        return {
+          nome: 'text-[11px] sm:text-[12px] dark:text-[13.5px] sm:dark:text-[14.5px]',
+          sub: 'text-[10px] dark:text-[11.5px]',
+          motivo: 'text-[10px] dark:text-[11.5px]',
+          autor: 'text-[9px] dark:text-[10px]',
+          rank: 'text-[10px] dark:text-[11px]',
+          padding: 'px-2 py-1.5',
+          gap: 'gap-0.5',
+          minH: 'min-h-[48px] dark:min-h-[68px]'
+        };
+    }
+  }, [tamanhoFonte]);
 
   // Modo Tela Cheia e Painel Contraído (Sanfona)
   const [isTelaCheia, setIsTelaCheia] = useState(false);
@@ -287,7 +404,97 @@ export default function Agendamentos() {
     }
   };
 
+  const handleDuplicarAgendamentoPorArrasto = async (
+    agOrigem: AgendamentoComDetalhes, 
+    targetHorarioId: string, 
+    targetIndiceDiaSemana: number
+  ) => {
+    if (!usuario) return;
+
+    const targetDate = getBaseMonday();
+    targetDate.setDate(targetDate.getDate() + (semanaOffset * 7) + targetIndiceDiaSemana);
+    
+    // Validação de datas passadas
+    if (targetDate < new Date() && targetDate.toDateString() !== new Date().toDateString()) {
+      toast.error("Atenção", { description: "Não é possível agendar ou duplicar para datas passadas." });
+      return;
+    }
+
+    const targetDateStr = toLocalYYYYMMDD(targetDate);
+    const targetHorario = horarios.find(h => h.id === targetHorarioId);
+    const targetHorarioLabel = targetHorario ? `${targetHorario.label} (${targetHorario.inicio.substring(0,5)} - ${targetHorario.fim.substring(0,5)})` : 'Horário';
+    const diaNome = diasSemanas[targetIndiceDiaSemana];
+
+    // Identificar usuário do novo agendamento
+    const targetUserId = isCoordenadorOuAdmin ? agOrigem.usuario_id : usuario.id;
+
+    // Determinar o tipo de agendamento no destino
+    let tipoDestino: 'Confirmado' | 'Pre-Reserva' | 'Fixo' = 'Confirmado';
+    if (agOrigem.tipo === 'Fixo' && isCoordenadorOuAdmin) {
+      tipoDestino = 'Fixo';
+    } else if (semanaOffset === 0) {
+      tipoDestino = 'Confirmado';
+    } else if (semanaOffset === 1) {
+      tipoDestino = new Date().getDay() === 5 ? 'Confirmado' : 'Pre-Reserva';
+    } else {
+      tipoDestino = 'Pre-Reserva';
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      // Verificar se já há conflito para o professor nesse horário e data
+      if (targetUserId) {
+        const conflitos = await verificarConflitoProfessor(targetUserId, targetDateStr, targetHorarioId);
+        if (conflitos.length > 0) {
+          const recursoNome = Array.isArray(conflitos[0].recursos) ? conflitos[0].recursos[0]?.nome : (conflitos[0].recursos as any)?.nome;
+          toast.error("Conflito de Horário", { 
+            description: `Professor já possui registro (${conflitos[0].tipo}) neste mesmo horário no recurso: ${recursoNome}.`
+          });
+          return;
+        }
+      }
+
+      // Criar agendamento duplicado
+      await criarAgendamento({
+        recurso_id: selectedRecurso,
+        horario_id: targetHorarioId,
+        data_agendamento: targetDateStr,
+        tipo: tipoDestino,
+        usuario_id: targetUserId,
+        agendado_por: usuario.id,
+        motivo: agOrigem.motivo || undefined,
+        dia_semana_fixo: tipoDestino === 'Fixo' ? (targetIndiceDiaSemana + 1) : undefined,
+        data_inicio_fixo: tipoDestino === 'Fixo' ? targetDateStr : undefined,
+        data_fim_fixo: tipoDestino === 'Fixo' ? (agOrigem.data_fim_fixo || undefined) : undefined
+      });
+
+      toast.success(
+        tipoDestino === 'Pre-Reserva' ? "Pré-reserva criada por arrasto!" : "Agendamento criado por arrasto!", 
+        { 
+          description: `${diaNome} (${targetDate.toLocaleDateString('pt-BR')}) • ${targetHorarioLabel}`,
+          icon: '📋'
+        }
+      );
+
+      // Recarregar agendamentos
+      const segundaFeira = getBaseMonday();
+      segundaFeira.setDate(segundaFeira.getDate() + (semanaOffset * 7));
+      const sextaFeira = new Date(segundaFeira);
+      sextaFeira.setDate(segundaFeira.getDate() + 4);
+      const ags = await getAgendamentosPorPeriodo(toLocalYYYYMMDD(segundaFeira), toLocalYYYYMMDD(sextaFeira), selectedRecurso);
+      setAgendamentos(ags);
+
+    } catch (err: any) {
+      console.error("Erro ao criar agendamento por arrasto:", err);
+      toast.error("Erro ao agendar", { description: err?.message || "Não foi possível criar o agendamento." });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleCellClick = async (horarioId: string, indiceDiaSemana: number) => {
+    if (isDraggingRef.current) return;
     const targetDate = getBaseMonday();
     targetDate.setDate(targetDate.getDate() + (semanaOffset * 7) + indiceDiaSemana);
     
@@ -333,6 +540,7 @@ export default function Agendamentos() {
 
   const handleEditClick = async (agendamento: AgendamentoComDetalhes, clickedDate: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isDraggingRef.current) return;
     if (agendamento.tipo === 'Pre-Reserva') {
        setSelectedDateStr(clickedDate);
        setSelectedHorarioId(agendamento.horario_id);
@@ -594,8 +802,23 @@ export default function Agendamentos() {
       {/* ========================================================================= */}
       {painelContraido ? (
         <div className="flex flex-wrap items-center justify-between gap-1.5 p-1.5 px-3 rounded-2xl bg-card border border-border/80 shadow-2xs text-xs print:hidden select-none">
-          {/* Lado Esquerdo: Recurso Ativo */}
+          {/* Lado Esquerdo: Botão Tela Cheia + Recurso Ativo */}
           <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant={isTelaCheia ? "default" : "outline"}
+              size="icon"
+              onClick={toggleTelaCheia}
+              className={`h-7 w-7 text-xs font-bold shadow-2xs shrink-0 transition-all ${
+                isTelaCheia 
+                  ? "bg-[#7f1d1d] hover:bg-[#661717] text-white border-transparent" 
+                  : "bg-background border-border text-foreground hover:bg-muted"
+              }`}
+              title={isTelaCheia ? "Sair da Tela Cheia (ESC)" : "Modo Tela Cheia"}
+            >
+              {isTelaCheia ? <Minimize2 className="h-3.5 w-3.5 text-white" /> : <Maximize2 className="h-3.5 w-3.5 text-primary" />}
+            </Button>
+
             <span className="text-[11px] font-bold text-muted-foreground hidden sm:inline">Recurso:</span>
             <Select value={selectedRecurso} onValueChange={setSelectedRecurso}>
               <SelectTrigger className="h-7.5 text-xs font-bold w-48 sm:w-64 border-border text-[#7f1d1d] dark:text-[#f8b4bc]">
@@ -611,7 +834,7 @@ export default function Agendamentos() {
             </Select>
           </div>
 
-          {/* Lado Direito: Tipografia, Semanas, Processar Fila, Tela Cheia e Botão Expandir */}
+          {/* Lado Direito: Tipografia, Tamanho de Fonte, Semanas, Processar Fila e Botão Expandir */}
           <div className="flex items-center gap-1.5 flex-wrap">
             {/* Seletor de Tipografia */}
             <Select value={fonteAgendamento} onValueChange={(val) => handleTrocarFonte(val as IdFonteGrade)}>
@@ -623,6 +846,27 @@ export default function Agendamentos() {
                 {OPCOES_FONTES_GRADE.map((f) => (
                   <SelectItem key={f.id} value={f.id} className="text-xs">
                     <span className="font-bold">{f.nome}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Seletor de Tamanho de Fonte das Aulas */}
+            <Select 
+              value={tamanhoFonte} 
+              onValueChange={(val) => handleTrocarTamanhoFonte(val as TamanhoFonteRascunho)}
+            >
+              <SelectTrigger 
+                className="h-7 text-xs w-32 gap-1 font-bold bg-amber-500/10 border-amber-500/30 text-amber-950 dark:text-amber-200 hover:bg-amber-500/20 shadow-2xs" 
+                title="Ajustar tamanho da fonte dos agendamentos na tabela"
+              >
+                <ZoomIn className="h-3 w-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="z-[300]">
+                {OPCOES_TAMANHO_FONTE_RASCUNHO.map((opt) => (
+                  <SelectItem key={opt.id} value={opt.id} className="text-xs">
+                    <span className="font-bold">{opt.label}</span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -669,18 +913,6 @@ export default function Agendamentos() {
               </Button>
             )}
 
-            {/* Botão de Tela Cheia */}
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={toggleTelaCheia}
-              className="h-7 w-7 text-xs font-bold bg-background shadow-2xs"
-              title={isTelaCheia ? "Sair da Tela Cheia (ESC)" : "Modo Tela Cheia"}
-            >
-              {isTelaCheia ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-            </Button>
-
             {/* Botão Expandir Controles */}
             <Button
               type="button"
@@ -701,29 +933,52 @@ export default function Agendamentos() {
         /* ========================================================================= */
         <>
           <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-            <div className="flex flex-col gap-3">
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight">Agendamentos</h1>
-                <p className="text-muted-foreground mt-1 text-base">
-                  Gerencie reservas de salas e laboratórios da instituição.
-                </p>
+            <div className="flex items-start gap-3">
+              <Button
+                type="button"
+                variant={isTelaCheia ? "default" : "outline"}
+                size="icon"
+                onClick={toggleTelaCheia}
+                className={`h-10 w-10 shrink-0 text-xs font-bold shadow-2xs mt-0.5 transition-all ${
+                  isTelaCheia 
+                    ? "bg-[#7f1d1d] hover:bg-[#661717] text-white border-transparent" 
+                    : "bg-background border-border text-foreground hover:bg-muted"
+                }`}
+                title={isTelaCheia ? "Sair da Tela Cheia (ESC)" : "Modo Tela Cheia"}
+              >
+                {isTelaCheia ? <Minimize2 className="h-5 w-5 text-white" /> : <Maximize2 className="h-5 w-5 text-primary" />}
+              </Button>
+              <div className="flex flex-col gap-3">
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h1 className="text-3xl font-bold tracking-tight">Agendamentos</h1>
+                    {isTelaCheia && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-primary text-primary-foreground">
+                        Modo Tela Cheia
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-muted-foreground mt-1 text-base">
+                    Gerencie reservas de salas e laboratórios da instituição.
+                  </p>
+                </div>
+                
+                {isCoordenadorOuAdmin && (
+                   <div className="flex flex-col items-start gap-1 mt-2">
+                       <Button 
+                          variant="outline" 
+                          onClick={handleProcessarFilaSemanas} 
+                          disabled={isProcessingQueue || (!hasGlobalPreReservas && semanaOffset === 1)}
+                          className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
+                       >
+                          {isProcessingQueue ? "Processando..." : (!hasGlobalPreReservas && semanaOffset === 1) ? "Fila já processada ✔️" : "Processar Fila da Próxima Semana"}
+                       </Button>
+                       <span className="text-xs text-muted-foreground">
+                          Utilize esta rotina para converter manualmente as pré-reservas em agendamentos confirmados para a próxima semana.
+                       </span>
+                   </div>
+                )}
               </div>
-              
-              {isCoordenadorOuAdmin && (
-                 <div className="flex flex-col items-start gap-1 mt-2">
-                     <Button 
-                        variant="outline" 
-                        onClick={handleProcessarFilaSemanas} 
-                        disabled={isProcessingQueue || (!hasGlobalPreReservas && semanaOffset === 1)}
-                        className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
-                     >
-                        {isProcessingQueue ? "Processando..." : (!hasGlobalPreReservas && semanaOffset === 1) ? "Fila já processada ✔️" : "Processar Fila da Próxima Semana"}
-                     </Button>
-                     <span className="text-xs text-muted-foreground">
-                        Utilize esta rotina para converter manualmente as pré-reservas em agendamentos confirmados para a próxima semana.
-                     </span>
-                 </div>
-              )}
             </div>
             
             <div className="flex flex-col sm:items-end gap-3 mt-4 sm:mt-0">
@@ -738,6 +993,27 @@ export default function Agendamentos() {
                     {OPCOES_FONTES_GRADE.map((f) => (
                       <SelectItem key={f.id} value={f.id} className="text-xs">
                         <span className="font-bold">{f.nome}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Seletor de Tamanho de Fonte das Aulas */}
+                <Select 
+                  value={tamanhoFonte} 
+                  onValueChange={(val) => handleTrocarTamanhoFonte(val as TamanhoFonteRascunho)}
+                >
+                  <SelectTrigger 
+                    className="h-9 text-xs w-36 gap-1.5 font-bold bg-amber-500/10 border-amber-500/30 text-amber-950 dark:text-amber-200 hover:bg-amber-500/20 shadow-2xs" 
+                    title="Ajustar tamanho da fonte dos agendamentos na tabela"
+                  >
+                    <ZoomIn className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="z-50">
+                    {OPCOES_TAMANHO_FONTE_RASCUNHO.map((opt) => (
+                      <SelectItem key={opt.id} value={opt.id} className="text-xs">
+                        <span className="font-bold">{opt.label}</span>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -765,18 +1041,6 @@ export default function Agendamentos() {
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
-
-                {/* Botão de Tela Cheia */}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={toggleTelaCheia}
-                  className="h-9 w-9 text-xs font-bold bg-background shadow-2xs border-border"
-                  title={isTelaCheia ? "Sair da Tela Cheia (ESC)" : "Modo Tela Cheia"}
-                >
-                  {isTelaCheia ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                </Button>
 
                 {/* Botão Contrair Controles */}
                 <Button
@@ -892,13 +1156,48 @@ export default function Agendamentos() {
                         const cellDateStr = toLocalYYYYMMDD(dateOfCell);
                         const cacheKey = `${horario.id}_${cellDateStr}`;
                         const myRank = rankCache[cacheKey];
+                        const isTargetHovered = dragOverCell === `${horario.id}_${idx}`;
 
                         return (
                           <td 
                             key={`${horario.id}-${idx}`} 
-                            className={`group border p-2 text-center relative cursor-pointer hover:bg-muted/30 min-h-[80px] align-top transition-colors ${cellBg}`}
+                            className={`group border p-2 text-center relative cursor-pointer hover:bg-muted/30 min-h-[80px] align-top transition-all ${cellBg} ${
+                              isTargetHovered ? 'ring-2 ring-primary ring-inset bg-primary/20 scale-[0.99]' : ''
+                            }`}
                             onClick={() => handleCellClick(horario.id, idx)}
+                            onDragOver={(e) => {
+                              if (!draggedAgendamento) return;
+                              e.preventDefault();
+                              e.dataTransfer.dropEffect = 'copy';
+                              if (dragOverCell !== `${horario.id}_${idx}`) {
+                                setDragOverCell(`${horario.id}_${idx}`);
+                              }
+                            }}
+                            onDragLeave={(e) => {
+                              if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                                if (dragOverCell === `${horario.id}_${idx}`) {
+                                  setDragOverCell(null);
+                                }
+                              }
+                            }}
+                            onDrop={async (e) => {
+                              e.preventDefault();
+                              setDragOverCell(null);
+                              if (!draggedAgendamento) return;
+                              const agParaDuplicar = draggedAgendamento;
+                              setDraggedAgendamento(null);
+                              await handleDuplicarAgendamentoPorArrasto(agParaDuplicar, horario.id, idx);
+                            }}
                           >
+                            {/* Indicador visual de Drop ao arrastar */}
+                            {isTargetHovered && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-primary/25 backdrop-blur-[1px] rounded-lg border-2 border-dashed border-primary z-30 pointer-events-none animate-pulse">
+                                <span className="text-xs font-black text-primary bg-background px-2.5 py-1 rounded-md shadow-md flex items-center gap-1 border border-primary/30">
+                                  <Copy className="h-3.5 w-3.5" /> Soltar para Duplicar
+                                </span>
+                              </div>
+                            )}
+
                             <div className="flex flex-col gap-1 min-h-[60px] w-full items-center justify-center">
                               {cellAgendamentos.length === 0 ? (
                                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-background/50 transition-opacity">
@@ -907,15 +1206,36 @@ export default function Agendamentos() {
                                 ) : (
                                   <>
                                     {isPreReservaCell ? (
-                                      <div className="text-xs bg-white/80 rounded px-1.5 py-2 w-full flex flex-col items-center justify-center text-center shadow-sm border border-amber-300 cursor-pointer hover:bg-white transition-colors relative z-10 gap-1 min-h-[48px] dark:bg-[#1f1915] dark:border-2 dark:border-[#d97706] dark:rounded-xl dark:py-3.5 dark:px-3 sm:dark:py-4 dark:shadow-md dark:hover:border-[#f59e0b] dark:gap-2 dark:min-h-[68px]">
-                                        <div className="font-bold text-slate-800 text-[11px] leading-tight uppercase tracking-wide dark:text-white dark:font-bold dark:text-[13.5px] sm:dark:text-[14.5px]">
+                                      <div 
+                                        draggable={true}
+                                        onDragStart={(e) => {
+                                          e.stopPropagation();
+                                          isDraggingRef.current = true;
+                                          const agParaArrasto = cellAgendamentos[0];
+                                          if (agParaArrasto) {
+                                            setDraggedAgendamento(agParaArrasto);
+                                            e.dataTransfer.setData('text/plain', agParaArrasto.id);
+                                            e.dataTransfer.effectAllowed = 'copy';
+                                          }
+                                        }}
+                                        onDragEnd={() => {
+                                          setDraggedAgendamento(null);
+                                          setDragOverCell(null);
+                                          setTimeout(() => {
+                                            isDraggingRef.current = false;
+                                          }, 100);
+                                        }}
+                                        className={`bg-white/80 rounded px-1.5 py-2 w-full flex flex-col items-center justify-center text-center shadow-sm border border-amber-300 cursor-grab active:cursor-grabbing hover:bg-white hover:shadow-md transition-all relative z-10 ${configFonte.gap} ${configFonte.minH} dark:bg-[#1f1915] dark:border-2 dark:border-[#d97706] dark:rounded-xl dark:py-3.5 dark:px-3 sm:dark:py-4 dark:shadow-md dark:hover:border-[#f59e0b]`}
+                                        title="Clique para ver a fila ou arraste para duplicar em outro dia/horário"
+                                      >
+                                        <div className={`font-bold text-slate-800 leading-tight uppercase tracking-wide dark:text-white dark:font-bold ${configFonte.nome}`}>
                                           {cellAgendamentos[0]?.usuario_id === null ? "ESCOLA" : (cellAgendamentos[0]?.usuarios?.apelido || cellAgendamentos[0]?.usuarios?.nome_completo?.split(' ')[0] || "Pré-reserva")}
                                         </div>
-                                        <div className="border border-transparent dark:border-[#f59e0b]/80 dark:text-[#fbbf24] dark:bg-transparent dark:px-3 dark:py-1 dark:rounded-md dark:text-[11.5px] dark:font-bold dark:uppercase dark:tracking-wider leading-none">
+                                        <div className={`border border-transparent dark:border-[#f59e0b]/80 dark:text-[#fbbf24] dark:bg-transparent dark:px-3 dark:py-1 dark:rounded-md dark:font-bold dark:uppercase dark:tracking-wider leading-none ${configFonte.sub}`}>
                                           PRÉ-RESERVA
                                         </div>
                                         {cellAgendamentos.some(ag => ag.usuario_id === usuario?.id) && (
-                                          <div className="text-[10px] text-emerald-800 dark:text-emerald-400 font-bold leading-tight bg-emerald-100 dark:bg-emerald-900/50 rounded px-1.5 py-0.5 shadow-sm border border-emerald-200 dark:border-emerald-800 mt-0.5">
+                                          <div className={`text-emerald-800 dark:text-emerald-400 font-bold leading-tight bg-emerald-100 dark:bg-emerald-900/50 rounded px-1.5 py-0.5 shadow-sm border border-emerald-200 dark:border-emerald-800 mt-0.5 ${configFonte.rank}`}>
                                             {myRank ? `Registrado (${myRank}º)` : 'Registrado'}
                                           </div>
                                         )}
@@ -928,30 +1248,46 @@ export default function Agendamentos() {
 
                                         let darkCardClass = '';
                                         if (isFixo) {
-                                          darkCardClass = 'dark:bg-[#141b27] dark:border-2 dark:border-[#2563eb] dark:rounded-xl dark:py-3.5 dark:px-3 sm:dark:py-4 dark:shadow-md dark:hover:border-[#3b82f6] dark:gap-2.5 dark:min-h-[68px]';
+                                          darkCardClass = 'dark:bg-[#141b27] dark:border-2 dark:border-[#2563eb] dark:rounded-xl dark:shadow-md dark:hover:border-[#3b82f6]';
                                         } else if (isConf) {
-                                          darkCardClass = 'dark:bg-[#1a211e] dark:border-2 dark:border-[#059669] dark:rounded-xl dark:py-3.5 dark:px-3 sm:dark:py-4 dark:shadow-md dark:hover:border-[#10b981] dark:gap-2 dark:min-h-[68px]';
+                                          darkCardClass = 'dark:bg-[#1a211e] dark:border-2 dark:border-[#059669] dark:rounded-xl dark:shadow-md dark:hover:border-[#10b981]';
                                         } else if (isPre) {
-                                          darkCardClass = 'dark:bg-[#1f1915] dark:border-2 dark:border-[#d97706] dark:rounded-xl dark:py-3.5 dark:px-3 sm:dark:py-4 dark:shadow-md dark:hover:border-[#f59e0b] dark:gap-2.5 dark:min-h-[68px]';
+                                          darkCardClass = 'dark:bg-[#1f1915] dark:border-2 dark:border-[#d97706] dark:rounded-xl dark:shadow-md dark:hover:border-[#f59e0b]';
                                         }
 
                                         return (
                                           <div 
                                             key={ag.id} 
+                                            draggable={true}
+                                            onDragStart={(e) => {
+                                              e.stopPropagation();
+                                              isDraggingRef.current = true;
+                                              setDraggedAgendamento(ag);
+                                              e.dataTransfer.setData('text/plain', ag.id);
+                                              e.dataTransfer.effectAllowed = 'copy';
+                                            }}
+                                            onDragEnd={() => {
+                                              setDraggedAgendamento(null);
+                                              setDragOverCell(null);
+                                              setTimeout(() => {
+                                                isDraggingRef.current = false;
+                                              }, 100);
+                                            }}
                                             onClick={(e) => handleEditClick(ag, cellDateStr, e)} 
-                                            className={`text-xs bg-white/80 rounded-lg px-2 py-1.5 w-full text-center shadow-xs border border-black/10 cursor-pointer hover:bg-white transition-all relative z-10 flex flex-col gap-0.5 ${darkCardClass}`}
+                                            className={`bg-white/80 rounded-lg w-full text-center shadow-xs border border-black/10 cursor-grab active:cursor-grabbing hover:bg-white hover:shadow-md transition-all relative z-10 flex flex-col ${configFonte.padding} ${configFonte.gap} ${configFonte.minH} ${darkCardClass}`}
+                                            title={`${ag.usuarios?.nome_completo || 'Prof'} • Clique para editar ou arraste para duplicar em outro dia/horário`}
                                           >
-                                            <div className="font-bold text-slate-900 dark:text-white dark:font-bold text-[11px] dark:text-[13.5px] sm:dark:text-[14.5px] leading-tight truncate" title={ag.usuarios?.nome_completo || "Prof"}>
+                                            <div className={`font-bold text-slate-900 dark:text-white dark:font-bold leading-tight truncate ${configFonte.nome}`} title={ag.usuarios?.nome_completo || "Prof"}>
                                               {ag.usuario_id === null ? "ESCOLA" : (ag.usuarios?.apelido || ag.usuarios?.nome_completo?.split(' ')[0] || "Prof")}
                                             </div>
                                             
                                             {ag.tipo === 'Pre-Reserva' && (
-                                              <div className="text-[10px] text-amber-700 font-bold leading-tight dark:border dark:border-[#f59e0b]/80 dark:text-[#fbbf24] dark:bg-transparent dark:px-3 dark:py-1 dark:rounded-md dark:text-[11.5px] dark:font-bold dark:uppercase dark:tracking-wider dark:mt-0.5">
+                                              <div className={`text-amber-700 font-bold leading-tight dark:border dark:border-[#f59e0b]/80 dark:text-[#fbbf24] dark:bg-transparent dark:px-3 dark:py-1 dark:rounded-md dark:font-bold dark:uppercase dark:tracking-wider dark:mt-0.5 ${configFonte.sub}`}>
                                                 Pré-reserva
                                               </div>
                                             )}
                                             {ag.tipo === 'Confirmado' && (
-                                              <div className="text-[10px] text-emerald-700 font-bold leading-tight dark:text-emerald-400 dark:text-[12px] dark:font-semibold">
+                                              <div className={`text-emerald-700 font-bold leading-tight dark:text-emerald-400 dark:font-semibold ${configFonte.sub}`}>
                                                 Confirmado
                                               </div>
                                             )}
@@ -959,14 +1295,14 @@ export default function Agendamentos() {
                                             {/* Exibição em destaque do Nome do Projeto / Motivo */}
                                             {ag.tipo === 'Fixo' ? (
                                               <div 
-                                                className="text-[10px] leading-tight font-bold px-1.5 py-0.5 rounded mt-0.5 truncate max-w-full bg-blue-100 text-blue-900 border border-blue-300 dark:bg-transparent dark:border dark:border-[#3b82f6]/80 dark:text-[#60a5fa] dark:px-3 dark:py-1 dark:rounded-md dark:text-[11.5px] dark:font-semibold dark:mt-0.5"
+                                                className={`leading-tight font-bold px-1.5 py-0.5 rounded mt-0.5 truncate max-w-full bg-blue-100 text-blue-900 border border-blue-300 dark:bg-transparent dark:border dark:border-[#3b82f6]/80 dark:text-[#60a5fa] dark:px-3 dark:py-1 dark:rounded-md dark:font-semibold dark:mt-0.5 ${configFonte.motivo}`}
                                                 title={`Projeto: ${ag.motivo || 'Projeto'}`}
                                               >
                                                 {ag.motivo || 'Projeto'}
                                               </div>
                                             ) : ag.motivo ? (
                                               <div 
-                                                className="text-[10px] leading-tight font-bold px-1.5 py-0.5 rounded mt-0.5 truncate max-w-full bg-muted text-foreground/90 border border-border dark:bg-transparent dark:border-emerald-700 dark:text-emerald-300"
+                                                className={`leading-tight font-bold px-1.5 py-0.5 rounded mt-0.5 truncate max-w-full bg-muted text-foreground/90 border border-border dark:bg-transparent dark:border-emerald-700 dark:text-emerald-300 ${configFonte.motivo}`}
                                                 title={`Motivo: ${ag.motivo}`}
                                               >
                                                 {ag.motivo}
@@ -975,7 +1311,7 @@ export default function Agendamentos() {
 
                                             {/* Quem agendou aparece apenas para agendamentos não fixos */}
                                             {ag.tipo !== 'Fixo' && ag.agendado_por && ag.agendado_por !== ag.usuario_id && (
-                                              <div className="text-[9px] text-muted-foreground dark:text-zinc-400 leading-tight italic truncate">
+                                              <div className={`text-muted-foreground dark:text-zinc-400 leading-tight italic truncate ${configFonte.autor}`}>
                                                 por {ag.agendado_por_usuario?.nome_completo?.split(' ')[0]}
                                               </div>
                                             )}

@@ -517,6 +517,20 @@ export default function QuadroHorariosPage() {
 
             {/* LADO DIREITO: Filtros rápidos, Ações e Botão de Expandir Controles */}
             <div className="flex items-center gap-1.5 flex-wrap">
+              <Button
+                variant={isTelaCheia ? "default" : "outline"}
+                size="sm"
+                onClick={toggleTelaCheia}
+                className={`h-7 px-2 text-xs transition-all ${
+                  isTelaCheia 
+                    ? "bg-[#7f1d1d] hover:bg-[#661717] text-white border-transparent shadow-xs" 
+                    : "bg-background border-border text-foreground hover:bg-muted"
+                }`}
+                title={isTelaCheia ? "Sair da Tela Cheia" : "Tela Cheia"}
+              >
+                {isTelaCheia ? <Minimize2 className="h-3.5 w-3.5 text-white" /> : <Maximize2 className="h-3.5 w-3.5 text-primary" />}
+              </Button>
+
               {abaAtiva !== "POR_PROFESSOR" && (
                 <>
                   <div className="relative w-36 sm:w-44">
@@ -615,16 +629,6 @@ export default function QuadroHorariosPage() {
                 <Printer className="h-3.5 w-3.5 text-primary" />
               </Button>
 
-              <Button
-                variant={isTelaCheia ? "default" : "outline"}
-                size="sm"
-                onClick={toggleTelaCheia}
-                className="h-7 px-2 text-xs"
-                title={isTelaCheia ? "Sair da Tela Cheia" : "Tela Cheia"}
-              >
-                {isTelaCheia ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5 text-primary" />}
-              </Button>
-
               {/* Botão Sanfona: Expandir Controles */}
               <Button
                 variant="outline"
@@ -646,6 +650,17 @@ export default function QuadroHorariosPage() {
             {/* CABEÇALHO DA PÁGINA */}
             <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/80 print:hidden ${isTelaCheia ? 'pb-2.5' : 'pb-4'}`}>
               <div className="flex items-center gap-3">
+                <Button
+                  variant={isTelaCheia ? "default" : "outline"}
+                  size="icon"
+                  onClick={toggleTelaCheia}
+                  className={`h-9 w-9 shrink-0 text-xs font-semibold rounded-xl transition-all ${
+                    isTelaCheia ? "bg-[#7f1d1d] hover:bg-[#661717] text-white border-transparent" : "bg-card border-border hover:bg-muted"
+                  }`}
+                  title={isTelaCheia ? "Sair da tela cheia (ou pressione Esc)" : "Expandir em Tela Cheia (F11)"}
+                >
+                  {isTelaCheia ? <Minimize2 className="h-4 w-4 text-white" /> : <Maximize2 className="h-4 w-4 text-primary" />}
+                </Button>
                 <div className="p-2 sm:p-2.5 rounded-2xl bg-[#7f1d1d]/10 dark:bg-[#f8b4bc]/10 text-[#7f1d1d] dark:text-[#f8b4bc]">
                   <CalendarRange className="h-5 w-5 sm:h-6 sm:w-6" />
                 </div>
@@ -745,29 +760,6 @@ export default function QuadroHorariosPage() {
                     )}
                   </button>
                 )}
-
-                {/* Botão de Tela Cheia */}
-                <Button
-                  variant={isTelaCheia ? "default" : "outline"}
-                  size="sm"
-                  onClick={toggleTelaCheia}
-                  className={`h-8 sm:h-9 gap-1.5 text-xs font-semibold rounded-xl transition-all ${
-                    isTelaCheia ? "bg-[#7f1d1d] hover:bg-[#661717] text-white" : ""
-                  }`}
-                  title={isTelaCheia ? "Sair da tela cheia (ou pressione Esc)" : "Expandir em Tela Cheia (F11)"}
-                >
-                  {isTelaCheia ? (
-                    <>
-                      <Minimize2 className="h-3.5 w-3.5" />
-                      <span>Sair</span>
-                    </>
-                  ) : (
-                    <>
-                      <Maximize2 className="h-3.5 w-3.5 text-primary" />
-                      <span>Tela Cheia</span>
-                    </>
-                  )}
-                </Button>
 
                 <Button
                   variant="outline"
