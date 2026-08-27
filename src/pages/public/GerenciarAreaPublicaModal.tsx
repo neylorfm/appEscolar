@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select"
 import { AvisoPublico, upsertAvisoPublico } from "@/services/areaPublica"
 import { toast } from "sonner"
-import { Megaphone, Image as ImageIcon, Link as LinkIcon, Calendar, Sparkles } from "lucide-react"
+import { Megaphone, Image as ImageIcon, Link as LinkIcon } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 
 interface GerenciarAreaPublicaModalProps {

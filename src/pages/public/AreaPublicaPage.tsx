@@ -3,7 +3,6 @@ import { Link } from "react-router-dom"
 import { 
   Megaphone, 
   Search, 
-  Filter, 
   ExternalLink, 
   Calendar, 
   LogIn, 
@@ -12,13 +11,11 @@ import {
   Edit2, 
   Trash2, 
   X, 
-  Sparkles, 
   RefreshCw, 
   Sun, 
   Moon, 
   ArrowUpDown,
   GripVertical,
-  BookOpen,
   School,
   ArrowRight
 } from "lucide-react"
@@ -157,11 +154,15 @@ export default function AreaPublicaPage() {
           {/* Logo e Nome da Instituição */}
           <Link to="/" className="flex items-center gap-3 group">
             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-[#7f1d1d] text-white flex items-center justify-center font-black text-lg sm:text-xl shadow-md group-hover:scale-105 transition-transform shrink-0">
-              {configuracoes?.sigla || "AS"}
+              {configuracoes?.logo_url ? (
+                <img src={configuracoes.logo_url} alt="Logo" className="w-full h-full object-contain p-1 rounded-2xl" />
+              ) : (
+                "AS"
+              )}
             </div>
             <div className="flex flex-col">
               <span className="font-extrabold text-sm sm:text-lg tracking-tight text-[#7f1d1d] dark:text-[#f8b4bc] leading-snug">
-                {configuracoes?.nome || "EEMTI ANTONIETA SIQUEIRA"}
+                {configuracoes?.nome_instituicao || "EEMTI ANTONIETA SIQUEIRA"}
               </span>
               <span className="text-[10px] sm:text-xs font-semibold text-muted-foreground tracking-wide uppercase">
                 Canal Oficial de Notícias e Comunicados
@@ -472,7 +473,7 @@ export default function AreaPublicaPage() {
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
             <School className="h-4 w-4 text-[#7f1d1d] dark:text-[#f8b4bc]" />
-            <span className="font-bold text-foreground">{configuracoes?.nome || "EEMTI ANTONIETA SIQUEIRA"}</span>
+            <span className="font-bold text-foreground">{configuracoes?.nome_instituicao || "EEMTI ANTONIETA SIQUEIRA"}</span>
           </div>
           <span>Ambiente Escolar Integrado • Desenvolvido para a Comunidade Escolar</span>
         </div>
