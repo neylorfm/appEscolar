@@ -22,6 +22,7 @@ import { AvisoPublico, upsertAvisoPublico } from "@/services/areaPublica"
 import { toast } from "sonner"
 import { Megaphone, Image as ImageIcon, Link as LinkIcon } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
+import { useInstituicao } from "@/contexts/InstituicaoContext"
 
 interface GerenciarAreaPublicaModalProps {
   open: boolean
@@ -47,6 +48,9 @@ export function GerenciarAreaPublicaModal({
   onSuccess
 }: GerenciarAreaPublicaModalProps) {
   const { usuario } = useAuth()
+  const { configuracoes } = useInstituicao()
+  const corPrincipal = configuracoes?.cor_principal || '#7f1d1d'
+
   const [formData, setFormData] = useState<Partial<AvisoPublico>>({
     titulo: "",
     conteudo: "",
@@ -135,7 +139,10 @@ export function GerenciarAreaPublicaModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[620px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl font-bold text-[#7f1d1d] dark:text-[#f8b4bc]">
+          <DialogTitle 
+            className="flex items-center gap-2 text-xl font-bold"
+            style={{ color: corPrincipal }}
+          >
             <Megaphone className="h-5 w-5" />
             {formData.id ? "Editar Comunicado - Área Pública" : "Novo Comunicado - Área Pública"}
           </DialogTitle>
@@ -266,7 +273,8 @@ export function GerenciarAreaPublicaModal({
             type="button"
             onClick={handleSalvar}
             disabled={salvando}
-            className="text-xs font-bold bg-[#7f1d1d] hover:bg-[#661717] text-white gap-1.5"
+            className="text-xs font-bold text-white gap-1.5"
+            style={{ backgroundColor: corPrincipal }}
           >
             {salvando ? "Publicando..." : formData.id ? "Salvar Alterações" : "Publicar na Área Pública"}
           </Button>

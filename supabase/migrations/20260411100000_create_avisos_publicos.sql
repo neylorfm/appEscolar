@@ -30,3 +30,8 @@ CREATE POLICY "Permitir mod de avisos_publicos por admin/coord" ON public.avisos
     FOR ALL TO authenticated 
     USING (EXISTS (SELECT 1 FROM public.usuarios WHERE id = auth.uid() AND papel IN ('Administrador', 'Coordenador')))
     WITH CHECK (EXISTS (SELECT 1 FROM public.usuarios WHERE id = auth.uid() AND papel IN ('Administrador', 'Coordenador')));
+
+-- 3. Leitura pública das configurações e identidade visual da instituição (cores, logo, nome)
+DROP POLICY IF EXISTS "Permitir leitura pública de configuracoes_instituicao" ON public.configuracoes_instituicao;
+CREATE POLICY "Permitir leitura pública de configuracoes_instituicao" ON public.configuracoes_instituicao
+    FOR SELECT TO anon, authenticated USING (true);

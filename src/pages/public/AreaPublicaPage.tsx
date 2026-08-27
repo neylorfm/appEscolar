@@ -82,6 +82,7 @@ export default function AreaPublicaPage() {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
 
   const isGestor = usuario?.papel === "Administrador" || usuario?.papel === "Coordenador"
+  const corPrincipal = configuracoes?.cor_principal || '#7f1d1d'
 
   useEffect(() => {
     carregarAvisos()
@@ -145,7 +146,7 @@ export default function AreaPublicaPage() {
   }, [avisos, busca, categoriaFiltro])
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-foreground flex flex-col selection:bg-[#7f1d1d] selection:text-white">
+    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-foreground flex flex-col selection:bg-primary selection:text-white">
       {/* ========================================================================= */}
       {/* CABEÇALHO PÚBLICO INSTITUCIONAL                                           */}
       {/* ========================================================================= */}
@@ -153,15 +154,20 @@ export default function AreaPublicaPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-3">
           {/* Logo e Nome da Instituição */}
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-[#7f1d1d] text-white flex items-center justify-center font-black text-lg sm:text-xl shadow-md group-hover:scale-105 transition-transform shrink-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white p-1 flex items-center justify-center shadow-xs border border-gray-200/80 group-hover:scale-105 transition-transform shrink-0 overflow-hidden">
               {configuracoes?.logo_url ? (
-                <img src={configuracoes.logo_url} alt="Logo" className="w-full h-full object-contain p-1 rounded-2xl" />
+                <img src={configuracoes.logo_url} alt="Logo" className="w-full h-full object-contain" />
               ) : (
-                "AS"
+                <span className="font-black text-base sm:text-lg" style={{ color: corPrincipal }}>
+                  AS
+                </span>
               )}
             </div>
             <div className="flex flex-col">
-              <span className="font-extrabold text-sm sm:text-lg tracking-tight text-[#7f1d1d] dark:text-[#f8b4bc] leading-snug">
+              <span 
+                className="font-extrabold text-sm sm:text-lg tracking-tight leading-snug"
+                style={{ color: corPrincipal }}
+              >
                 {configuracoes?.nome_instituicao || "EEMTI ANTONIETA SIQUEIRA"}
               </span>
               <span className="text-[10px] sm:text-xs font-semibold text-muted-foreground tracking-wide uppercase">
@@ -191,7 +197,8 @@ export default function AreaPublicaPage() {
                     setAvisoParaEditar(null)
                     setModalCriarAberto(true)
                   }}
-                  className="h-9 px-3 text-xs font-bold bg-[#7f1d1d] hover:bg-[#661717] text-white rounded-xl shadow-sm gap-1.5 hidden sm:inline-flex"
+                  className="h-9 px-3 text-xs font-bold text-white rounded-xl shadow-sm gap-1.5 hidden sm:inline-flex"
+                  style={{ backgroundColor: corPrincipal }}
                   title="Cadastrar novo comunicado na Área Pública"
                 >
                   <Plus className="h-4 w-4" />
@@ -216,9 +223,10 @@ export default function AreaPublicaPage() {
               <Link to="/links">
                 <Button
                   variant="outline"
-                  className="h-9 sm:h-10 px-3 sm:px-4 text-xs sm:text-sm font-bold gap-2 rounded-xl border-[#7f1d1d]/30 text-[#7f1d1d] dark:text-[#f8b4bc] hover:bg-[#7f1d1d]/10 transition-all shadow-2xs"
+                  className="h-9 sm:h-10 px-3 sm:px-4 text-xs sm:text-sm font-bold gap-2 rounded-xl border-border/80 hover:bg-muted transition-all shadow-2xs"
+                  style={{ color: corPrincipal }}
                 >
-                  <LayoutDashboard className="h-4 w-4 text-[#7f1d1d] dark:text-[#f8b4bc]" />
+                  <LayoutDashboard className="h-4 w-4" style={{ color: corPrincipal }} />
                   <span className="hidden sm:inline">Acessar Meu Painel</span>
                   <span className="sm:hidden">Painel</span>
                 </Button>
@@ -226,7 +234,8 @@ export default function AreaPublicaPage() {
             ) : (
               <Link to="/login">
                 <Button
-                  className="h-9 sm:h-10 px-3.5 sm:px-5 text-xs sm:text-sm font-bold bg-[#7f1d1d] hover:bg-[#661717] text-white gap-2 rounded-xl shadow-md transition-all hover:shadow-lg"
+                  className="h-9 sm:h-10 px-3.5 sm:px-5 text-xs sm:text-sm font-bold text-white gap-2 rounded-xl shadow-md transition-all hover:opacity-90"
+                  style={{ backgroundColor: corPrincipal }}
                 >
                   <LogIn className="h-4 w-4" />
                   <span>Área do Professor</span>
@@ -252,7 +261,8 @@ export default function AreaPublicaPage() {
                   setAvisoParaEditar(null)
                   setModalCriarAberto(true)
                 }}
-                className="h-7 px-2.5 text-xs font-bold bg-[#7f1d1d] text-white rounded-lg gap-1"
+                className="h-7 px-2.5 text-xs font-bold text-white rounded-lg gap-1"
+                style={{ backgroundColor: corPrincipal }}
               >
                 <Plus className="h-3 w-3" />
                 <span>Novo</span>
@@ -295,20 +305,24 @@ export default function AreaPublicaPage() {
 
           {/* Categorias e Botão de Atualizar */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
-            {CATEGORIAS_PADRAO.map(cat => (
-              <button
-                key={cat.valor}
-                type="button"
-                onClick={() => setCategoriaFiltro(cat.valor)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap border ${
-                  categoriaFiltro === cat.valor
-                    ? "bg-[#7f1d1d] text-white border-[#7f1d1d] shadow-2xs"
-                    : "bg-background text-muted-foreground hover:text-foreground border-border hover:bg-muted"
-                }`}
-              >
-                {cat.rotulo}
-              </button>
-            ))}
+            {CATEGORIAS_PADRAO.map(cat => {
+              const isSelected = categoriaFiltro === cat.valor
+              return (
+                <button
+                  key={cat.valor}
+                  type="button"
+                  onClick={() => setCategoriaFiltro(cat.valor)}
+                  style={isSelected ? { backgroundColor: corPrincipal, borderColor: corPrincipal, color: '#fff' } : undefined}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap border ${
+                    isSelected
+                      ? "shadow-2xs"
+                      : "bg-background text-muted-foreground hover:text-foreground border-border hover:bg-muted"
+                  }`}
+                >
+                  {cat.rotulo}
+                </button>
+              )
+            })}
 
             <Button
               variant="outline"
@@ -328,7 +342,10 @@ export default function AreaPublicaPage() {
         {/* ========================================================================= */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <div className="h-8 w-8 animate-spin rounded-full border-3 border-[#7f1d1d] border-t-transparent" />
+            <div 
+              className="h-8 w-8 animate-spin rounded-full border-3 border-t-transparent"
+              style={{ borderColor: `${corPrincipal} transparent ${corPrincipal} ${corPrincipal}` }}
+            />
             <span className="text-xs font-semibold text-muted-foreground animate-pulse">
               Carregando comunicados oficiais...
             </span>
@@ -336,7 +353,7 @@ export default function AreaPublicaPage() {
         ) : avisosFiltrados.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-4 text-center rounded-3xl bg-card border border-border/80 shadow-xs">
             <div className="p-4 rounded-3xl bg-muted/60 text-muted-foreground mb-3">
-              <Megaphone className="h-10 w-10 text-[#7f1d1d]/60 dark:text-[#f8b4bc]/60" />
+              <Megaphone className="h-10 w-10 opacity-70" style={{ color: corPrincipal }} />
             </div>
             <h3 className="text-lg font-bold text-foreground">Nenhum comunicado encontrado</h3>
             <p className="text-xs text-muted-foreground max-w-md mt-1">
@@ -368,7 +385,7 @@ export default function AreaPublicaPage() {
                 <article
                   key={aviso.id}
                   onClick={() => setVisualizandoAviso(aviso)}
-                  className="group relative flex flex-col justify-between rounded-2xl bg-card border border-border/80 hover:border-[#7f1d1d]/40 dark:hover:border-[#f8b4bc]/40 shadow-2xs hover:shadow-md transition-all duration-300 overflow-hidden cursor-pointer"
+                  className="group relative flex flex-col justify-between rounded-2xl bg-card border border-border/80 hover:border-primary/50 shadow-2xs hover:shadow-md transition-all duration-300 overflow-hidden cursor-pointer"
                 >
                   {/* Imagem Externa (se houver) */}
                   {aviso.imagem_url && (
@@ -400,7 +417,7 @@ export default function AreaPublicaPage() {
                     </div>
 
                     {/* Título */}
-                    <h2 className="text-base sm:text-lg font-extrabold text-foreground group-hover:text-[#7f1d1d] dark:group-hover:text-[#f8b4bc] transition-colors leading-snug line-clamp-2">
+                    <h2 className="text-base sm:text-lg font-extrabold text-foreground group-hover:opacity-85 transition-opacity leading-snug line-clamp-2">
                       {aviso.titulo}
                     </h2>
 
@@ -412,7 +429,10 @@ export default function AreaPublicaPage() {
 
                   {/* Rodapé do Card: Links de Ação e Ações de Gestor */}
                   <div className="px-4 sm:px-5 pb-4 pt-2 border-t border-border/60 flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold text-[#7f1d1d] dark:text-[#f8b4bc] flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                    <span 
+                      className="text-xs font-bold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform"
+                      style={{ color: corPrincipal }}
+                    >
                       <span>Ler Comunicado</span>
                       <ArrowRight className="h-3.5 w-3.5" />
                     </span>
@@ -472,7 +492,7 @@ export default function AreaPublicaPage() {
       <footer className="border-t border-border/80 bg-card py-6 px-4 sm:px-6 lg:px-8 mt-12 text-center">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
-            <School className="h-4 w-4 text-[#7f1d1d] dark:text-[#f8b4bc]" />
+            <School className="h-4 w-4" style={{ color: corPrincipal }} />
             <span className="font-bold text-foreground">{configuracoes?.nome_instituicao || "EEMTI ANTONIETA SIQUEIRA"}</span>
           </div>
           <span>Ambiente Escolar Integrado • Desenvolvido para a Comunidade Escolar</span>
@@ -495,7 +515,10 @@ export default function AreaPublicaPage() {
                     {format(new Date(visualizandoAviso.data_publicacao), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                   </span>
                 </div>
-                <DialogTitle className="text-xl sm:text-2xl font-black text-[#7f1d1d] dark:text-[#f8b4bc] leading-snug">
+                <DialogTitle 
+                  className="text-xl sm:text-2xl font-black leading-snug"
+                  style={{ color: corPrincipal }}
+                >
                   {visualizandoAviso.titulo}
                 </DialogTitle>
               </DialogHeader>
@@ -523,7 +546,8 @@ export default function AreaPublicaPage() {
                     href={visualizandoAviso.link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-[#7f1d1d] hover:bg-[#661717] text-white shadow-xs"
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-white shadow-xs"
+                    style={{ backgroundColor: corPrincipal }}
                   >
                     <span>Abrir Arquivo / Link Oficial</span>
                     <ExternalLink className="h-4 w-4" />
@@ -558,7 +582,10 @@ export default function AreaPublicaPage() {
       <Dialog open={modalReordenarAberto} onOpenChange={setModalReordenarAberto}>
         <DialogContent className="sm:max-w-[550px] max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-lg font-bold text-[#7f1d1d] dark:text-[#f8b4bc]">
+            <DialogTitle 
+              className="flex items-center gap-2 text-lg font-bold"
+              style={{ color: corPrincipal }}
+            >
               <ArrowUpDown className="h-5 w-5" />
               Reordenar Comunicados da Área Pública
             </DialogTitle>
@@ -589,7 +616,8 @@ export default function AreaPublicaPage() {
             <Button
               type="button"
               onClick={() => setModalReordenarAberto(false)}
-              className="text-xs font-bold bg-[#7f1d1d] hover:bg-[#661717] text-white"
+              className="text-xs font-bold text-white"
+              style={{ backgroundColor: corPrincipal }}
             >
               Concluir
             </Button>
