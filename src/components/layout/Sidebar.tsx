@@ -10,7 +10,8 @@ import {
   ChevronRight, 
   LogOut, 
   Building2, 
-  BookOpen 
+  BookOpen,
+  Globe 
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -23,14 +24,19 @@ import { ThemeToggle } from "@/components/ThemeToggle"
 
 const routes = [
   {
-    path: "/",
+    path: "/links",
     name: "Links",
     icon: Link2,
   },
   {
     path: "/avisos",
-    name: "Avisos",
+    name: "Avisos Internos",
     icon: Megaphone,
+  },
+  {
+    path: "/",
+    name: "Área Pública",
+    icon: Globe,
   },
   {
     path: "/horarios",

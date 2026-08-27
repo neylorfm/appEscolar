@@ -148,7 +148,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setUsuario(null)
         setLoading(false)
-        navigate('/login')
       }
     })
 

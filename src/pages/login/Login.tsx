@@ -28,7 +28,7 @@ export function Login() {
 
   useEffect(() => {
     if (usuario) {
-      navigate('/')
+      navigate('/links')
     }
   }, [usuario, navigate])
 
@@ -149,6 +149,16 @@ export function Login() {
           >
             {loading ? 'Entrando...' : 'Entrar'}
           </Button>
+
+          <div className="text-center pt-2">
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="text-xs font-semibold text-gray-500 hover:text-gray-900 transition-colors inline-flex items-center gap-1 cursor-pointer"
+            >
+              ← Voltar para a Área Pública
+            </button>
+          </div>
         </form>
       </div>
 

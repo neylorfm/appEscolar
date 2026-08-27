@@ -4,6 +4,7 @@ import { ConfiguracoesLayout } from "./pages/configuracoes/ConfiguracoesLayout"
 import { AuthProvider, useAuth } from "./contexts/AuthContext"
 import { InstituicaoProvider } from "./contexts/InstituicaoContext"
 import { Login } from "./pages/login/Login"
+import AreaPublicaPage from "./pages/public/AreaPublicaPage"
 import Agendamentos from "./pages/agendamentos/Agendamentos"
 import AvaliacoesList from "./pages/avaliacoes/AvaliacoesList"
 import NovaAvaliacaoPage from "./pages/avaliacoes/NovaAvaliacaoPage"
@@ -42,7 +43,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   const { usuario } = useAuth()
   
   if (usuario?.papel !== 'Administrador') {
-    return <Navigate to="/" replace />
+    return <Navigate to="/links" replace />
   }
   
   return <>{children}</>
@@ -82,33 +83,40 @@ function App() {
         <InstituicaoProvider>
           <AuthProvider>
             <Routes>
+              {/* Página Inicial Pública (Sem necessidade de login) */}
+              <Route path="/" element={<AreaPublicaPage />} />
+              <Route path="/publico" element={<AreaPublicaPage />} />
+              <Route path="/area-publica" element={<AreaPublicaPage />} />
+
+              {/* Login dos Professores e Servidores */}
               <Route path="/login" element={<Login />} />
               
-              <Route path="/" element={
+              {/* Ambiente Interno Autenticado */}
+              <Route element={
                 <ProtectedRoute>
                   <Layout />
                 </ProtectedRoute>
               }>
-                <Route index element={<LinksView />} />
-                <Route path="links" element={<LinksView />} />
-                <Route path="avisos" element={<AvisosView />} />
-                <Route path="horarios" element={<QuadroHorariosPage />} />
-                <Route path="agendamentos" element={<Agendamentos />} />
-                <Route path="avaliacoes">
+                <Route path="/links" element={<LinksView />} />
+                <Route path="/avisos" element={<AvisosView />} />
+                <Route path="/horarios" element={<QuadroHorariosPage />} />
+                <Route path="/agendamentos" element={<Agendamentos />} />
+                <Route path="/avaliacoes">
                   <Route index element={<AvaliacoesList />} />
                   <Route path="nova" element={<NovaAvaliacaoPage />} />
                   <Route path=":id/gabarito" element={<ConfigurarGabarito />} />
                   <Route path=":id/resultados" element={<LancamentoResultadosPage />} />
                 </Route>
-                <Route path="calendario">
-                  <Route index element={<CalendarioView />} />
-                </Route>
-                <Route path="configuracoes" element={
+                <Route path="/calendario" element={<CalendarioView />} />
+                <Route path="/configuracoes" element={
                   <AdminRoute>
                     <ConfiguracoesLayout />
                   </AdminRoute>
                 } />
               </Route>
+
+              {/* Redirecionamento de rotas desconhecidas */}
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
             <Toaster position="top-right" richColors />
           </AuthProvider>
