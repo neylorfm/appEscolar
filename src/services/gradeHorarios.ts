@@ -855,4 +855,242 @@ export async function setVisibilidadeGradeHorarios(publicada: boolean): Promise<
   }
 }
 
+// ==========================================
+// FASE 3: SNAPSHOTS NA NUVEM & ANÁLISE DE JANELAS
+// ==========================================
+
+export interface GradeSnapshot {
+  id: string
+  titulo: string
+  descricao?: string | null
+  total_aulas: number
+  dados: GradeHorarioItem[]
+  autor_nome?: string | null
+  created_at: string
+}
+
+export interface JanelaDocenteItem {
+  professor: string
+  dia: string
+  segmento: string
+  aulasAlocadas: number[]
+  janelas: number[]
+  totalJanelas: number
+}
+
+/**
+ * Busca todos os snapshots de rascunho salvos no Supabase (ordenados pelo mais recente)
+ */
+export async function getSnapshotsGrade(): Promise<GradeSnapshot[]> {
+  try {
+    const { data, error } = await supabase
+      .from('grade_horarios_snapshots')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      // Fallback para cache local caso a tabela ainda esteja sendo provisionada
+      console.warn('Tabela de snapshots não acessível ou sem permissão, usando fallback local:', error.message)
+      const localSnapshots = localStorage.getItem('grade_horarios_snapshots_local')
+      return localSnapshots ? JSON.parse(localSnapshots) : []
+    }
+
+    return (data || []) as GradeSnapshot[]
+  } catch (err) {
+    console.error('Erro ao buscar snapshots da grade:', err)
+    const localSnapshots = localStorage.getItem('grade_horarios_snapshots_local')
+    return localSnapshots ? JSON.parse(localSnapshots) : []
+  }
+}
+
+/**
+ * Cria um novo Snapshot da instância de Rascunho no Supabase
+ */
+export async function salvarSnapshotGrade(
+  titulo: string,
+  descricao?: string,
+  autorNome?: string
+): Promise<GradeSnapshot> {
+  const tituloLimpo = titulo.trim() || `Ponto de Restauração (${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })})`
+
+  // 1. Busca todos os itens do rascunho atual
+  const itensRascunho = await getGradeHorarios(undefined, 'RASCUNHO')
+
+  const novoSnapshotPayload = {
+    titulo: tituloLimpo,
+    descricao: descricao?.trim() || null,
+    total_aulas: itensRascunho.length,
+    dados: itensRascunho,
+    autor_nome: autorNome?.trim() || 'Coordenador',
+    created_at: new Date().toISOString()
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('grade_horarios_snapshots')
+      .insert([novoSnapshotPayload])
+      .select()
+      .single()
+
+    if (error) {
+      throw error
+    }
+
+    return data as GradeSnapshot
+  } catch (err) {
+    console.warn('Erro ao salvar snapshot no banco Supabase, gravando em fallback local:', err)
+    const localItem: GradeSnapshot = {
+      ...novoSnapshotPayload,
+      id: `local_${Date.now()}`
+    }
+    const anteriores = await getSnapshotsGrade()
+    localStorage.setItem('grade_horarios_snapshots_local', JSON.stringify([localItem, ...anteriores]))
+    return localItem
+  }
+}
+
+/**
+ * Restaura um Snapshot para o Rascunho atual (substitui todo o rascunho de edição)
+ */
+export async function restaurarSnapshotGrade(snapshot: GradeSnapshot): Promise<number> {
+  if (!snapshot || !Array.isArray(snapshot.dados)) {
+    throw new Error('Snapshot inválido ou corrompido.')
+  }
+
+  // 1. Limpa o rascunho atual
+  const { error: erroDelete } = await supabase
+    .from('grade_horarios')
+    .delete()
+    .eq('instancia', 'RASCUNHO')
+
+  if (erroDelete) {
+    console.error('Erro ao limpar rascunho para restauração:', erroDelete)
+    throw new Error('Não foi possível limpar o rascunho anterior.')
+  }
+
+  if (snapshot.dados.length === 0) {
+    return 0
+  }
+
+  // 2. Prepara os novos itens para inserção
+  const novosItens = snapshot.dados.map(item => ({
+    instancia: 'RASCUNHO' as InstanciaGrade,
+    segmento: item.segmento,
+    dia_semana: item.dia_semana,
+    numero_aula: item.numero_aula,
+    turma_nome: item.turma_nome,
+    disciplina_nome: item.disciplina_nome,
+    disciplina_id: item.disciplina_id || null,
+    professor_nome: item.professor_nome,
+    professor_id: item.professor_id || null,
+    cor_destaque: item.cor_destaque || null,
+    updated_at: new Date().toISOString()
+  }))
+
+  // Inserção em lotes
+  const BATCH_SIZE = 100
+  for (let i = 0; i < novosItens.length; i += BATCH_SIZE) {
+    const lote = novosItens.slice(i, i + BATCH_SIZE)
+    const { error: erroInsert } = await supabase
+      .from('grade_horarios')
+      .insert(lote)
+
+    if (erroInsert) {
+      console.error('Erro ao inserir lote durante restauração:', erroInsert)
+      throw new Error('Falha ao restaurar dados do snapshot no rascunho.')
+    }
+  }
+
+  return novosItens.length
+}
+
+/**
+ * Exclui um snapshot salvo
+ */
+export async function excluirSnapshotGrade(snapshotId: string): Promise<void> {
+  if (snapshotId.startsWith('local_')) {
+    const anteriores = await getSnapshotsGrade()
+    const filtrados = anteriores.filter(s => s.id !== snapshotId)
+    localStorage.setItem('grade_horarios_snapshots_local', JSON.stringify(filtrados))
+    return
+  }
+
+  const { error } = await supabase
+    .from('grade_horarios_snapshots')
+    .delete()
+    .eq('id', snapshotId)
+
+  if (error) {
+    console.error('Erro ao excluir snapshot:', error)
+    // Fallback local se existir
+    const anteriores = await getSnapshotsGrade()
+    const filtrados = anteriores.filter(s => s.id !== snapshotId)
+    localStorage.setItem('grade_horarios_snapshots_local', JSON.stringify(filtrados))
+  }
+}
+
+/**
+ * Analisa e detecta janelas vagas na grade de cada professor por dia da semana
+ */
+export function analisarJanelasDocentes(itensGrade: GradeHorarioItem[]): JanelaDocenteItem[] {
+  const mapaPorDocenteDia = new Map<string, {
+    professor: string
+    dia: string
+    segmento: string
+    aulas: Set<number>
+  }>()
+
+  for (const item of itensGrade) {
+    const prof = item.professor_nome?.trim().toUpperCase()
+    if (!prof) continue
+
+    const grupoTurno = item.segmento === 'NOTURNO' ? 'NOTURNO' : 'INTEGRAL'
+    const chave = `${grupoTurno}_${item.dia_semana}_${prof}`
+
+    let entrada = mapaPorDocenteDia.get(chave)
+    if (!entrada) {
+      entrada = {
+        professor: prof,
+        dia: item.dia_semana,
+        segmento: grupoTurno,
+        aulas: new Set<number>()
+      }
+      mapaPorDocenteDia.set(chave, entrada)
+    }
+    entrada.aulas.add(item.numero_aula)
+  }
+
+  const resultado: JanelaDocenteItem[] = []
+
+  for (const entrada of mapaPorDocenteDia.values()) {
+    const listaAulas = Array.from(entrada.aulas).sort((a, b) => a - b)
+    if (listaAulas.length < 2) continue
+
+    const minAula = listaAulas[0]
+    const maxAula = listaAulas[listaAulas.length - 1]
+    const janelas: number[] = []
+
+    for (let aula = minAula + 1; aula < maxAula; aula++) {
+      if (!entrada.aulas.has(aula)) {
+        janelas.push(aula)
+      }
+    }
+
+    if (janelas.length > 0) {
+      resultado.push({
+        professor: entrada.professor,
+        dia: entrada.dia,
+        segmento: entrada.segmento,
+        aulasAlocadas: listaAulas,
+        janelas,
+        totalJanelas: janelas.length
+      })
+    }
+  }
+
+  // Ordena por maior número de janelas e nome do professor
+  return resultado.sort((a, b) => b.totalJanelas - a.totalJanelas || a.professor.localeCompare(b.professor))
+}
+
+
 

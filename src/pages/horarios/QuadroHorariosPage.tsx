@@ -38,6 +38,9 @@ import { MinhasAulasView } from "./MinhasAulasView"
 import { ImpressaoHorariosModal } from "./ImpressaoHorariosModal"
 import { ImpressaoGradeCompleta } from "./ImpressaoGradeCompleta"
 import { PublicarHorariosModal } from "./PublicarHorariosModal"
+import { SnapshotsGradeModal } from "./SnapshotsGradeModal"
+import { MetasCurricularesModal } from "./MetasCurricularesModal"
+import { RadarJanelasDocentesModal } from "./RadarJanelasDocentesModal"
 import { useGradeHistory } from "@/hooks/useGradeHistory"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -82,7 +85,10 @@ import {
   Undo2,
   Redo2,
   Layers,
-  CheckSquare
+  CheckSquare,
+  Camera,
+  BookOpen,
+  Radio
 } from "lucide-react"
 
 type AbaSegmento = "INTEGRAL_COMPLETO" | "MANHA" | "TARDE" | "NOTURNO" | "POR_PROFESSOR"
@@ -116,7 +122,10 @@ export default function QuadroHorariosPage() {
   const [instanciaAtiva, setInstanciaAtiva] = useState<InstanciaGrade>("PUBLICADA")
   const [copiandoVisualizacao, setCopiandoVisualizacao] = useState(false)
   const [dialogCopiarAberto, setDialogCopiarAberto] = useState(false)
-  const [modalPublicarAberto, setModalPublicarAberto] = useState(false)
+  const [modalPublicarAberto, setModalPublicarAberto] = useState<boolean>(false)
+  const [modalSnapshotsAberto, setModalSnapshotsAberto] = useState<boolean>(false)
+  const [modalMetasAberto, setModalMetasAberto] = useState<boolean>(false)
+  const [modalJanelasAberto, setModalJanelasAberto] = useState<boolean>(false)
 
   const [abaAtiva, setAbaAtiva] = useState<AbaSegmento>("MANHA")
   const [itensGrade, setItensGrade] = useState<GradeHorarioItem[]>([])
@@ -1131,6 +1140,42 @@ export default function QuadroHorariosPage() {
                     type="button"
                     variant="outline"
                     size="sm"
+                    onClick={() => setModalSnapshotsAberto(true)}
+                    className="h-8 gap-1.5 text-xs font-bold bg-white dark:bg-slate-900 border-purple-500/40 text-purple-700 dark:text-purple-300 hover:bg-purple-100/60 dark:hover:bg-purple-950/40"
+                    title="Salvar fotos de segurança na nuvem e restaurar versões anteriores da grade com 1 clique"
+                  >
+                    <Camera className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+                    <span>Snapshots</span>
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setModalMetasAberto(true)}
+                    className="h-8 gap-1.5 text-xs font-bold bg-white dark:bg-slate-900 border-blue-500/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100/60 dark:hover:bg-blue-950/40"
+                    title="Acompanhar distribuição semanal de aulas e metas por turma"
+                  >
+                    <BookOpen className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                    <span>Carga Horária</span>
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setModalJanelasAberto(true)}
+                    className="h-8 gap-1.5 text-xs font-bold bg-white dark:bg-slate-900 border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-100/60 dark:hover:bg-amber-950/40"
+                    title="Detectar horários ociosos (janelas) entre as aulas de cada professor"
+                  >
+                    <Radio className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                    <span>Radar Janelas</span>
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={() => setDialogCopiarAberto(true)}
                     disabled={copiandoVisualizacao}
                     className="h-8 gap-1.5 text-xs font-bold bg-white dark:bg-slate-900 border-amber-500/40 hover:bg-amber-100/60 dark:hover:bg-amber-950/40"
@@ -1758,6 +1803,30 @@ export default function QuadroHorariosPage() {
         onConfirmarPublicacao={handleConfirmarPublicacao}
         totalAulasRascunho={itensGrade.length}
         itensRascunho={itensGrade}
+      />
+
+      {/* MODAL DE SNAPSHOTS / PONTOS DE RESTAURAÇÃO NA NUVEM (Fase 3) */}
+      <SnapshotsGradeModal
+        open={modalSnapshotsAberto}
+        onOpenChange={setModalSnapshotsAberto}
+        onRestauracaoConcluida={carregarDados}
+        totalAulasAtuais={itensGrade.length}
+      />
+
+      {/* MODAL DE METAS CURRICULARES POR TURMA (Fase 3) */}
+      <MetasCurricularesModal
+        open={modalMetasAberto}
+        onOpenChange={setModalMetasAberto}
+        turmas={abaAtiva === "NOTURNO" ? turmasNoturno : turmasIntegral}
+        itensGrade={itensGrade}
+        segmento={abaAtiva === "POR_PROFESSOR" ? "INTEGRAL_COMPLETO" : abaAtiva}
+      />
+
+      {/* MODAL DO RADAR DE JANELAS DOCENTES (Fase 3) */}
+      <RadarJanelasDocentesModal
+        open={modalJanelasAberto}
+        onOpenChange={setModalJanelasAberto}
+        itensGrade={itensGrade}
       />
 
       {/* MODAL DE IMPRESSÃO / ESCOLHA DO FORMATO */}
