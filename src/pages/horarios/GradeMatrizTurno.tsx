@@ -89,8 +89,9 @@ export function GradeMatrizTurno({
   const [draggedTeacher, setDraggedTeacher] = useState<string | null>(null)
   const [draggedOriginKey, setDraggedOriginKey] = useState<string | null>(null)
 
-  // Foco de Célula e Clipboard para Atalhos de Teclado (Fase 2)
+  // Foco de Célula e Controle de Abertura de Modal (Fase 2)
   const [focusedCell, setFocusedCell] = useState<{ dia: string; aula: number; turma: string } | null>(null)
+  const [editingCellKey, setEditingCellKey] = useState<string | null>(null)
   const [clipboardGrade, setClipboardGrade] = useState<{
     disciplina_nome: string
     professor_nome: string
@@ -215,6 +216,13 @@ export function GradeMatrizTurno({
             turma: focusedCell.turma
           })
         }
+      }
+
+      // Tecla Enter ou Espaço: Abrir Edição da Célula Focada
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault()
+        const chave = `${focusedCell.dia}_${focusedCell.aula}_${focusedCell.turma}`
+        setEditingCellKey(chave)
       }
 
       // Tecla Delete / Backspace: Limpar Horário
@@ -415,9 +423,12 @@ export function GradeMatrizTurno({
                               ? "bg-emerald-50/60 dark:bg-emerald-950/30 ring-1 ring-emerald-500/40"
                               : ""
                           } ${
-                            isFocused ? "ring-2 ring-blue-600 dark:ring-blue-400 z-20 shadow-md" : ""
+                            isFocused ? "ring-2 ring-blue-600 bg-blue-500/15 dark:ring-blue-400 dark:bg-blue-950/40 z-30 shadow-md scale-[1.01]" : ""
                           }`}
                           onClick={() => setFocusedCell({ dia, aula: aula.numero, turma })}
+                          onDoubleClick={() => {
+                            if (canEdit) setEditingCellKey(chave)
+                          }}
                           onDragOver={(e) => {
                             if (!canEdit) return
                             e.preventDefault()
@@ -504,6 +515,8 @@ export function GradeMatrizTurno({
                             temConflito={temConflito}
                             conflitoInfo={conflitoInfo}
                             canEdit={canEdit}
+                            open={editingCellKey === chave}
+                            onOpenChange={(isOpen) => setEditingCellKey(isOpen ? chave : null)}
                             onSalvar={async (disc, prof, cor) => {
                               await onSalvarCelula(segmentoReal, dia, aula.numero, turma, disc, prof, cor)
                             }}
@@ -548,9 +561,9 @@ export function GradeMatrizTurno({
                                   : profArrastadoLivreAqui
                                   ? `✓ Horário Livre para Prof. ${draggedTeacher}`
                                   : item
-                                  ? `${item.disciplina_nome} - Prof. ${item.professor_nome} (Arraste para inverter • Ctrl+C / Ctrl+V • Del para limpar)`
+                                  ? `${item.disciplina_nome} - Prof. ${item.professor_nome} (Duplo clique ou Enter para editar • Ctrl+C / Ctrl+V • Del)`
                                   : canEdit
-                                  ? "Clique para definir aula ou solte um horário aqui"
+                                  ? "Duplo clique para definir aula ou use Setas + Ctrl+V"
                                   : ""
                               }
                               style={temConflito ? undefined : (item ? estiloProfessor : undefined)}

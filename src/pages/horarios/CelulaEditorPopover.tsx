@@ -29,6 +29,8 @@ interface CelulaEditorPopoverProps {
   temConflito?: boolean
   conflitoInfo?: string
   canEdit: boolean
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
   onSalvar: (disciplina: string, professor: string, cor?: string) => Promise<void>
   onLimpar: () => Promise<void>
   children: React.ReactNode
@@ -47,11 +49,16 @@ export function CelulaEditorPopover({
   temConflito,
   conflitoInfo,
   canEdit,
+  open: openProp,
+  onOpenChange: onOpenChangeProp,
   onSalvar,
   onLimpar,
   children
 }: CelulaEditorPopoverProps) {
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isControlled = openProp !== undefined
+  const open = isControlled ? openProp : internalOpen
+  const setOpen = isControlled ? (onOpenChangeProp || (() => {})) : setInternalOpen
   const [disciplinaBusca, setDisciplinaBusca] = useState(disciplinaAtual)
   const [professorBusca, setProfessorBusca] = useState(professorAtual)
   const [corSelecionada, setCorSelecionada] = useState(
