@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react"
 import {
   Dialog,
-  DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -140,12 +139,9 @@ export function CelulaEditorPopover({
   const previewEstilo = getEstiloBadgeCor(corSelecionada)
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
-
-      <DialogContent className="sm:max-w-md p-5 rounded-2xl shadow-xl border-border bg-card z-[250] max-h-[90vh] overflow-y-auto">
+    <>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-md p-5 rounded-2xl shadow-xl border-border bg-card z-[250] max-h-[90vh] overflow-y-auto">
         <DialogHeader className="border-b border-border/50 pb-2.5">
           <div className="flex items-center justify-between">
             <div>
@@ -358,5 +354,7 @@ export function CelulaEditorPopover({
         </form>
       </DialogContent>
     </Dialog>
-  )
+    {children}
+  </>
+)
 }

@@ -566,7 +566,19 @@ export function GradeMatrizTurno({
                                   ? "Duplo clique para definir aula ou use Setas + Ctrl+V"
                                   : ""
                               }
-                              style={temConflito ? undefined : (item ? estiloProfessor : undefined)}
+                              style={
+                                temConflito 
+                                  ? undefined 
+                                  : item 
+                                  ? { 
+                                      ...estiloProfessor, 
+                                      boxShadow: isFocused ? "inset 0 0 0 2.5px #2563eb, 0 0 0 1px #1d4ed8" : undefined,
+                                      filter: isFocused ? "contrast(1.05) saturate(1.1)" : undefined
+                                    } 
+                                  : isFocused 
+                                  ? { boxShadow: "inset 0 0 0 2.5px #2563eb" } 
+                                  : undefined
+                              }
                               className={`group relative w-full ${configFonte.classeCelula} px-0.5 py-0.5 flex flex-col justify-center items-center text-center overflow-hidden transition-all select-none ${
                                 temConflito
                                   ? "animacao-conflito-alerta font-black cursor-pointer"
@@ -578,6 +590,10 @@ export function GradeMatrizTurno({
                               } ${
                                 canEdit && !temConflito ? "hover:brightness-95 active:scale-[0.98]" : ""
                               } ${
+                                isFocused
+                                  ? "ring-2 ring-blue-600 dark:ring-blue-400 z-30 shadow-md font-black"
+                                  : ""
+                              } ${
                                 profMatch && !temConflito
                                   ? "ring-2 ring-red-600 bg-red-100 dark:bg-red-950/80 text-red-950 dark:text-red-100 font-black shadow-md relative z-20 scale-[1.02]"
                                   : temFiltroAtivo && item && !temConflito
@@ -585,6 +601,14 @@ export function GradeMatrizTurno({
                                   : ""
                               }`}
                             >
+                              {/* Marcador de Canto da Célula Ativa Selecionada para o Teclado */}
+                              {isFocused && (
+                                <div 
+                                  className="absolute top-0 left-0 w-2.5 h-2.5 bg-blue-600 dark:bg-blue-400 rounded-br-sm z-30 pointer-events-none shadow-xs animate-pulse" 
+                                  title="Célula ativa (use Setas para navegar, Ctrl+C/V ou Del)"
+                                />
+                              )}
+
                               {/* Ícone de Target (Alvo) quando a célula corresponder à busca do professor */}
                               {profMatch && !temConflito && (
                                 <div 
