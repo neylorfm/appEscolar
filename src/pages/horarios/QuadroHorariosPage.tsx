@@ -1094,12 +1094,12 @@ export default function QuadroHorariosPage() {
 
             {/* BARRA DE CONTROLES EXCLUSIVOS DA INSTÂNCIA DE EDIÇÃO (RASCUNHO) */}
             {instanciaAtiva === "RASCUNHO" && canEdit && (
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3.5 rounded-2xl bg-amber-500/15 border-2 border-amber-500/40 text-xs font-medium text-amber-950 dark:text-amber-200 shadow-sm print:hidden">
-                <div className="flex items-start gap-2.5">
+              <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 p-3 rounded-2xl bg-amber-500/15 border-2 border-amber-500/40 text-xs font-medium text-amber-950 dark:text-amber-200 shadow-xs print:hidden">
+                <div className="flex items-start gap-2.5 min-w-0">
                   <div className="p-2 rounded-xl bg-amber-600 text-white shrink-0">
                     <Edit3 className="h-4 w-4" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-black text-sm uppercase tracking-wide text-amber-900 dark:text-amber-100">
                         Instância de Edição (Rascunho)
@@ -1114,71 +1114,55 @@ export default function QuadroHorariosPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 flex-wrap shrink-0 self-end md:self-center">
-                  {/* Seletor de Tamanho de Fonte na barra de Rascunho */}
-                  <div className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-900/80 px-2.5 py-1 rounded-xl border border-amber-500/30">
-                    <ZoomIn className="h-3.5 w-3.5 text-amber-700 dark:text-amber-300 shrink-0" />
-                    <span className="text-xs font-bold text-amber-900 dark:text-amber-200">Fonte Aulas:</span>
-                    <Select 
-                      value={tamanhoFonteRascunho} 
-                      onValueChange={(val) => handleTrocarTamanhoFonteRascunho(val as TamanhoFonteRascunho)}
+                {/* Grupo de Ferramentas e Ações do Rascunho */}
+                <div className="flex items-center gap-2 flex-wrap justify-start xl:justify-end">
+                  {/* Pílula Unificada de Ferramentas Inteligentes (Fase 3) */}
+                  <div className="flex items-center gap-1 p-1 bg-white/90 dark:bg-slate-900/90 rounded-xl border border-amber-500/30 shadow-2xs">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setModalSnapshotsAberto(true)}
+                      className="h-7 px-2.5 gap-1.5 text-xs font-bold text-purple-700 dark:text-purple-300 hover:bg-purple-100/70 dark:hover:bg-purple-950/50"
+                      title="Salvar fotos de segurança na nuvem e restaurar versões anteriores da grade com 1 clique"
                     >
-                      <SelectTrigger className="h-7 text-xs w-36 font-bold">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {OPCOES_TAMANHO_FONTE_RASCUNHO.map((opt) => (
-                          <SelectItem key={opt.id} value={opt.id} className="text-xs">
-                            <span className="font-bold">{opt.label}</span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      <Camera className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+                      <span>Snapshots</span>
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setModalMetasAberto(true)}
+                      className="h-7 px-2.5 gap-1.5 text-xs font-bold text-blue-700 dark:text-blue-300 hover:bg-blue-100/70 dark:hover:bg-blue-950/50"
+                      title="Acompanhar distribuição semanal de aulas e metas por turma"
+                    >
+                      <BookOpen className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                      <span>Carga Horária</span>
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setModalJanelasAberto(true)}
+                      className="h-7 px-2.5 gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-300 hover:bg-amber-100/70 dark:hover:bg-amber-950/50"
+                      title="Detectar horários ociosos (janelas) entre as aulas de cada professor"
+                    >
+                      <Radio className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                      <span>Radar Janelas</span>
+                    </Button>
                   </div>
 
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setModalSnapshotsAberto(true)}
-                    className="h-8 gap-1.5 text-xs font-bold bg-white dark:bg-slate-900 border-purple-500/40 text-purple-700 dark:text-purple-300 hover:bg-purple-100/60 dark:hover:bg-purple-950/40"
-                    title="Salvar fotos de segurança na nuvem e restaurar versões anteriores da grade com 1 clique"
-                  >
-                    <Camera className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
-                    <span>Snapshots</span>
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setModalMetasAberto(true)}
-                    className="h-8 gap-1.5 text-xs font-bold bg-white dark:bg-slate-900 border-blue-500/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100/60 dark:hover:bg-blue-950/40"
-                    title="Acompanhar distribuição semanal de aulas e metas por turma"
-                  >
-                    <BookOpen className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                    <span>Carga Horária</span>
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setModalJanelasAberto(true)}
-                    className="h-8 gap-1.5 text-xs font-bold bg-white dark:bg-slate-900 border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-100/60 dark:hover:bg-amber-950/40"
-                    title="Detectar horários ociosos (janelas) entre as aulas de cada professor"
-                  >
-                    <Radio className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-                    <span>Radar Janelas</span>
-                  </Button>
-
+                  {/* Ações de Cópia e Publicação */}
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     onClick={() => setDialogCopiarAberto(true)}
                     disabled={copiandoVisualizacao}
-                    className="h-8 gap-1.5 text-xs font-bold bg-white dark:bg-slate-900 border-amber-500/40 hover:bg-amber-100/60 dark:hover:bg-amber-950/40"
+                    className="h-9 px-3 gap-1.5 text-xs font-bold bg-white dark:bg-slate-900 border-amber-500/40 text-foreground hover:bg-amber-100/60 dark:hover:bg-amber-950/40 whitespace-nowrap shadow-2xs"
                     title="Substitui o rascunho atual com uma cópia exata dos horários publicados na visualização."
                   >
                     <Copy className="h-3.5 w-3.5 text-amber-700 dark:text-amber-300" />
@@ -1189,7 +1173,7 @@ export default function QuadroHorariosPage() {
                     type="button"
                     size="sm"
                     onClick={() => setModalPublicarAberto(true)}
-                    className="h-8 gap-1.5 text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                    className="h-9 px-3.5 gap-1.5 text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs whitespace-nowrap shrink-0"
                     title="Abre o assistente para publicar esta grade com data de vigência para todos os professores."
                   >
                     <UploadCloud className="h-4 w-4" />
