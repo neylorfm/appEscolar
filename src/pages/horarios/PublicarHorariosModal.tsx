@@ -11,13 +11,31 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { UploadCloud, Calendar, CheckCircle2 } from "lucide-react"
+import { 
+  UploadCloud, 
+  Calendar, 
+  GitCompare, 
+  ArrowRight, 
+  ChevronDown,
+  ChevronUp
+} from "lucide-react"
+import { GradeHorarioItem, getGradeHorarios, normalizarNomeTurma } from "@/services/gradeHorarios"
 
 interface PublicarHorariosModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onConfirmarPublicacao: (textoVigencia: string) => Promise<void>
   totalAulasRascunho: number
+  itensRascunho?: GradeHorarioItem[]
+}
+
+export interface DiferencaItem {
+  tipo: "NOVA" | "ALTERADA" | "REMOVIDA"
+  dia: string
+  aula: number
+  turma: string
+  de?: { disciplina: string; professor: string }
+  para?: { disciplina: string; professor: string }
 }
 
 const OPCOES_TURNO_VIGENCIA = [
@@ -37,9 +55,9 @@ export function PublicarHorariosModal({
   open,
   onOpenChange,
   onConfirmarPublicacao,
-  totalAulasRascunho
+  totalAulasRascunho,
+  itensRascunho = []
 }: PublicarHorariosModalProps) {
-  // Pega a data de hoje formatada YYYY-MM-DD para o input
   const hoje = new Date()
   const dataHojeStr = hoje.toISOString().split('T')[0]
 
@@ -47,14 +65,101 @@ export function PublicarHorariosModal({
   const [opcaoTurno, setOpcaoTurno] = useState<string>("Manhã")
   const [textoPersonalizado, setTextoPersonalizado] = useState<string>("")
   const [publicando, setPublicando] = useState<boolean>(false)
+  const [itensPublicados, setItensPublicados] = useState<GradeHorarioItem[]>([])
+  const [carregandoDiff, setCarregandoDiff] = useState<boolean>(false)
+  const [diffExpandido, setDiffExpandido] = useState<boolean>(false)
 
   useEffect(() => {
     if (open) {
       setDataSelecionada(new Date().toISOString().split('T')[0])
+      carregarPublicados()
     }
   }, [open])
 
-  // Formata a data para DD/MM/AAAA
+  async function carregarPublicados() {
+    try {
+      setCarregandoDiff(true)
+      const data = await getGradeHorarios(undefined, "PUBLICADA")
+      setItensPublicados(data)
+    } catch (err) {
+      console.warn("Erro ao carregar itens publicados para diff:", err)
+    } finally {
+      setCarregandoDiff(false)
+    }
+  }
+
+  // Motor de Cálculo de Diferenças (Diff Engine)
+  const diferencas = useMemo(() => {
+    const mapaPub = new Map<string, GradeHorarioItem>()
+    for (const item of itensPublicados) {
+      mapaPub.set(`${item.dia_semana}_${item.numero_aula}_${normalizarNomeTurma(item.turma_nome)}`, item)
+    }
+
+    const mapaRasc = new Map<string, GradeHorarioItem>()
+    for (const item of itensRascunho) {
+      mapaRasc.set(`${item.dia_semana}_${item.numero_aula}_${normalizarNomeTurma(item.turma_nome)}`, item)
+    }
+
+    const resultado: DiferencaItem[] = []
+    let inalteradas = 0
+
+    // Verifica adições e modificações
+    for (const [chave, itemR] of mapaRasc.entries()) {
+      const itemP = mapaPub.get(chave)
+      if (!itemP) {
+        resultado.push({
+          tipo: "NOVA",
+          dia: itemR.dia_semana,
+          aula: itemR.numero_aula,
+          turma: itemR.turma_nome,
+          para: { disciplina: itemR.disciplina_nome, professor: itemR.professor_nome }
+        })
+      } else {
+        const discMudou = itemP.disciplina_nome.toUpperCase().trim() !== itemR.disciplina_nome.toUpperCase().trim()
+        const profMudou = itemP.professor_nome.toUpperCase().trim() !== itemR.professor_nome.toUpperCase().trim()
+
+        if (discMudou || profMudou) {
+          resultado.push({
+            tipo: "ALTERADA",
+            dia: itemR.dia_semana,
+            aula: itemR.numero_aula,
+            turma: itemR.turma_nome,
+            de: { disciplina: itemP.disciplina_nome, professor: itemP.professor_nome },
+            para: { disciplina: itemR.disciplina_nome, professor: itemR.professor_nome }
+          })
+        } else {
+          inalteradas++
+        }
+      }
+    }
+
+    // Verifica remoções
+    for (const [chave, itemP] of mapaPub.entries()) {
+      if (!mapaRasc.has(chave)) {
+        resultado.push({
+          tipo: "REMOVIDA",
+          dia: itemP.dia_semana,
+          aula: itemP.numero_aula,
+          turma: itemP.turma_nome,
+          de: { disciplina: itemP.disciplina_nome, professor: itemP.professor_nome }
+        })
+      }
+    }
+
+    const novas = resultado.filter(r => r.tipo === "NOVA")
+    const alteradas = resultado.filter(r => r.tipo === "ALTERADA")
+    const removidas = resultado.filter(r => r.tipo === "REMOVIDA")
+
+    return {
+      lista: resultado,
+      novasCount: novas.length,
+      alteradasCount: alteradas.length,
+      removidasCount: removidas.length,
+      inalteradasCount: inalteradas,
+      totalAlteracoes: resultado.length
+    }
+  }, [itensPublicados, itensRascunho])
+
   const dataFormatadaPt = useMemo(() => {
     if (!dataSelecionada) return ""
     const [ano, mes, dia] = dataSelecionada.split('-')
@@ -62,7 +167,6 @@ export function PublicarHorariosModal({
     return `${dia}/${mes}/${ano}`
   }, [dataSelecionada])
 
-  // Turno final selecionado
   const complementoTurno = useMemo(() => {
     if (opcaoTurno === "OUTRO") {
       return textoPersonalizado.trim() || "Geral"
@@ -70,7 +174,6 @@ export function PublicarHorariosModal({
     return opcaoTurno
   }, [opcaoTurno, textoPersonalizado])
 
-  // Legenda de vigência final
   const legendaFinal = useMemo(() => {
     const dataTxt = dataFormatadaPt || "dd/mm/aaaa"
     return `Válido a partir de ${dataTxt} • ${complementoTurno}`
@@ -88,7 +191,7 @@ export function PublicarHorariosModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[540px] p-6 rounded-2xl">
+      <DialogContent className="sm:max-w-[580px] p-6 rounded-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="gap-2">
           <div className="flex items-center gap-2.5">
             <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
@@ -106,12 +209,114 @@ export function PublicarHorariosModal({
         </DialogHeader>
 
         <div className="space-y-4 py-2 text-sm">
-          {/* Card de Alerta Informativo */}
-          <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-950 dark:text-emerald-200">
-            <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-            <div>
-              <strong>{totalAulasRascunho} aulas</strong> preparadas no rascunho serão publicadas e ficarão visíveis para todos os professores e alunos.
+          {/* Card de Resumo de Alterações (Diff Preview - Fase 2) */}
+          <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-2xs">
+            <div className="p-3.5 bg-muted/40 border-b border-border/80 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <GitCompare className="h-4 w-4 text-primary shrink-0" />
+                <div>
+                  <span className="text-xs font-black text-foreground uppercase tracking-wide">
+                    Comparador de Alterações
+                  </span>
+                  <span className="text-[10px] text-muted-foreground block font-semibold">
+                    {totalAulasRascunho} aulas preparadas no rascunho
+                  </span>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setDiffExpandido(prev => !prev)}
+                className="h-6 px-2 text-[11px] font-bold gap-1 text-muted-foreground hover:text-foreground"
+              >
+                <span>{diffExpandido ? "Recolher Detalhes" : "Ver Detalhes"}</span>
+                {diffExpandido ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              </Button>
             </div>
+
+            {/* Badges de Contagem de Alterações */}
+            <div className="p-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+              <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-950 dark:text-emerald-200">
+                <span className="text-[10px] font-bold uppercase block text-emerald-700 dark:text-emerald-300">Novas</span>
+                <span className="text-base font-black">+{diferencas.novasCount}</span>
+              </div>
+              <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-950 dark:text-amber-200">
+                <span className="text-[10px] font-bold uppercase block text-amber-700 dark:text-amber-300">Alteradas</span>
+                <span className="text-base font-black">~{diferencas.alteradasCount}</span>
+              </div>
+              <div className="p-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-950 dark:text-red-200">
+                <span className="text-[10px] font-bold uppercase block text-red-700 dark:text-red-300">Removidas</span>
+                <span className="text-base font-black">-{diferencas.removidasCount}</span>
+              </div>
+              <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-border text-foreground">
+                <span className="text-[10px] font-bold uppercase block text-muted-foreground">Inalteradas</span>
+                <span className="text-base font-black">{diferencas.inalteradasCount}</span>
+              </div>
+            </div>
+
+            {/* Lista Detalhada Expansível */}
+            {diffExpandido && (
+              <div className="border-t border-border/80 p-3 max-h-48 overflow-y-auto space-y-1.5 bg-muted/20 text-xs">
+                {carregandoDiff ? (
+                  <div className="py-4 text-center text-muted-foreground text-xs">
+                    Comparando dados...
+                  </div>
+                ) : diferencas.lista.length === 0 ? (
+                  <div className="py-3 text-center text-muted-foreground text-xs">
+                    Nenhuma alteração detectada em relação à grade em vigor.
+                  </div>
+                ) : (
+                  diferencas.lista.map((item, idx) => (
+                    <div
+                      key={`${item.dia}_${item.aula}_${item.turma}_${idx}`}
+                      className="flex items-center justify-between gap-2 p-1.5 px-2.5 rounded-lg bg-card border border-border/70 text-[11px]"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        {item.tipo === "NOVA" && (
+                          <span className="px-1.5 py-0.2 rounded bg-emerald-600 text-white font-black text-[9px]">
+                            NOVA
+                          </span>
+                        )}
+                        {item.tipo === "ALTERADA" && (
+                          <span className="px-1.5 py-0.2 rounded bg-amber-600 text-white font-black text-[9px]">
+                            ALTERADA
+                          </span>
+                        )}
+                        {item.tipo === "REMOVIDA" && (
+                          <span className="px-1.5 py-0.2 rounded bg-red-600 text-white font-black text-[9px]">
+                            REMOVIDA
+                          </span>
+                        )}
+                        <span className="font-extrabold text-foreground">
+                          {item.turma} • {item.dia} {item.aula}ª Aula:
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1 font-semibold text-right truncate">
+                        {item.tipo === "NOVA" && (
+                          <span className="text-emerald-700 dark:text-emerald-300 font-bold truncate">
+                            {item.para?.disciplina} ({item.para?.professor})
+                          </span>
+                        )}
+                        {item.tipo === "ALTERADA" && (
+                          <span className="flex items-center gap-1 text-muted-foreground truncate">
+                            <span className="line-through text-red-600/80 truncate">{item.de?.disciplina} ({item.de?.professor})</span>
+                            <ArrowRight className="h-3 w-3 shrink-0 text-foreground" />
+                            <span className="text-amber-700 dark:text-amber-300 font-bold truncate">{item.para?.disciplina} ({item.para?.professor})</span>
+                          </span>
+                        )}
+                        {item.tipo === "REMOVIDA" && (
+                          <span className="text-red-600 dark:text-red-400 line-through font-semibold truncate">
+                            {item.de?.disciplina} ({item.de?.professor})
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

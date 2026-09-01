@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect, useCallback } from "react"
 import { 
   DIAS_SEMANA, 
   NOMES_DIAS, 
@@ -11,7 +11,8 @@ import {
 } from "@/services/gradeHorarios"
 import { CelulaEditorPopover } from "./CelulaEditorPopover"
 import { Disciplina } from "@/services/disciplinas"
-import { AlertTriangle, Plus, Target } from "lucide-react"
+import { AlertTriangle, Plus, Target, Ban } from "lucide-react"
+import { toast } from "sonner"
 
 export interface DadosTrocaCelulas {
   segmentoA: string
@@ -83,8 +84,20 @@ export function GradeMatrizTurno({
   onTrocarCelulas
 }: GradeMatrizTurnoProps) {
   const [dragOverCellKey, setDragOverCellKey] = useState<string | null>(null)
+  
+  // Raio-X de Disponibilidade Docente (Ghost Highlighting - Fase 2)
+  const [draggedTeacher, setDraggedTeacher] = useState<string | null>(null)
+  const [draggedOriginKey, setDraggedOriginKey] = useState<string | null>(null)
 
-  // Configuração visual de tamanho de fonte para a grade (apenas para disciplina e professor dentro das células)
+  // Foco de Célula e Clipboard para Atalhos de Teclado (Fase 2)
+  const [focusedCell, setFocusedCell] = useState<{ dia: string; aula: number; turma: string } | null>(null)
+  const [clipboardGrade, setClipboardGrade] = useState<{
+    disciplina_nome: string
+    professor_nome: string
+    cor_destaque?: string
+  } | null>(null)
+
+  // Configuração visual de tamanho de fonte para a grade
   const configFonte = useMemo(() => {
     return (
       OPCOES_TAMANHO_FONTE_RASCUNHO.find((opt) => opt.id === tamanhoFonte) ||
@@ -143,6 +156,119 @@ export function GradeMatrizTurno({
     if (turmasFiltradas.length <= 5) return "min-w-[110px] sm:min-w-[135px]"
     return "min-w-[85px] sm:min-w-[98px]"
   }, [turmasFiltradas.length])
+
+  // Função auxiliar para normalização de busca de texto
+  const normalizarTextoBusca = useCallback((txt: string) =>
+    txt.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim(), [])
+
+  // Gerenciador de Atalhos de Teclado Power-User (Fase 2)
+  useEffect(() => {
+    if (!canEdit) return
+
+    function handleKeyDown(e: KeyboardEvent) {
+      const target = e.target as HTMLElement
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return
+      }
+
+      if (!focusedCell) return
+
+      const diaIdx = diasParaRenderizar.indexOf(focusedCell.dia as any)
+      const aulaIdx = aulas.findIndex(a => a.numero === focusedCell.aula)
+      const turmaIdx = turmasFiltradas.indexOf(focusedCell.turma)
+
+      // Navegação por Setas
+      if (e.key === "ArrowLeft") {
+        e.preventDefault()
+        if (turmaIdx > 0) {
+          setFocusedCell({ ...focusedCell, turma: turmasFiltradas[turmaIdx - 1] })
+        }
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault()
+        if (turmaIdx < turmasFiltradas.length - 1) {
+          setFocusedCell({ ...focusedCell, turma: turmasFiltradas[turmaIdx + 1] })
+        }
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault()
+        if (aulaIdx > 0) {
+          setFocusedCell({ ...focusedCell, aula: aulas[aulaIdx - 1].numero })
+        } else if (diaIdx > 0) {
+          setFocusedCell({
+            dia: diasParaRenderizar[diaIdx - 1],
+            aula: aulas[aulas.length - 1].numero,
+            turma: focusedCell.turma
+          })
+        }
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault()
+        if (aulaIdx < aulas.length - 1) {
+          setFocusedCell({ ...focusedCell, aula: aulas[aulaIdx + 1].numero })
+        } else if (diaIdx < diasParaRenderizar.length - 1) {
+          setFocusedCell({
+            dia: diasParaRenderizar[diaIdx + 1],
+            aula: aulas[0].numero,
+            turma: focusedCell.turma
+          })
+        }
+      }
+
+      // Tecla Delete / Backspace: Limpar Horário
+      if (e.key === "Delete" || e.key === "Backspace") {
+        const chave = `${focusedCell.dia}_${focusedCell.aula}_${focusedCell.turma}`
+        const chaveNorm = `${focusedCell.dia}_${focusedCell.aula}_${normalizarNomeTurma(focusedCell.turma)}`
+        const item = mapaItens.get(chaveNorm) || mapaItens.get(chave)
+        if (item) {
+          e.preventDefault()
+          const seg = segmento === "INTEGRAL_COMPLETO"
+            ? focusedCell.aula <= 5 ? "INTEGRAL_MANHA" : "INTEGRAL_TARDE"
+            : segmento
+          onLimparCelula(seg, focusedCell.dia, focusedCell.aula, focusedCell.turma)
+        }
+      }
+
+      // Atalho Ctrl+C: Copiar Aula Selecionada
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c") {
+        const chave = `${focusedCell.dia}_${focusedCell.aula}_${focusedCell.turma}`
+        const chaveNorm = `${focusedCell.dia}_${focusedCell.aula}_${normalizarNomeTurma(focusedCell.turma)}`
+        const item = mapaItens.get(chaveNorm) || mapaItens.get(chave)
+        if (item) {
+          e.preventDefault()
+          setClipboardGrade({
+            disciplina_nome: item.disciplina_nome,
+            professor_nome: item.professor_nome,
+            cor_destaque: item.cor_destaque || undefined
+          })
+          toast.success(`Copiado: ${item.disciplina_nome} (${item.professor_nome})`, { icon: "📋", duration: 1500 })
+        }
+      }
+
+      // Atalho Ctrl+V: Colar Aula na Célula Focada
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "v" && clipboardGrade) {
+        e.preventDefault()
+        const seg = segmento === "INTEGRAL_COMPLETO"
+          ? focusedCell.aula <= 5 ? "INTEGRAL_MANHA" : "INTEGRAL_TARDE"
+          : segmento
+        onSalvarCelula(
+          seg,
+          focusedCell.dia,
+          focusedCell.aula,
+          focusedCell.turma,
+          clipboardGrade.disciplina_nome,
+          clipboardGrade.professor_nome,
+          clipboardGrade.cor_destaque
+        )
+        toast.success(`Colado em ${focusedCell.turma}: ${clipboardGrade.disciplina_nome}`, { icon: "📌", duration: 1500 })
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [canEdit, focusedCell, diasParaRenderizar, aulas, turmasFiltradas, mapaItens, segmento, onLimparCelula, onSalvarCelula, clipboardGrade])
 
   return (
     <div className="w-full overflow-hidden rounded-xl border-2 border-black dark:border-slate-600 bg-white dark:bg-slate-950 shadow-md">
@@ -235,10 +361,6 @@ export function GradeMatrizTurno({
                         ? `⚠️ CHOQUE DE HORÁRIO: O professor(a) "${prof}" está alocado simultaneamente em 2 ou mais turmas neste mesmo horário (${turmasConflito.join(", ")}).`
                         : undefined
 
-                      // Função para busca insensível a maiúsculas/minúsculas e acentuação (ex: simoes encontra SIMÕES)
-                      const normalizarTextoBusca = (txt: string) =>
-                        txt.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim()
-
                       // Destaque para filtro de professor
                       const profMatch = Boolean(
                         professorFiltro &&
@@ -252,18 +374,48 @@ export function GradeMatrizTurno({
                         ? obterCorEfetivaProfessor(prof, item?.cor_destaque, mapaCoresProfessores)
                         : ""
                       const estiloProfessor = corDoProfessor ? getEstiloBadgeCor(corDoProfessor) : undefined
-                      // Identifica se há filtro ativo digitado
                       const temFiltroAtivo = Boolean(professorFiltro && professorFiltro.trim().length > 0)
                       const isDragTarget = dragOverCellKey === chave
+
+                      // Raio-X Docente: Cálculo em Tempo Real durante Arrasto (Fase 2)
+                      const profArrastadoAtivo = Boolean(draggedTeacher && draggedTeacher.trim().length > 0)
+                      const profArrastadoNorm = profArrastadoAtivo ? normalizarTextoBusca(draggedTeacher!) : ""
+                      const isOrigemDoArrasto = draggedOriginKey === chave
+
+                      // Verifica se o professor arrastado já está em outra turma no mesmo dia/aula
+                      const profArrastadoTemChoqueAqui = profArrastadoAtivo && !isOrigemDoArrasto && itensGrade.some(i =>
+                        i.dia_semana === dia &&
+                        i.numero_aula === aula.numero &&
+                        normalizarNomeTurma(i.turma_nome) !== normalizarNomeTurma(turma) &&
+                        i.professor_nome &&
+                        normalizarTextoBusca(i.professor_nome) === profArrastadoNorm
+                      )
+
+                      const profArrastadoLivreAqui = profArrastadoAtivo && !isOrigemDoArrasto && !profArrastadoTemChoqueAqui
+
+                      // Foco de Navegação por Teclado
+                      const isFocused = Boolean(
+                        focusedCell &&
+                        focusedCell.dia === dia &&
+                        focusedCell.aula === aula.numero &&
+                        focusedCell.turma === turma
+                      )
 
                       return (
                         <td
                           key={turma}
-                          className={`p-0 border-r border-slate-300 dark:border-slate-700 text-center align-middle transition-all ${
+                          className={`p-0 border-r border-slate-300 dark:border-slate-700 text-center align-middle transition-all relative ${
                             isDragTarget
                               ? "ring-2 ring-emerald-500 bg-emerald-100 dark:bg-emerald-950/60 z-10"
+                              : profArrastadoTemChoqueAqui
+                              ? "bg-red-100/80 dark:bg-red-950/60 ring-1 ring-red-500/50 opacity-45 cursor-not-allowed"
+                              : profArrastadoLivreAqui
+                              ? "bg-emerald-50/60 dark:bg-emerald-950/30 ring-1 ring-emerald-500/40"
                               : ""
+                          } ${
+                            isFocused ? "ring-2 ring-blue-600 dark:ring-blue-400 z-20 shadow-md" : ""
                           }`}
+                          onClick={() => setFocusedCell({ dia, aula: aula.numero, turma })}
                           onDragOver={(e) => {
                             if (!canEdit) return
                             e.preventDefault()
@@ -280,6 +432,8 @@ export function GradeMatrizTurno({
                             if (!canEdit) return
                             e.preventDefault()
                             setDragOverCellKey(null)
+                            setDraggedTeacher(null)
+                            setDraggedOriginKey(null)
 
                             try {
                               const rawData = e.dataTransfer.getData("application/json")
@@ -319,15 +473,11 @@ export function GradeMatrizTurno({
                                     corB: item.cor_destaque || undefined
                                   })
                                 } else {
-                                  // Salva a nova aula no destino e a aula antiga na origem
                                   await onSalvarCelula(segmentoReal, dia, aula.numero, turma, disciplina, professor, cor)
                                   await onSalvarCelula(segmentoOrigem, diaOrigem, aulaOrigem, turmaOrigem, item.disciplina_nome, item.professor_nome, item.cor_destaque || undefined)
                                 }
                               } else {
-                                // 1. Salva na célula destino
                                 await onSalvarCelula(segmentoReal, dia, aula.numero, turma, disciplina, professor, cor)
-
-                                // 2. Se for MOVER (sem Ctrl/Alt), esvazia a origem
                                 if (!copyMode) {
                                   await onLimparCelula(segmentoOrigem, diaOrigem, aulaOrigem, turmaOrigem)
                                 }
@@ -365,6 +515,8 @@ export function GradeMatrizTurno({
                                 if (!canEdit || !item) return
                                 const copyMode = e.ctrlKey || e.altKey
                                 e.dataTransfer.effectAllowed = "copyMove"
+                                setDraggedTeacher(item.professor_nome)
+                                setDraggedOriginKey(chave)
                                 e.dataTransfer.setData(
                                   "application/json",
                                   JSON.stringify({
@@ -379,13 +531,22 @@ export function GradeMatrizTurno({
                                   })
                                 )
                               }}
+                              onDragEnd={() => {
+                                setDraggedTeacher(null)
+                                setDraggedOriginKey(null)
+                                setDragOverCellKey(null)
+                              }}
                               role="button"
                               tabIndex={canEdit ? 0 : -1}
                               title={
                                 temConflito
                                   ? conflitoInfo
+                                  : profArrastadoTemChoqueAqui
+                                  ? `⚠️ Choque: Prof. ${draggedTeacher} já tem aula neste horário em outra turma!`
+                                  : profArrastadoLivreAqui
+                                  ? `✓ Horário Livre para Prof. ${draggedTeacher}`
                                   : item
-                                  ? `${item.disciplina_nome} - Prof. ${item.professor_nome} (Arraste para mover/inverter • Segure Ctrl para duplicar)`
+                                  ? `${item.disciplina_nome} - Prof. ${item.professor_nome} (Arraste para inverter • Ctrl+C / Ctrl+V • Del para limpar)`
                                   : canEdit
                                   ? "Clique para definir aula ou solte um horário aqui"
                                   : ""
@@ -416,6 +577,13 @@ export function GradeMatrizTurno({
                                   title={`Correspondência encontrada: Prof. ${item?.professor_nome}`}
                                 >
                                   <Target className="h-3 w-3 stroke-[2.8]" />
+                                </div>
+                              )}
+
+                              {/* Raio-X Docente: Mini Badge visual de Choque durante o arrasto */}
+                              {profArrastadoTemChoqueAqui && (
+                                <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center pointer-events-none z-20">
+                                  <Ban className="h-3.5 w-3.5 text-red-600 dark:text-red-400 stroke-[3]" />
                                 </div>
                               )}
 

@@ -1449,7 +1449,7 @@ export default function QuadroHorariosPage() {
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
                   <span>
-                    <strong>Dicas de Manuseio:</strong> Arraste sobre outra aula para <strong>inverter horários</strong> • Segure <strong>Ctrl</strong> para duplicar • Use <strong>Ctrl+Z</strong> para desfazer.
+                    <strong>Dicas de Manuseio:</strong> Arraste para <strong>inverter</strong> (verde = livre, vermelho = choque) • <strong>Ctrl+C / Ctrl+V</strong> para copiar/colar • <strong>Del</strong> para limpar • <strong>Ctrl+Z</strong> para desfazer.
                   </span>
                 </div>
 
@@ -1757,6 +1757,7 @@ export default function QuadroHorariosPage() {
         onOpenChange={setModalPublicarAberto}
         onConfirmarPublicacao={handleConfirmarPublicacao}
         totalAulasRascunho={itensGrade.length}
+        itensRascunho={itensGrade}
       />
 
       {/* MODAL DE IMPRESSÃO / ESCOLHA DO FORMATO */}
