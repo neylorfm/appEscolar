@@ -1265,46 +1265,50 @@ export default function QuadroHorariosPage() {
                 <button
                   type="button"
                   onClick={() => setAbaAtiva("INTEGRAL_COMPLETO")}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                  title="Ensino Integral Completo (1ª a 9ª Aulas)"
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                     abaAtiva === "INTEGRAL_COMPLETO"
                       ? "bg-background text-primary shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   <Clock className="h-3.5 w-3.5 text-yellow-500" />
-                  <span>Integral (1ª-9ª)</span>
+                  <span>Integral</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setAbaAtiva("MANHA")}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                  title="Turno da Manhã (1ª a 5ª Aulas)"
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                     abaAtiva === "MANHA"
                       ? "bg-background text-primary shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   <Sun className="h-3.5 w-3.5 text-amber-500" />
-                  <span>Manhã (1ª-5ª)</span>
+                  <span>Manhã</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setAbaAtiva("TARDE")}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                  title="Turno da Tarde (6ª a 9ª Aulas)"
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                     abaAtiva === "TARDE"
                       ? "bg-background text-primary shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   <Sunset className="h-3.5 w-3.5 text-orange-500" />
-                  <span>Tarde (6ª-9ª)</span>
+                  <span>Tarde</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setAbaAtiva("NOTURNO")}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                  title="Turno Noturno (1ª a 4ª Aulas)"
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                     abaAtiva === "NOTURNO"
                       ? "bg-background text-primary shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
