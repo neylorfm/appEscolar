@@ -355,7 +355,8 @@ export function GradeMatrizTurno({
                       const temConflito = Boolean(item) && (conflitosSet.has(chaveConflito) || conflitosSet.has(chaveConflitoNorm))
 
                       const prof = item?.professor_nome || ""
-                      const chaveProfGlobal = `${dia}_${aula.numero}_${prof}`
+                      const grupoTurnoReal = segmentoReal === "NOTURNO" ? "NOTURNO" : "INTEGRAL"
+                      const chaveProfGlobal = `${grupoTurnoReal}_${dia}_${aula.numero}_${prof}`
                       const turmasConflito = conflitosMap.get(chaveProfGlobal)
                       const conflitoInfo = turmasConflito
                         ? `⚠️ CHOQUE DE HORÁRIO: O professor(a) "${prof}" está alocado simultaneamente em 2 ou mais turmas neste mesmo horário (${turmasConflito.join(", ")}).`
@@ -382,10 +383,11 @@ export function GradeMatrizTurno({
                       const profArrastadoNorm = profArrastadoAtivo ? normalizarTextoBusca(draggedTeacher!) : ""
                       const isOrigemDoArrasto = draggedOriginKey === chave
 
-                      // Verifica se o professor arrastado já está em outra turma no mesmo dia/aula
+                      // Verifica se o professor arrastado já está em outra turma no mesmo dia/aula e mesmo grupo de turno
                       const profArrastadoTemChoqueAqui = profArrastadoAtivo && !isOrigemDoArrasto && itensGrade.some(i =>
                         i.dia_semana === dia &&
                         i.numero_aula === aula.numero &&
+                        (i.segmento === "NOTURNO" ? "NOTURNO" : "INTEGRAL") === grupoTurnoReal &&
                         normalizarNomeTurma(i.turma_nome) !== normalizarNomeTurma(turma) &&
                         i.professor_nome &&
                         normalizarTextoBusca(i.professor_nome) === profArrastadoNorm

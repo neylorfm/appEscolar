@@ -747,14 +747,15 @@ export function detectarChoquesHorario(itens: GradeHorarioItem[]): {
   const conflitosSet = new Set<string>()
   const conflitosMap = new Map<string, string[]>()
 
-  // Agrupa por Dia + Aula + Nome do Professor
+  // Agrupa por Turno (Integral vs Noturno) + Dia + Aula + Nome do Professor
   const mapaAlocacoes = new Map<string, GradeHorarioItem[]>()
 
   for (const item of itens) {
     const prof = item.professor_nome?.trim().toUpperCase()
     if (!prof) continue
 
-    const chaveGlobal = `${item.dia_semana}_${item.numero_aula}_${prof}`
+    const grupoTurno = item.segmento === 'NOTURNO' ? 'NOTURNO' : 'INTEGRAL'
+    const chaveGlobal = `${grupoTurno}_${item.dia_semana}_${item.numero_aula}_${prof}`
     const lista = mapaAlocacoes.get(chaveGlobal) || []
     lista.push(item)
     mapaAlocacoes.set(chaveGlobal, lista)
