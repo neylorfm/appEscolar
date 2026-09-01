@@ -13,6 +13,23 @@ import { CelulaEditorPopover } from "./CelulaEditorPopover"
 import { Disciplina } from "@/services/disciplinas"
 import { AlertTriangle, Plus, Target } from "lucide-react"
 
+export interface DadosTrocaCelulas {
+  segmentoA: string
+  diaA: string
+  aulaA: number
+  turmaA: string
+  disciplinaA: string
+  professorA: string
+  corA?: string
+  segmentoB: string
+  diaB: string
+  aulaB: number
+  turmaB: string
+  disciplinaB: string
+  professorB: string
+  corB?: string
+}
+
 interface GradeMatrizTurnoProps {
   segmento: string
   turmas: string[]
@@ -25,6 +42,8 @@ interface GradeMatrizTurnoProps {
   canEdit: boolean
   professorFiltro?: string
   turmaFiltro?: string
+  turmasCustomizadas?: string[]
+  diasFiltro?: string[]
   tamanhoFonte?: TamanhoFonteRascunho
   onSalvarCelula: (
     segmento: string,
@@ -41,6 +60,7 @@ interface GradeMatrizTurnoProps {
     aula: number,
     turma: string
   ) => Promise<void>
+  onTrocarCelulas?: (dados: DadosTrocaCelulas) => Promise<void>
 }
 
 export function GradeMatrizTurno({
@@ -55,9 +75,12 @@ export function GradeMatrizTurno({
   canEdit,
   professorFiltro,
   turmaFiltro,
+  turmasCustomizadas,
+  diasFiltro,
   tamanhoFonte = "padrao",
   onSalvarCelula,
-  onLimparCelula
+  onLimparCelula,
+  onTrocarCelulas
 }: GradeMatrizTurnoProps) {
   const [dragOverCellKey, setDragOverCellKey] = useState<string | null>(null)
 
@@ -90,10 +113,36 @@ export function GradeMatrizTurno({
     return mapa
   }, [itensGrade])
 
+  // Dias da semana visíveis conforme filtro
+  const diasParaRenderizar = useMemo(() => {
+    if (!diasFiltro || diasFiltro.length === 0) return DIAS_SEMANA
+    return DIAS_SEMANA.filter(d => diasFiltro.includes(d))
+  }, [diasFiltro])
+
+  // Filtragem flexível de turmas
   const turmasFiltradas = useMemo(() => {
+    if (turmaFiltro === "CUSTOM" && turmasCustomizadas && turmasCustomizadas.length > 0) {
+      return turmas.filter(t => turmasCustomizadas.includes(t))
+    }
+    if (turmaFiltro === "SERIE_1") {
+      return turmas.filter(t => t.startsWith("1º") || t.startsWith("1ª") || t.includes("1"))
+    }
+    if (turmaFiltro === "SERIE_2") {
+      return turmas.filter(t => t.startsWith("2º") || t.startsWith("2ª") || t.includes("2"))
+    }
+    if (turmaFiltro === "SERIE_3") {
+      return turmas.filter(t => t.startsWith("3º") || t.startsWith("3ª") || t.includes("3"))
+    }
     if (!turmaFiltro || turmaFiltro === "TODAS") return turmas
     return turmas.filter(t => t === turmaFiltro)
-  }, [turmas, turmaFiltro])
+  }, [turmas, turmaFiltro, turmasCustomizadas])
+
+  // Largura dinâmica responsiva das colunas de turma para melhor conforto visual
+  const classeLarguraColuna = useMemo(() => {
+    if (turmasFiltradas.length <= 3) return "min-w-[140px] sm:min-w-[180px]"
+    if (turmasFiltradas.length <= 5) return "min-w-[110px] sm:min-w-[135px]"
+    return "min-w-[85px] sm:min-w-[98px]"
+  }, [turmasFiltradas.length])
 
   return (
     <div className="w-full overflow-hidden rounded-xl border-2 border-black dark:border-slate-600 bg-white dark:bg-slate-950 shadow-md">
@@ -114,7 +163,7 @@ export function GradeMatrizTurno({
               {turmasFiltradas.map((turma) => (
                 <th
                   key={turma}
-                  className="sticky top-0 z-30 bg-slate-100 dark:bg-slate-900 px-1 py-1 text-center font-black text-xs sm:text-[13px] tracking-wider uppercase border-r border-b-2 border-black dark:border-slate-600 min-w-[85px] sm:min-w-[98px] shadow-xs"
+                  className={`sticky top-0 z-30 bg-slate-100 dark:bg-slate-900 px-1 py-1 text-center font-black text-xs sm:text-[13px] tracking-wider uppercase border-r border-b-2 border-black dark:border-slate-600 ${classeLarguraColuna} shadow-xs`}
                 >
                   <span className="inline-block px-1.5 py-0.5 rounded font-black text-slate-900 dark:text-slate-100">
                     {turma}
@@ -129,7 +178,7 @@ export function GradeMatrizTurno({
           </thead>
 
           <tbody>
-            {DIAS_SEMANA.map((dia) => {
+            {diasParaRenderizar.map((dia) => {
               const diaNome = NOMES_DIAS[dia]
 
               return aulas.map((aula, aulaIdx) => {
@@ -250,12 +299,38 @@ export function GradeMatrizTurno({
 
                               if (isMesmaCelula) return
 
-                              // 1. Salva na célula destino
-                              await onSalvarCelula(segmentoReal, dia, aula.numero, turma, disciplina, professor, cor)
+                              // SMART SWAP: Se a célula de destino já estiver ocupada e NÃO for cópia, inverte os dois horários!
+                              if (item && !copyMode) {
+                                if (onTrocarCelulas) {
+                                  await onTrocarCelulas({
+                                    segmentoA: segmentoReal,
+                                    diaA: dia,
+                                    aulaA: aula.numero,
+                                    turmaA: turma,
+                                    disciplinaA: disciplina,
+                                    professorA: professor,
+                                    corA: cor,
+                                    segmentoB: segmentoOrigem,
+                                    diaB: diaOrigem,
+                                    aulaB: aulaOrigem,
+                                    turmaB: turmaOrigem,
+                                    disciplinaB: item.disciplina_nome,
+                                    professorB: item.professor_nome,
+                                    corB: item.cor_destaque || undefined
+                                  })
+                                } else {
+                                  // Salva a nova aula no destino e a aula antiga na origem
+                                  await onSalvarCelula(segmentoReal, dia, aula.numero, turma, disciplina, professor, cor)
+                                  await onSalvarCelula(segmentoOrigem, diaOrigem, aulaOrigem, turmaOrigem, item.disciplina_nome, item.professor_nome, item.cor_destaque || undefined)
+                                }
+                              } else {
+                                // 1. Salva na célula destino
+                                await onSalvarCelula(segmentoReal, dia, aula.numero, turma, disciplina, professor, cor)
 
-                              // 2. Se for MOVER (sem Ctrl/Alt), esvazia a origem
-                              if (!copyMode) {
-                                await onLimparCelula(segmentoOrigem, diaOrigem, aulaOrigem, turmaOrigem)
+                                // 2. Se for MOVER (sem Ctrl/Alt), esvazia a origem
+                                if (!copyMode) {
+                                  await onLimparCelula(segmentoOrigem, diaOrigem, aulaOrigem, turmaOrigem)
+                                }
                               }
                             } catch (err) {
                               console.error("Erro no drag and drop:", err)
@@ -310,7 +385,7 @@ export function GradeMatrizTurno({
                                 temConflito
                                   ? conflitoInfo
                                   : item
-                                  ? `${item.disciplina_nome} - Prof. ${item.professor_nome} (Arraste para mover • Segure Ctrl e arraste para duplicar)`
+                                  ? `${item.disciplina_nome} - Prof. ${item.professor_nome} (Arraste para mover/inverter • Segure Ctrl para duplicar)`
                                   : canEdit
                                   ? "Clique para definir aula ou solte um horário aqui"
                                   : ""

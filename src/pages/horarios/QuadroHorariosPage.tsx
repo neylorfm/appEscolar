@@ -28,18 +28,21 @@ import {
   TURMAS_INTEGRAL_PADRAO,
   TURMAS_NOTURNO_PADRAO,
   ESTRUTURA_AULAS,
-  GradeHorarioItem 
+  GradeHorarioItem,
+  DIAS_SEMANA
 } from "@/services/gradeHorarios"
 import { getDisciplinas, Disciplina } from "@/services/disciplinas"
 import { getTurmas, Turma } from "@/services/turmas"
-import { GradeMatrizTurno } from "./GradeMatrizTurno"
+import { GradeMatrizTurno, DadosTrocaCelulas } from "./GradeMatrizTurno"
 import { MinhasAulasView } from "./MinhasAulasView"
 import { ImpressaoHorariosModal } from "./ImpressaoHorariosModal"
 import { ImpressaoGradeCompleta } from "./ImpressaoGradeCompleta"
 import { PublicarHorariosModal } from "./PublicarHorariosModal"
+import { useGradeHistory } from "@/hooks/useGradeHistory"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectSeparator } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
   DialogContent,
@@ -75,7 +78,11 @@ import {
   Clock,
   X,
   User,
-  ZoomIn
+  ZoomIn,
+  Undo2,
+  Redo2,
+  Layers,
+  CheckSquare
 } from "lucide-react"
 
 type AbaSegmento = "INTEGRAL_COMPLETO" | "MANHA" | "TARDE" | "NOTURNO" | "POR_PROFESSOR"
@@ -120,6 +127,13 @@ export default function QuadroHorariosPage() {
   const [isGradePublicada, setIsGradePublicada] = useState(true)
   const [salvandoPublicacao, setSalvandoPublicacao] = useState(false)
 
+  // Hook de Desfazer/Refazer (Undo/Redo - Fase 1)
+  const { canUndo, canRedo, undo, redo, registrarAcao } = useGradeHistory({
+    instancia: instanciaAtiva,
+    canEdit,
+    setItensGrade
+  })
+
   // Controle de Impressão e Vigência
   const [modalImpressaoAberto, setModalImpressaoAberto] = useState(false)
   const [modoImpressao, setModoImpressao] = useState<"TODOS" | "PROFESSOR">("TODOS")
@@ -147,10 +161,15 @@ export default function QuadroHorariosPage() {
     toast.success(`Tamanho da fonte das aulas: ${opt?.label || novoTamanho}`, { duration: 1500, icon: '🔍' })
   }
 
-  // Filtros
+  // Filtros Básicos
   const [professorDestaque, setProfessorDestaque] = useState("")
-  const [turmaFiltro, setTurmaFiltro] = useState("TODAS")
   const [professorSelecionadoIndividual, setProfessorSelecionadoIndividual] = useState("")
+
+  // NOVOS FILTROS DA FASE 1: Colunas (Séries/Turmas) e Linhas (Dias)
+  const [turmaFiltro, setTurmaFiltro] = useState<string>("TODAS")
+  const [turmasCustomizadas, setTurmasCustomizadas] = useState<string[]>([])
+  const [modalTurmasCustomAberto, setModalTurmasCustomAberto] = useState(false)
+  const [diasFiltro, setDiasFiltro] = useState<string[]>(["SEG", "TER", "QUA", "QUI", "SEX"])
 
   useEffect(() => {
     carregarDados(instanciaAtiva)
@@ -169,6 +188,82 @@ export default function QuadroHorariosPage() {
   function toggleTelaCheia() {
     setIsTelaCheia(prev => !prev)
   }
+
+  // Manipulador para alternar dias da semana (Linhas)
+  function handleToggleDia(dia: string) {
+    if (dia === "TODOS") {
+      setDiasFiltro(["SEG", "TER", "QUA", "QUI", "SEX"])
+      toast.info("Visualizando todos os dias da semana", { duration: 1200 })
+      return
+    }
+
+    // Se todos os 5 estavam selecionados e clicou em um dia específico, foca exclusivamente naquele dia!
+    if (diasFiltro.length === 5) {
+      setDiasFiltro([dia])
+      toast.info(`Focando em ${dia}`, { duration: 1200 })
+      return
+    }
+
+    // Se já estava selecionado, remove da seleção
+    if (diasFiltro.includes(dia)) {
+      const novos = diasFiltro.filter(d => d !== dia)
+      if (novos.length === 0) {
+        // Se ficou vazio, volta para todos
+        setDiasFiltro(["SEG", "TER", "QUA", "QUI", "SEX"])
+      } else {
+        setDiasFiltro(novos)
+      }
+    } else {
+      // Adiciona o dia
+      const novos = [...diasFiltro, dia]
+      if (novos.length === 5) {
+        setDiasFiltro(["SEG", "TER", "QUA", "QUI", "SEX"])
+      } else {
+        setDiasFiltro(novos)
+      }
+    }
+  }
+
+  // Turmas do Ensino Integral (Explicitamente identificadas por turno !== 'Noturno' e formatadas como 1º A)
+  const turmasIntegral = useMemo(() => {
+    const cadastradas = turmasCadastradas.filter(t => t.turno !== "Noturno")
+    if (cadastradas.length > 0) {
+      return cadastradas.map(t => formatarNomeCurtoTurma(t.serie, t.nome))
+    }
+    return TURMAS_INTEGRAL_PADRAO
+  }, [turmasCadastradas])
+
+  // Turmas do Noturno (Explicitamente identificadas por turno === 'Noturno' e formatadas como 1º E)
+  const turmasNoturno = useMemo(() => {
+    const cadastradas = turmasCadastradas.filter(t => t.turno === "Noturno")
+    if (cadastradas.length > 0) {
+      return cadastradas.map(t => formatarNomeCurtoTurma(t.serie, t.nome))
+    }
+    return TURMAS_NOTURNO_PADRAO
+  }, [turmasCadastradas])
+
+  const turmasAtuaisAba = useMemo(() => {
+    return abaAtiva === "NOTURNO" ? turmasNoturno : turmasIntegral
+  }, [abaAtiva, turmasNoturno, turmasIntegral])
+
+  // Nomes únicos de professores presentes na grade de horários (desvinculado da tabela de usuários)
+  const professoresCadastrados = useMemo(() => {
+    const nomes = new Set<string>()
+    for (const item of itensGrade) {
+      const nome = item.professor_nome?.trim().toUpperCase()
+      if (nome) nomes.add(nome)
+    }
+    return Array.from(nomes).sort((a, b) => a.localeCompare(b))
+  }, [itensGrade])
+
+  // Detecção de Conflitos
+  const { conflitosSet, conflitosMap } = useMemo(() => {
+    return detectarChoquesHorario(itensGrade)
+  }, [itensGrade])
+
+  const totalConflitos = conflitosMap.size
+  // Permissão efetiva de edição na matriz: Coordenador/Admin E estar na aba de Edição (RASCUNHO)
+  const podeEditarMatriz = canEdit && instanciaAtiva === "RASCUNHO"
 
   async function carregarDados(instancia: InstanciaGrade = instanciaAtiva) {
     try {
@@ -247,44 +342,7 @@ export default function QuadroHorariosPage() {
     }
   }
 
-  // Turmas do Ensino Integral (Explicitamente identificadas por turno !== 'Noturno' e formatadas como 1º A)
-  const turmasIntegral = useMemo(() => {
-    const cadastradas = turmasCadastradas.filter(t => t.turno !== "Noturno")
-    if (cadastradas.length > 0) {
-      return cadastradas.map(t => formatarNomeCurtoTurma(t.serie, t.nome))
-    }
-    return TURMAS_INTEGRAL_PADRAO
-  }, [turmasCadastradas])
-
-  // Turmas do Noturno (Explicitamente identificadas por turno === 'Noturno' e formatadas como 1º E)
-  const turmasNoturno = useMemo(() => {
-    const cadastradas = turmasCadastradas.filter(t => t.turno === "Noturno")
-    if (cadastradas.length > 0) {
-      return cadastradas.map(t => formatarNomeCurtoTurma(t.serie, t.nome))
-    }
-    return TURMAS_NOTURNO_PADRAO
-  }, [turmasCadastradas])
-
-  // Nomes únicos de professores presentes na grade de horários (desvinculado da tabela de usuários)
-  const professoresCadastrados = useMemo(() => {
-    const nomes = new Set<string>()
-    for (const item of itensGrade) {
-      const nome = item.professor_nome?.trim().toUpperCase()
-      if (nome) nomes.add(nome)
-    }
-    return Array.from(nomes).sort((a, b) => a.localeCompare(b))
-  }, [itensGrade])
-
-  // Detecção de Conflitos
-  const { conflitosSet, conflitosMap } = useMemo(() => {
-    return detectarChoquesHorario(itensGrade)
-  }, [itensGrade])
-
-  const totalConflitos = conflitosMap.size
-  // Permissão efetiva de edição na matriz: Coordenador/Admin E estar na aba de Edição (RASCUNHO)
-  const podeEditarMatriz = canEdit && instanciaAtiva === "RASCUNHO"
-
-  // Ação de Salvar Célula (com nome único do professor e cor)
+  // Ação de Salvar Célula (com suporte ao Histórico Undo/Redo)
   async function handleSalvarCelula(
     segmento: string,
     dia: string,
@@ -302,6 +360,13 @@ export default function QuadroHorariosPage() {
       if (discReg && discReg.id && !disciplinas.some(d => d.id === discReg.id)) {
         setDisciplinas(prev => [...prev, discReg as Disciplina])
       }
+
+      const itemAnterior = itensGrade.find(
+        i => i.segmento === segmento && 
+             i.dia_semana === dia && 
+             i.numero_aula === aula && 
+             normalizarNomeTurma(i.turma_nome) === normalizarNomeTurma(turma)
+      )
 
       const salvo = await salvarCelulaGrade({
         instancia: instanciaAtiva,
@@ -340,6 +405,14 @@ export default function QuadroHorariosPage() {
         return [...filtrado, salvo]
       })
 
+      // Registra no histórico de desfazer
+      registrarAcao({
+        tipo: "SET_CELULA",
+        descricao: `${disciplinaNome} - ${profFormatado} (${turma})`,
+        anterior: itemAnterior || null,
+        novo: salvo
+      })
+
       toast.success("Aula salva no rascunho!", { duration: 1500 })
     } catch (err: any) {
       console.error(err)
@@ -347,7 +420,7 @@ export default function QuadroHorariosPage() {
     }
   }
 
-  // Ação de Limpar Célula
+  // Ação de Limpar Célula (com suporte ao Histórico Undo/Redo)
   async function handleLimparCelula(
     segmento: string,
     dia: string,
@@ -355,6 +428,13 @@ export default function QuadroHorariosPage() {
     turma: string
   ) {
     try {
+      const itemAnterior = itensGrade.find(
+        i => i.segmento === segmento && 
+             i.dia_semana === dia && 
+             i.numero_aula === aula && 
+             normalizarNomeTurma(i.turma_nome) === normalizarNomeTurma(turma)
+      )
+
       await limparCelulaGrade(segmento, dia, aula, turma, instanciaAtiva)
 
       setItensGrade(prev => prev.filter(
@@ -366,10 +446,93 @@ export default function QuadroHorariosPage() {
         )
       ))
 
+      if (itemAnterior) {
+        registrarAcao({
+          tipo: "CLEAR_CELULA",
+          descricao: `Limpar ${itemAnterior.disciplina_nome} (${turma})`,
+          anterior: itemAnterior,
+          segmento,
+          dia,
+          aula,
+          turma
+        })
+      }
+
       toast.success("Horário liberado")
     } catch (err: any) {
       console.error(err)
       toast.error("Erro ao limpar horário")
+    }
+  }
+
+  // Ação de Smart Swap (Inversão Atômica de 2 Células com suporte ao Histórico)
+  async function handleTrocarCelulas(dados: DadosTrocaCelulas) {
+    try {
+      const itemAAnterior = itensGrade.find(
+        i => i.dia_semana === dados.diaA &&
+             i.numero_aula === dados.aulaA &&
+             normalizarNomeTurma(i.turma_nome) === normalizarNomeTurma(dados.turmaA)
+      )
+      const itemBAnterior = itensGrade.find(
+        i => i.dia_semana === dados.diaB &&
+             i.numero_aula === dados.aulaB &&
+             normalizarNomeTurma(i.turma_nome) === normalizarNomeTurma(dados.turmaB)
+      )
+
+      const discAReg = await garantirDisciplina(dados.disciplinaA)
+      const discBReg = await garantirDisciplina(dados.disciplinaB)
+
+      const [salvoA, salvoB] = await Promise.all([
+        salvarCelulaGrade({
+          instancia: instanciaAtiva,
+          segmento: dados.segmentoA,
+          dia_semana: dados.diaA,
+          numero_aula: dados.aulaA,
+          turma_nome: dados.turmaA,
+          disciplina_nome: dados.disciplinaA,
+          disciplina_id: discAReg?.id || null,
+          professor_nome: dados.professorA.trim().toUpperCase(),
+          cor_destaque: dados.corA || null
+        }),
+        salvarCelulaGrade({
+          instancia: instanciaAtiva,
+          segmento: dados.segmentoB,
+          dia_semana: dados.diaB,
+          numero_aula: dados.aulaB,
+          turma_nome: dados.turmaB,
+          disciplina_nome: dados.disciplinaB,
+          disciplina_id: discBReg?.id || null,
+          professor_nome: dados.professorB.trim().toUpperCase(),
+          cor_destaque: dados.corB || null
+        })
+      ])
+
+      setItensGrade(prev => {
+        const limpo = prev.filter(i => {
+          const isA = i.dia_semana === dados.diaA &&
+                      i.numero_aula === dados.aulaA &&
+                      normalizarNomeTurma(i.turma_nome) === normalizarNomeTurma(dados.turmaA)
+          const isB = i.dia_semana === dados.diaB &&
+                      i.numero_aula === dados.aulaB &&
+                      normalizarNomeTurma(i.turma_nome) === normalizarNomeTurma(dados.turmaB)
+          return !isA && !isB
+        })
+        return [...limpo, salvoA, salvoB]
+      })
+
+      if (itemAAnterior && itemBAnterior) {
+        registrarAcao({
+          tipo: "SWAP_CELULAS",
+          descricao: `Troca: ${dados.disciplinaA} ⇄ ${dados.disciplinaB}`,
+          celulaA: { anterior: itemAAnterior, novo: salvoA },
+          celulaB: { anterior: itemBAnterior, novo: salvoB }
+        })
+      }
+
+      toast.success(`Horários invertidos: ${dados.disciplinaA} ⇄ ${dados.disciplinaB}`, { icon: "🔄", duration: 2500 })
+    } catch (err: any) {
+      console.error("Erro ao trocar células:", err)
+      toast.error("Erro ao inverter horários", { description: err?.message })
     }
   }
 
@@ -407,7 +570,7 @@ export default function QuadroHorariosPage() {
         {/* ========================================================================= */}
         {painelContraido ? (
           <div className="flex flex-wrap items-center justify-between gap-1.5 p-1 px-2.5 rounded-2xl bg-card border border-border/80 shadow-2xs text-xs print:hidden select-none">
-            {/* LADO ESQUERDO: Abas de Turnos + Instância Ativa + Alertas */}
+            {/* LADO ESQUERDO: Abas de Turnos + Instância Ativa + Filtro de Dias + Alertas */}
             <div className="flex items-center gap-1.5 flex-wrap">
               <div className="flex items-center gap-0.5 p-0.5 bg-muted/80 rounded-xl border border-border/60">
                 <button
@@ -481,7 +644,45 @@ export default function QuadroHorariosPage() {
                 </button>
               </div>
 
-              {/* Botão Seletor de Instância Compacto (Coordenação / Admin) */}
+              {/* Seletor Rápido de Dias da Semana (Linhas) */}
+              {abaAtiva !== "POR_PROFESSOR" && (
+                <div className="flex items-center gap-0.5 p-0.5 bg-muted/60 rounded-xl border border-border/60 select-none">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleDia("TODOS")}
+                    className={`px-2 py-0.5 rounded-lg text-[11px] font-extrabold transition-all ${
+                      diasFiltro.length === 5
+                        ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    title="Exibir todos os dias da semana"
+                  >
+                    Todos
+                  </button>
+                  {DIAS_SEMANA.map((dia) => {
+                    const ativo = diasFiltro.includes(dia)
+                    return (
+                      <button
+                        key={dia}
+                        type="button"
+                        onClick={() => handleToggleDia(dia)}
+                        className={`px-1.5 py-0.5 rounded-lg text-[11px] font-black transition-all ${
+                          ativo
+                            ? diasFiltro.length === 5
+                              ? "text-foreground font-bold"
+                              : "bg-[#7f1d1d] text-white shadow-2xs"
+                            : "text-muted-foreground/50 hover:text-foreground line-through decoration-black/40"
+                        }`}
+                        title={`Clique para alternar o dia ${dia}`}
+                      >
+                        {dia}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* Botão Seletor de Instância Compacto */}
               {canEdit && (
                 <button
                   type="button"
@@ -505,6 +706,32 @@ export default function QuadroHorariosPage() {
                     </>
                   )}
                 </button>
+              )}
+
+              {/* Botões Desfazer / Refazer (Undo/Redo no modo Rascunho) */}
+              {instanciaAtiva === "RASCUNHO" && canEdit && (
+                <div className="flex items-center gap-0.5">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={undo}
+                    disabled={!canUndo}
+                    className="h-7 w-7 rounded-lg"
+                    title="Desfazer última alteração (Ctrl+Z)"
+                  >
+                    <Undo2 className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={redo}
+                    disabled={!canRedo}
+                    className="h-7 w-7 rounded-lg"
+                    title="Refazer última alteração (Ctrl+Y)"
+                  >
+                    <Redo2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               )}
 
               {/* Conflitos Compacto se houver */}
@@ -554,17 +781,45 @@ export default function QuadroHorariosPage() {
                     )}
                   </div>
 
-                  <Select value={turmaFiltro} onValueChange={setTurmaFiltro}>
-                    <SelectTrigger className="h-7 text-xs w-28">
-                      <SelectValue placeholder="Turma" />
+                  {/* Seletor Flexível de Turmas (Colunas) */}
+                  <Select 
+                    value={turmaFiltro} 
+                    onValueChange={(val) => {
+                      if (val === "CUSTOM_OPEN") {
+                        setModalTurmasCustomAberto(true)
+                      } else {
+                        setTurmaFiltro(val)
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-7 text-xs w-36 font-semibold">
+                      <SelectValue placeholder="Turmas / Séries" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="TODAS">Todas Turmas</SelectItem>
-                      {(abaAtiva === "NOTURNO" ? turmasNoturno : turmasIntegral).map((turma) => (
+                      <SelectItem value="TODAS" className="font-bold">Todas as Turmas</SelectItem>
+                      {abaAtiva !== "NOTURNO" && (
+                        <>
+                          <SelectItem value="SERIE_1" className="font-bold text-amber-700 dark:text-amber-300">
+                            🌟 1ºs Anos (1º A, B, C, D)
+                          </SelectItem>
+                          <SelectItem value="SERIE_2" className="font-bold text-blue-700 dark:text-blue-300">
+                            🌟 2ºs Anos (2º A, B, C)
+                          </SelectItem>
+                          <SelectItem value="SERIE_3" className="font-bold text-emerald-700 dark:text-emerald-300">
+                            🌟 3ºs Anos (3º A, B, C)
+                          </SelectItem>
+                        </>
+                      )}
+                      <SelectSeparator />
+                      {turmasAtuaisAba.map((turma) => (
                         <SelectItem key={turma} value={turma}>
-                          {turma}
+                          Turma {turma}
                         </SelectItem>
                       ))}
+                      <SelectSeparator />
+                      <SelectItem value="CUSTOM_OPEN" className="font-bold text-primary">
+                        ⚙️ Seleção Personalizada...
+                      </SelectItem>
                     </SelectContent>
                   </Select>
 
@@ -717,6 +972,34 @@ export default function QuadroHorariosPage() {
                   </div>
                 )}
 
+                {/* Botões Desfazer / Refazer (Undo/Redo no modo Rascunho) */}
+                {instanciaAtiva === "RASCUNHO" && canEdit && (
+                  <div className="flex items-center gap-1 bg-muted/80 p-1 rounded-2xl border border-border/80">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={undo}
+                      disabled={!canUndo}
+                      className="h-7 px-2 text-xs font-bold gap-1"
+                      title="Desfazer última alteração (Ctrl+Z)"
+                    >
+                      <Undo2 className="h-3.5 w-3.5" />
+                      <span>Desfazer</span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={redo}
+                      disabled={!canRedo}
+                      className="h-7 px-2 text-xs font-bold gap-1"
+                      title="Refazer última alteração (Ctrl+Y)"
+                    >
+                      <Redo2 className="h-3.5 w-3.5" />
+                      <span>Refazer</span>
+                    </Button>
+                  </div>
+                )}
+
                 {/* Alerta de Conflitos se houver */}
                 {totalConflitos > 0 && (
                   <div 
@@ -728,7 +1011,7 @@ export default function QuadroHorariosPage() {
                   </div>
                 )}
 
-                {/* Controle de Publicação/Visibilidade (Exclusivo Administrador na versão publicada) */}
+                {/* Controle de Publicação/Visibilidade */}
                 {isAdmin && instanciaAtiva === "PUBLICADA" && (
                   <button
                     type="button"
@@ -817,7 +1100,7 @@ export default function QuadroHorariosPage() {
                       </span>
                     </div>
                     <p className="text-xs text-amber-900/80 dark:text-amber-200/80 mt-0.5">
-                      Faça as alterações com tranquilidade. Os professores continuam vendo a versão oficial até que você clique em <strong>Publicar</strong>.
+                      Faça as alterações com tranquilidade. Arraste para <strong>inverter horários</strong> ou use <strong>Ctrl+Z</strong> para desfazer.
                     </p>
                   </div>
                 </div>
@@ -891,27 +1174,6 @@ export default function QuadroHorariosPage() {
               </div>
             )}
 
-            {/* AVISO DE MODO RASCUNHO / EM ELABORAÇÃO SE ESTIVER OCULTO PARA PROFESSORES */}
-            {!isGradePublicada && canEdit && (
-              <div className="flex items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-xs font-bold text-amber-900 dark:text-amber-200 print:hidden">
-                <div className="flex items-center gap-2">
-                  <EyeOff className="h-4 w-4 text-amber-600 shrink-0" />
-                  <span>
-                    <strong>Atenção:</strong> O quadro de horários está temporariamente oculto no menu dos professores.
-                  </span>
-                </div>
-                {isAdmin && (
-                  <button
-                    type="button"
-                    onClick={handleTogglePublicacao}
-                    className="underline hover:text-amber-950 dark:hover:text-white font-extrabold text-[11px] whitespace-nowrap"
-                  >
-                    Liberar Acesso aos Professores
-                  </button>
-                )}
-              </div>
-            )}
-
             {/* BANNER INTERATIVO DE VIGÊNCIA / DATA DO HORÁRIO */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-muted/40 border border-border/80 text-xs print:hidden">
               <div className="flex items-center gap-2 flex-1">
@@ -967,83 +1229,121 @@ export default function QuadroHorariosPage() {
               </div>
             </div>
 
-            {/* BARRA DE NAVEGAÇÃO DE TURNOS E VISÕES */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 print:hidden">
+            {/* BARRA DE NAVEGAÇÃO DE TURNOS, DIAS E FILTROS */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 print:hidden">
               {/* Abas dos Turnos */}
               <div className="flex items-center gap-1.5 p-1 bg-muted/70 rounded-2xl border border-border/80 overflow-x-auto select-none">
                 <button
                   type="button"
                   onClick={() => setAbaAtiva("INTEGRAL_COMPLETO")}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                     abaAtiva === "INTEGRAL_COMPLETO"
                       ? "bg-background text-primary shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   <Clock className="h-3.5 w-3.5 text-yellow-500" />
-                  <span>Integral • Completo (1ª a 9ª)</span>
+                  <span>Integral (1ª-9ª)</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setAbaAtiva("MANHA")}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                     abaAtiva === "MANHA"
                       ? "bg-background text-primary shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   <Sun className="h-3.5 w-3.5 text-amber-500" />
-                  <span>Integral • Manhã (1ª a 5ª)</span>
+                  <span>Manhã (1ª-5ª)</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setAbaAtiva("TARDE")}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                     abaAtiva === "TARDE"
                       ? "bg-background text-primary shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   <Sunset className="h-3.5 w-3.5 text-orange-500" />
-                  <span>Integral • Tarde (6ª a 9ª)</span>
+                  <span>Tarde (6ª-9ª)</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setAbaAtiva("NOTURNO")}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                     abaAtiva === "NOTURNO"
                       ? "bg-background text-primary shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   <Moon className="h-3.5 w-3.5 text-indigo-500" />
-                  <span>Noturno (1ª a 4ª)</span>
+                  <span>Noturno</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setAbaAtiva("POR_PROFESSOR")}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                     abaAtiva === "POR_PROFESSOR"
                       ? "bg-primary text-primary-foreground shadow-xs"
                       : "text-primary hover:bg-primary/10"
                   }`}
                 >
                   <User className="h-3.5 w-3.5" />
-                  <span>Procure por Professor</span>
+                  <span>Por Professor</span>
                 </button>
               </div>
 
-              {/* Filtro Rápido e Seletor de Tipografia */}
+              {/* BARRA DE FILTROS: DIAS (LINHAS) E TURMAS/SÉRIES (COLUNAS) */}
               {abaAtiva !== "POR_PROFESSOR" && (
                 <div className="flex items-center gap-2 flex-wrap">
-                  <div className="relative flex-1 sm:w-56">
+                  {/* Seletor Rápido de Dias da Semana (Linhas) */}
+                  <div className="flex items-center gap-0.5 p-1 bg-muted/80 rounded-2xl border border-border/80 shadow-2xs select-none">
+                    <span className="text-[11px] font-bold text-muted-foreground pl-1.5 pr-1 hidden sm:inline">Dias:</span>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleDia("TODOS")}
+                      className={`px-2.5 py-1 rounded-xl text-xs font-extrabold transition-all ${
+                        diasFiltro.length === 5
+                          ? "bg-[#7f1d1d] text-white shadow-2xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                      title="Exibir todos os 5 dias da semana"
+                    >
+                      Todos
+                    </button>
+                    {DIAS_SEMANA.map((dia) => {
+                      const ativo = diasFiltro.includes(dia)
+                      return (
+                        <button
+                          key={dia}
+                          type="button"
+                          onClick={() => handleToggleDia(dia)}
+                          className={`px-2 py-1 rounded-xl text-xs font-black transition-all ${
+                            ativo
+                              ? diasFiltro.length === 5
+                                ? "text-foreground font-bold hover:bg-background/60"
+                                : "bg-[#7f1d1d] text-white shadow-2xs"
+                              : "text-muted-foreground/40 hover:text-foreground line-through decoration-black/40"
+                          }`}
+                          title={`Filtrar para o dia ${dia}`}
+                        >
+                          {dia}
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {/* Busca por Professor */}
+                  <div className="relative flex-1 sm:w-48">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                     <Input
-                      placeholder="Buscar / destacar professor..."
+                      placeholder="Buscar professor..."
                       value={professorDestaque}
                       onChange={(e) => setProfessorDestaque(e.target.value)}
                       list="lista-professores-destaque"
@@ -1061,23 +1361,52 @@ export default function QuadroHorariosPage() {
                     )}
                   </div>
 
-                  <Select value={turmaFiltro} onValueChange={setTurmaFiltro}>
-                    <SelectTrigger className="h-8.5 text-xs w-32">
-                      <SelectValue placeholder="Turma" />
+                  {/* Seletor Flexível de Turmas / Séries (Colunas) */}
+                  <Select 
+                    value={turmaFiltro} 
+                    onValueChange={(val) => {
+                      if (val === "CUSTOM_OPEN") {
+                        setModalTurmasCustomAberto(true)
+                      } else {
+                        setTurmaFiltro(val)
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-8.5 text-xs w-44 font-bold" title="Filtrar turmas ou visualizar por série">
+                      <Layers className="h-3.5 w-3.5 text-primary shrink-0" />
+                      <SelectValue placeholder="Turmas / Séries" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="TODAS">Todas Turmas</SelectItem>
-                      {(abaAtiva === "NOTURNO" ? turmasNoturno : turmasIntegral).map((turma) => (
+                      <SelectItem value="TODAS" className="font-bold">Todas as Turmas ({turmasAtuaisAba.length})</SelectItem>
+                      {abaAtiva !== "NOTURNO" && (
+                        <>
+                          <SelectItem value="SERIE_1" className="font-bold text-amber-700 dark:text-amber-300">
+                            🌟 1ºs Anos (1º A, B, C, D)
+                          </SelectItem>
+                          <SelectItem value="SERIE_2" className="font-bold text-blue-700 dark:text-blue-300">
+                            🌟 2ºs Anos (2º A, B, C)
+                          </SelectItem>
+                          <SelectItem value="SERIE_3" className="font-bold text-emerald-700 dark:text-emerald-300">
+                            🌟 3ºs Anos (3º A, B, C)
+                          </SelectItem>
+                        </>
+                      )}
+                      <SelectSeparator />
+                      {turmasAtuaisAba.map((turma) => (
                         <SelectItem key={turma} value={turma}>
-                          {turma}
+                          Turma {turma}
                         </SelectItem>
                       ))}
+                      <SelectSeparator />
+                      <SelectItem value="CUSTOM_OPEN" className="font-bold text-primary">
+                        ⚙️ Seleção Personalizada...
+                      </SelectItem>
                     </SelectContent>
                   </Select>
 
                   {/* Seletor de Fonte da Grade */}
                   <Select value={fonteGrade} onValueChange={(val) => handleTrocarFonte(val as IdFonteGrade)}>
-                    <SelectTrigger className="h-8.5 text-xs w-36 gap-1.5 font-semibold" title="Escolha a tipografia da grade para melhor legibilidade">
+                    <SelectTrigger className="h-8.5 text-xs w-32 gap-1.5 font-semibold" title="Escolha a tipografia da grade para melhor legibilidade">
                       <Type className="h-3.5 w-3.5 text-primary shrink-0" />
                       <SelectValue />
                     </SelectTrigger>
@@ -1096,7 +1425,7 @@ export default function QuadroHorariosPage() {
                     onValueChange={(val) => handleTrocarTamanhoFonteRascunho(val as TamanhoFonteRascunho)}
                   >
                     <SelectTrigger 
-                      className="h-8.5 text-xs w-40 gap-1.5 font-bold bg-amber-500/10 border-amber-500/30 text-amber-950 dark:text-amber-200 hover:bg-amber-500/20" 
+                      className="h-8.5 text-xs w-36 gap-1.5 font-bold bg-amber-500/10 border-amber-500/30 text-amber-950 dark:text-amber-200 hover:bg-amber-500/20" 
                       title="Ajustar tamanho do texto de Disciplina e Professor na tabela de horários"
                     >
                       <ZoomIn className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
@@ -1116,11 +1445,23 @@ export default function QuadroHorariosPage() {
 
             {/* DICA DE EDIÇÃO QUANDO NO MODO RASCUNHO */}
             {podeEditarMatriz && abaAtiva !== "POR_PROFESSOR" && (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] sm:text-xs text-amber-900 dark:text-amber-200 print:hidden select-none">
-                <Sparkles className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-                <span>
-                  <strong>Modo Edição Ativo:</strong> Clique para editar • <strong>Arraste</strong> para mover • Segure <strong>Ctrl</strong> e arraste para <strong>duplicar</strong> a aula.
-                </span>
+              <div className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] sm:text-xs text-amber-900 dark:text-amber-200 print:hidden select-none">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span>
+                    <strong>Dicas de Manuseio:</strong> Arraste sobre outra aula para <strong>inverter horários</strong> • Segure <strong>Ctrl</strong> para duplicar • Use <strong>Ctrl+Z</strong> para desfazer.
+                  </span>
+                </div>
+
+                {diasFiltro.length < 5 && (
+                  <button
+                    type="button"
+                    onClick={() => handleToggleDia("TODOS")}
+                    className="underline font-bold text-amber-800 dark:text-amber-300 hover:text-foreground text-[11px]"
+                  >
+                    Exibindo {diasFiltro.length} dia{diasFiltro.length > 1 ? "s" : ""} (Restaurar todos)
+                  </button>
+                )}
               </div>
             )}
           </>
@@ -1162,9 +1503,12 @@ export default function QuadroHorariosPage() {
                 canEdit={podeEditarMatriz}
                 professorFiltro={professorDestaque}
                 turmaFiltro={turmaFiltro}
+                turmasCustomizadas={turmasCustomizadas}
+                diasFiltro={diasFiltro}
                 tamanhoFonte={tamanhoFonteRascunho}
                 onSalvarCelula={handleSalvarCelula}
                 onLimparCelula={handleLimparCelula}
+                onTrocarCelulas={handleTrocarCelulas}
               />
             )}
 
@@ -1181,9 +1525,12 @@ export default function QuadroHorariosPage() {
                 canEdit={podeEditarMatriz}
                 professorFiltro={professorDestaque}
                 turmaFiltro={turmaFiltro}
+                turmasCustomizadas={turmasCustomizadas}
+                diasFiltro={diasFiltro}
                 tamanhoFonte={tamanhoFonteRascunho}
                 onSalvarCelula={handleSalvarCelula}
                 onLimparCelula={handleLimparCelula}
+                onTrocarCelulas={handleTrocarCelulas}
               />
             )}
 
@@ -1200,9 +1547,12 @@ export default function QuadroHorariosPage() {
                 canEdit={podeEditarMatriz}
                 professorFiltro={professorDestaque}
                 turmaFiltro={turmaFiltro}
+                turmasCustomizadas={turmasCustomizadas}
+                diasFiltro={diasFiltro}
                 tamanhoFonte={tamanhoFonteRascunho}
                 onSalvarCelula={handleSalvarCelula}
                 onLimparCelula={handleLimparCelula}
+                onTrocarCelulas={handleTrocarCelulas}
               />
             )}
 
@@ -1219,9 +1569,12 @@ export default function QuadroHorariosPage() {
                 canEdit={podeEditarMatriz}
                 professorFiltro={professorDestaque}
                 turmaFiltro={turmaFiltro}
+                turmasCustomizadas={turmasCustomizadas}
+                diasFiltro={diasFiltro}
                 tamanhoFonte={tamanhoFonteRascunho}
                 onSalvarCelula={handleSalvarCelula}
                 onLimparCelula={handleLimparCelula}
+                onTrocarCelulas={handleTrocarCelulas}
               />
             )}
 
@@ -1236,6 +1589,109 @@ export default function QuadroHorariosPage() {
           </>
         )}
       </div>
+
+      {/* MODAL DE SELEÇÃO PERSONALIZADA DE TURMAS (COLUNAS) */}
+      <Dialog open={modalTurmasCustomAberto} onOpenChange={setModalTurmasCustomAberto}>
+        <DialogContent className="sm:max-w-[420px] p-6 rounded-2xl">
+          <DialogHeader className="gap-1.5">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                <Layers className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-base sm:text-lg font-black text-foreground">
+                  Selecionar Turmas Visíveis
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  Marque as colunas que deseja visualizar na grade agora.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="py-3 flex flex-col gap-3">
+            <div className="flex items-center justify-between text-xs pb-1 border-b border-border">
+              <span className="font-bold text-muted-foreground">
+                {turmasCustomizadas.length > 0 ? `${turmasCustomizadas.length} turmas marcadas` : "Nenhuma selecionada"}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTurmasCustomizadas([...turmasAtuaisAba])}
+                  className="text-primary hover:underline font-bold"
+                >
+                  Marcar Todas
+                </button>
+                <span>•</span>
+                <button
+                  type="button"
+                  onClick={() => setTurmasCustomizadas([])}
+                  className="text-muted-foreground hover:underline font-semibold"
+                >
+                  Limpar
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto p-1">
+              {turmasAtuaisAba.map((turma) => {
+                const checked = turmasCustomizadas.includes(turma)
+                return (
+                  <label
+                    key={turma}
+                    className={`flex items-center gap-2 p-2 rounded-xl border text-xs font-bold cursor-pointer transition-all ${
+                      checked 
+                        ? "bg-primary/10 border-primary text-primary shadow-2xs"
+                        : "bg-muted/40 border-border/80 text-foreground hover:bg-muted"
+                    }`}
+                  >
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={(val) => {
+                        if (val) {
+                          setTurmasCustomizadas(prev => [...prev, turma])
+                        } else {
+                          setTurmasCustomizadas(prev => prev.filter(t => t !== turma))
+                        }
+                      }}
+                    />
+                    <span>{turma}</span>
+                  </label>
+                )
+              })}
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0 mt-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setModalTurmasCustomAberto(false)}
+              className="text-xs"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                if (turmasCustomizadas.length === 0) {
+                  setTurmaFiltro("TODAS")
+                } else {
+                  setTurmaFiltro("CUSTOM")
+                }
+                setModalTurmasCustomAberto(false)
+                toast.success("Filtro de turmas aplicado!")
+              }}
+              className="text-xs font-bold gap-1.5"
+            >
+              <CheckSquare className="h-3.5 w-3.5" />
+              <span>Aplicar Filtro</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* DIÁLOGO DE CONFIRMAÇÃO: COPIAR DA VISUALIZAÇÃO */}
       <Dialog open={dialogCopiarAberto} onOpenChange={setDialogCopiarAberto}>
@@ -1329,4 +1785,3 @@ export default function QuadroHorariosPage() {
   </>
   )
 }
-
