@@ -270,7 +270,7 @@ export default function AreaPublicaPage({ tabInicial }: AreaPublicaPageProps = {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex-1 w-full flex flex-col gap-5">
         {/* NAVEGAÇÃO PRINCIPAL DA ÁREA PÚBLICA: COMUNICADOS vs HORÁRIOS */}
-        <div className="flex items-center justify-between gap-3 border-b border-border/80 pb-3.5 flex-wrap">
+        <div className="flex items-center justify-between gap-3 border-b border-border/80 pb-3.5 flex-wrap print:hidden">
           <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-muted/70 border border-border/60">
             <button
               type="button"
@@ -570,7 +570,7 @@ export default function AreaPublicaPage({ tabInicial }: AreaPublicaPageProps = {
       {/* ========================================================================= */}
       {/* RODAPÉ INSTITUCIONAL                                                      */}
       {/* ========================================================================= */}
-      <footer className="border-t border-border/80 bg-card py-6 px-4 sm:px-6 lg:px-8 mt-12 text-center">
+      <footer className="border-t border-border/80 bg-card py-6 px-4 sm:px-6 lg:px-8 mt-12 text-center print:hidden">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
             <School className="h-4 w-4" style={{ color: corPrincipal }} />

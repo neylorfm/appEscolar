@@ -352,6 +352,176 @@ export function ImpressaoGradeCompleta({
   }
 
   /**
+   * Tabela Oficial Semanal de UMA TURMA INDIVIDUAL (1 PÁGINA A4 GARANTIDA)
+   * Dias nas colunas (Segunda a Sexta) e Horários nas linhas (1ª a 9ª aula).
+   * Encaixe perfeito, sem quebra de página, ultra-legível para alunos, pais e professores.
+   */
+  function renderTabelaTurmaSemanal(
+    turmaAlvo: string,
+    diasCustom?: string[],
+    filtroTurmasTexto?: string
+  ) {
+    const nomeNorm = normalizarNomeTurma(turmaAlvo)
+    const aulasTurma = itensGrade.filter(i => normalizarNomeTurma(i.turma_nome) === nomeNorm)
+    const isNoturno = aulasTurma.some(i => i.segmento === "NOTURNO") || turmaAlvo.toUpperCase().includes("NOT") || turmaAlvo.toUpperCase().includes("NOITE")
+    const estrutura = isNoturno ? ESTRUTURA_AULAS.NOTURNO : ESTRUTURA_AULAS.INTEGRAL_COMPLETO
+    const diasParaExibir = (diasCustom && diasCustom.length > 0)
+      ? DIAS_SEMANA.filter(d => diasCustom.includes(d))
+      : DIAS_SEMANA
+
+    // Mapa dia_aula -> item
+    const mapa = new Map<string, GradeHorarioItem>()
+    for (const item of aulasTurma) {
+      mapa.set(`${item.dia_semana}_${item.numero_aula}`, item)
+    }
+
+    const totalAulas = aulasTurma.filter(i => i.disciplina_nome?.trim()).length
+    const professoresTurma = Array.from(new Set(aulasTurma.map(i => i.professor_nome?.trim()).filter(Boolean))).sort()
+
+    return (
+      <div 
+        className="pagina-folha-a4-impressao text-black bg-white"
+        style={{ 
+          fontFamily: fontFamilyEfetiva, 
+          pageBreakInside: 'avoid', 
+          breakInside: 'avoid',
+          pageBreakAfter: 'avoid',
+          breakAfter: 'avoid'
+        }}
+      >
+        {/* Cabeçalho da Folha A4 */}
+        <div className="flex items-center justify-between border-b-2 border-black pb-1.5 mb-2">
+          <div className="flex-1 pr-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-sm font-black tracking-tight uppercase text-black leading-tight">
+                EEMTI ANTONIETA SIQUEIRA • HORÁRIO SEMANAL DE AULAS
+              </h1>
+              <span className="text-xs font-black px-2 py-0.5 rounded-xs bg-black text-white uppercase shadow-2xs">
+                TURMA: {turmaAlvo}
+              </span>
+              {isRascunho && (
+                <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 border border-black bg-slate-200">
+                  RASCUNHO
+                </span>
+              )}
+            </div>
+
+            <div className="text-[11px] font-bold text-slate-800 leading-tight flex items-center gap-2 flex-wrap mt-0.5">
+              <span>{isNoturno ? "Ensino Médio Noturno (1ª a 4ª Aula)" : "Ensino Médio em Tempo Integral (1ª a 9ª Aula)"}</span>
+              {filtroTurmasTexto && (
+                <span className="text-[9.5px] font-bold px-1.5 py-0.2 bg-slate-100 border border-black/60 rounded-xs">
+                  {filtroTurmasTexto}
+                </span>
+              )}
+              {isEmergencia && (
+                <span className="text-[9.5px] font-black px-1.5 py-0.2 bg-amber-100 text-amber-950 border border-amber-800 rounded-xs">
+                  🚨 HORÁRIO EMERGENCIAL {tituloEmergencia ? `(${tituloEmergencia})` : 'ATIVO'}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="text-right shrink-0">
+            <span className="text-[11px] font-black text-black block leading-tight">
+              {textoVigencia || "Ano Letivo 2026"}
+            </span>
+            <span className="text-[9px] text-slate-600 block leading-tight">
+              Documento Oficial • Gerado em: {new Date().toLocaleDateString("pt-BR")}
+            </span>
+          </div>
+        </div>
+
+        {/* Tabela Semanal da Turma: Colunas = Dias, Linhas = Aulas (1 PÁGINA GARANTIDA) */}
+        <div className="w-full border-2 border-black">
+          <table className="w-full border-collapse text-left border-spacing-0 table-fixed">
+            <thead>
+              <tr className="bg-slate-200 text-black border-b-2 border-black text-center h-7">
+                <th className="border-r-2 border-black p-1 text-center font-black text-[10px] w-28">
+                  HORÁRIO / AULA
+                </th>
+                {diasParaExibir.map((dia) => (
+                  <th
+                    key={dia}
+                    className="border-r border-black p-1 text-center font-black text-[11px] uppercase last:border-r-0"
+                  >
+                    {NOMES_DIAS[dia]}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+
+            <tbody>
+              {estrutura.map((aula, idx) => {
+                const isUltima = idx === estrutura.length - 1
+                const isFimManha = aula.numero === 5 && !isNoturno
+
+                return (
+                  <tr
+                    key={aula.numero}
+                    className={`${isNoturno ? "h-[65px]" : "h-[36px]"} ${
+                      isUltima ? "border-b-0" : isFimManha ? "border-b-2 border-black" : "border-b border-black/40"
+                    }`}
+                  >
+                    {/* Coluna do Horário / Número da Aula */}
+                    <td className="border-r-2 border-black p-1 text-center font-black text-[9.5px] bg-slate-100 text-black whitespace-nowrap align-middle">
+                      <div className="flex flex-col items-center justify-center leading-tight">
+                        <span className="font-black text-[10px]">{aula.numero}ª AULA</span>
+                        <span className="text-[8.5px] text-slate-600 font-semibold">{aula.rotulo.split('(')[1]?.replace(')', '') || ''}</span>
+                      </div>
+                    </td>
+
+                    {/* Células dos Dias da Semana */}
+                    {diasParaExibir.map((dia) => {
+                      const item = mapa.get(`${dia}_${aula.numero}`)
+                      const temAula = Boolean(item && (item.disciplina_nome?.trim() || item.professor_nome?.trim()))
+                      const prof = item?.professor_nome?.trim() || ""
+                      const disc = item?.disciplina_nome?.trim() || ""
+                      const cor = item?.cor_destaque || (prof ? obterCorEfetivaProfessor(prof) : "")
+                      const estiloBadge = cor ? getEstiloBadgeCor(cor) : undefined
+
+                      return (
+                        <td
+                          key={dia}
+                          className="border-r border-black/40 p-1 text-center align-middle last:border-r-0 hover:bg-slate-50"
+                        >
+                          {temAula ? (
+                            <div className="flex flex-col items-center justify-center gap-0.5 w-full">
+                              <span className="font-black text-[10.5px] uppercase tracking-tight line-clamp-1 leading-tight text-black">
+                                {disc}
+                              </span>
+                              {prof && (
+                                <span
+                                  className="text-[9.5px] font-black px-2 py-0.5 rounded-xs truncate max-w-[95%] shadow-2xs leading-tight"
+                                  style={estiloBadge}
+                                >
+                                  {prof}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-slate-300 font-bold text-xs">-</span>
+                          )}
+                        </td>
+                      )
+                    })}
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Rodapé Resumo da Turma */}
+        <div className="flex items-center justify-between text-[9.5px] text-slate-800 mt-2 p-1.5 bg-slate-50 border border-black/30 rounded-xs">
+          <span>Turma: <strong>{turmaAlvo}</strong></span>
+          <span>Aulas Semanais: <strong>{totalAulas} aulas</strong></span>
+          <span className="truncate max-w-[50%]">Docentes ({professoresTurma.length}): <strong>{professoresTurma.join(", ")}</strong></span>
+        </div>
+      </div>
+    )
+  }
+
+  /**
    * Tabela Oficial de Aulas de Emergência / Substituições (SEM CÉLULAS EM BRANCO)
    * Imprime rigorosamente apenas as aulas cadastradas na situação emergencial escolhida.
    */
@@ -525,6 +695,12 @@ export function ImpressaoGradeCompleta({
         const diasAlvo = dadosImpressao?.dias && dadosImpressao.dias.length > 0
           ? dadosImpressao.dias
           : ["SEG", "TER", "QUA", "QUI", "SEX"]
+
+        // SE FOR APENAS 1 TURMA (Impressão da Turma do Aluno ou filtro de turma única):
+        // Renderiza a grade semanal com Dias nas Colunas e Aulas nas Linhas, garantindo 100% de encaixe em 1 ÚNICA PÁGINA A4!
+        if (turmasAlvo.length === 1) {
+          return renderTabelaTurmaSemanal(turmasAlvo[0], diasAlvo, dadosImpressao?.filtroDescricaoTurmas)
+        }
 
         if (turno === "INTEGRAL_COMPLETO") {
           return renderTabelaTurno(

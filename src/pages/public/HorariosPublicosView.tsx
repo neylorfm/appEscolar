@@ -166,7 +166,8 @@ export function HorariosPublicosView() {
   }
 
   return (
-    <div className="flex flex-col gap-5 w-full">
+    <>
+      <div className="print:hidden flex flex-col gap-5 w-full">
       {/* BANNER DE EMERGÊNCIA ATIVA (SE HOUVER) */}
       {dadosGrade.isEmergenciaAtiva && dadosGrade.situacaoEmergencia && (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-orange-500/15 border border-amber-500/30 text-amber-950 dark:text-amber-100 shadow-xs animate-in fade-in">
@@ -722,9 +723,10 @@ export function HorariosPublicosView() {
           )}
         </div>
       )}
+      </div>
 
-      {/* RENDERIZAÇÃO OCULTA PARA IMPRESSÃO EM FOLHA A4 (ACESSADA POR window.print()) */}
-      {dadosGrade && (
+      {/* RENDERIZAÇÃO EXCLUSIVA PARA IMPRESSÃO EM FOLHA A4 (1 PÁGINA) */}
+      {dadosGrade && turmaSelecionada && (
         <ImpressaoGradeCompleta
           modo="TURNO"
           dadosImpressao={{
@@ -744,6 +746,6 @@ export function HorariosPublicosView() {
           diasEmergencia={dadosGrade.situacaoEmergencia?.diasAfetados}
         />
       )}
-    </div>
+    </>
   )
 }
