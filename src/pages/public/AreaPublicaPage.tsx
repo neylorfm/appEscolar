@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
-import { Link } from "react-router-dom"
+import { Link, useSearchParams } from "react-router-dom"
 import { 
   Megaphone, 
   Search, 
@@ -31,6 +31,7 @@ import {
   reordenarAvisosPublicos 
 } from "@/services/areaPublica"
 import { GerenciarAreaPublicaModal } from "./GerenciarAreaPublicaModal"
+import { HorariosPublicosView } from "./HorariosPublicosView"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -63,10 +64,31 @@ function getCategoriaBadge(categoria?: string | null) {
   }
 }
 
-export default function AreaPublicaPage() {
+interface AreaPublicaPageProps {
+  tabInicial?: "avisos" | "horarios"
+}
+
+export default function AreaPublicaPage({ tabInicial }: AreaPublicaPageProps = {}) {
   const { usuario } = useAuth()
   const { configuracoes } = useInstituicao()
   const { theme, setTheme } = useTheme()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const abaParam = searchParams.get("aba")
+
+  const [abaPublica, setAbaPublica] = useState<"avisos" | "horarios">(() => {
+    if (tabInicial) return tabInicial
+    if (abaParam === "horarios" || window.location.pathname.includes("horarios")) return "horarios"
+    return "avisos"
+  })
+
+  // Sincroniza caso a rota ou o parâmetro URL mude
+  useEffect(() => {
+    if (tabInicial) {
+      setAbaPublica(tabInicial)
+    } else if (abaParam === "horarios") {
+      setAbaPublica("horarios")
+    }
+  }, [tabInicial, abaParam])
 
   const [avisos, setAvisos] = useState<AvisoPublico[]>([])
   const [loading, setLoading] = useState(true)
@@ -246,12 +268,69 @@ export default function AreaPublicaPage() {
         </div>
       </header>
 
-      {/* ========================================================================= */}
-      {/* BARRA DE FILTROS E BUSCA (100% Otimizada no Cliente)                      */}
-      {/* ========================================================================= */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex-1 w-full flex flex-col gap-5">
-        {/* Botão Novo Comunicado Mobile para Gestores */}
-        {isGestor && (
+        {/* NAVEGAÇÃO PRINCIPAL DA ÁREA PÚBLICA: COMUNICADOS vs HORÁRIOS */}
+        <div className="flex items-center justify-between gap-3 border-b border-border/80 pb-3.5 flex-wrap">
+          <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-muted/70 border border-border/60">
+            <button
+              type="button"
+              onClick={() => {
+                setAbaPublica("avisos")
+                setSearchParams(prev => {
+                  const n = new URLSearchParams(prev)
+                  n.delete("aba")
+                  return n
+                })
+              }}
+              className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 ${
+                abaPublica === "avisos"
+                  ? "bg-card text-foreground shadow-xs scale-102"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Megaphone className="h-4 w-4 text-primary" />
+              <span>Comunicados & Avisos</span>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
+                {avisos.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setAbaPublica("horarios")
+                setSearchParams(prev => {
+                  const n = new URLSearchParams(prev)
+                  n.set("aba", "horarios")
+                  return n
+                })
+              }}
+              className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 ${
+                abaPublica === "horarios"
+                  ? "bg-card text-foreground shadow-xs scale-102"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Calendar className="h-4 w-4 text-primary" />
+              <span>Horários de Aulas</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-800 dark:text-amber-300">
+                Alunos
+              </span>
+            </button>
+          </div>
+
+          <span className="text-[11px] font-medium text-muted-foreground hidden sm:inline">
+            Acesso público aberto para toda a comunidade escolar
+          </span>
+        </div>
+
+        {/* CONTEÚDO BASEADO NA ABA ATIVA */}
+        {abaPublica === "horarios" ? (
+          <HorariosPublicosView />
+        ) : (
+          <>
+            {/* Botão Novo Comunicado Mobile para Gestores */}
+            {isGestor && (
           <div className="flex sm:hidden items-center justify-between gap-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
             <span className="text-xs font-bold text-amber-900 dark:text-amber-200">Painel de Gestão:</span>
             <div className="flex items-center gap-2">
@@ -483,6 +562,8 @@ export default function AreaPublicaPage() {
               )
             })}
           </div>
+        )}
+          </>
         )}
       </main>
 

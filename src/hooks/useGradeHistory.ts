@@ -3,7 +3,8 @@ import {
   GradeHorarioItem, 
   salvarCelulaGrade, 
   limparCelulaGrade,
-  normalizarNomeTurma
+  normalizarNomeTurma,
+  InstanciaGrade
 } from "@/services/gradeHorarios"
 import { toast } from "sonner"
 
@@ -31,7 +32,7 @@ export type AcaoHistorico =
     }
 
 interface UseGradeHistoryProps {
-  instancia: "PUBLICADA" | "RASCUNHO"
+  instancia: InstanciaGrade
   canEdit: boolean
   setItensGrade: React.Dispatch<React.SetStateAction<GradeHorarioItem[]>>
 }

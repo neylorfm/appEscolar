@@ -29,18 +29,24 @@ import {
   TURMAS_NOTURNO_PADRAO,
   ESTRUTURA_AULAS,
   GradeHorarioItem,
-  DIAS_SEMANA
+  DIAS_SEMANA,
+  NOMES_DIAS,
+  ConfiguracaoEmergencias,
+  getConfiguracaoEmergencias,
+  ativarSituacaoEmergencia,
+  obterGradeCompostaEmergencia
 } from "@/services/gradeHorarios"
 import { getDisciplinas, Disciplina } from "@/services/disciplinas"
 import { getTurmas, Turma } from "@/services/turmas"
 import { GradeMatrizTurno, DadosTrocaCelulas } from "./GradeMatrizTurno"
 import { MinhasAulasView } from "./MinhasAulasView"
-import { ImpressaoHorariosModal } from "./ImpressaoHorariosModal"
+import { ImpressaoHorariosModal, ModoImpressaoModal, OpcoesImpressaoConfirmadas } from "./ImpressaoHorariosModal"
 import { ImpressaoGradeCompleta } from "./ImpressaoGradeCompleta"
 import { PublicarHorariosModal } from "./PublicarHorariosModal"
 import { SnapshotsGradeModal } from "./SnapshotsGradeModal"
 import { MetasCurricularesModal } from "./MetasCurricularesModal"
 import { RadarJanelasDocentesModal } from "./RadarJanelasDocentesModal"
+import { HorarioEmergencialModal } from "./HorarioEmergencialModal"
 import { useGradeHistory } from "@/hooks/useGradeHistory"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -84,6 +90,8 @@ import {
   ZoomIn,
   Undo2,
   Redo2,
+  Flame,
+  RotateCcw,
   Layers,
   CheckSquare,
   Camera,
@@ -118,14 +126,17 @@ export default function QuadroHorariosPage() {
     })
   }
 
-  // Controle de Instâncias (PUBLICADA vs RASCUNHO)
+  // Controle de Instâncias (PUBLICADA vs RASCUNHO vs EMERGENCIA_1..5)
   const [instanciaAtiva, setInstanciaAtiva] = useState<InstanciaGrade>("PUBLICADA")
+  const [instanciaAtivaTitulo, setInstanciaAtivaTitulo] = useState<string>("")
   const [copiandoVisualizacao, setCopiandoVisualizacao] = useState(false)
   const [dialogCopiarAberto, setDialogCopiarAberto] = useState(false)
   const [modalPublicarAberto, setModalPublicarAberto] = useState<boolean>(false)
   const [modalSnapshotsAberto, setModalSnapshotsAberto] = useState<boolean>(false)
   const [modalMetasAberto, setModalMetasAberto] = useState<boolean>(false)
   const [modalJanelasAberto, setModalJanelasAberto] = useState<boolean>(false)
+  const [modalEmergenciaAberto, setModalEmergenciaAberto] = useState<boolean>(false)
+  const [configEmergencia, setConfigEmergencia] = useState<ConfiguracaoEmergencias | null>(null)
 
   const [abaAtiva, setAbaAtiva] = useState<AbaSegmento>("MANHA")
   const [itensGrade, setItensGrade] = useState<GradeHorarioItem[]>([])
@@ -145,8 +156,9 @@ export default function QuadroHorariosPage() {
 
   // Controle de Impressão e Vigência
   const [modalImpressaoAberto, setModalImpressaoAberto] = useState(false)
-  const [modoImpressao, setModoImpressao] = useState<"TODOS" | "PROFESSOR">("TODOS")
-  const [professorImpressao, setProfessorImpressao] = useState<string>("")
+  const [modoImpressao, setModoImpressao] = useState<ModoImpressaoModal>("ATUAL")
+  const [configImpressao, setConfigImpressao] = useState<OpcoesImpressaoConfirmadas | null>(null)
+  const [itensImpressaoEmergencia, setItensImpressaoEmergencia] = useState<GradeHorarioItem[] | null>(null)
   const [textoVigencia, setTextoVigencia] = useState<string>("Válido a partir de 05/02/2026 • 1º Bimestre")
   const [editandoVigencia, setEditandoVigencia] = useState(false)
 
@@ -271,21 +283,34 @@ export default function QuadroHorariosPage() {
   }, [itensGrade])
 
   const totalConflitos = conflitosMap.size
-  // Permissão efetiva de edição na matriz: Coordenador/Admin E estar na aba de Edição (RASCUNHO)
-  const podeEditarMatriz = canEdit && instanciaAtiva === "RASCUNHO"
+  // Permissão efetiva de edição na matriz: Coordenador/Admin E estar na aba de Edição (RASCUNHO ou EMERGENCIA)
+  const podeEditarMatriz = canEdit && (instanciaAtiva === "RASCUNHO" || String(instanciaAtiva).startsWith("EMERGENCIA_"))
 
   async function carregarDados(instancia: InstanciaGrade = instanciaAtiva) {
     try {
       setLoading(true)
-      const [gradeData, discData, turmasData, visivel, vigencia] = await Promise.all([
+      const [gradeData, discData, turmasData, visivel, vigencia, configEmerg] = await Promise.all([
         getGradeHorarios(undefined, instancia),
         getDisciplinas().catch(() => []),
         getTurmas().catch(() => []),
         getVisibilidadeGradeHorarios().catch(() => true),
-        getVigenciaGrade(instancia).catch(() => "Válido a partir de 05/02/2026 • 1º Bimestre")
+        getVigenciaGrade(instancia).catch(() => "Válido a partir de 05/02/2026 • 1º Bimestre"),
+        getConfiguracaoEmergencias().catch(() => null)
       ])
 
-      setItensGrade(gradeData)
+      setConfigEmergencia(configEmerg)
+
+      let itensFinais = gradeData
+      // Se estivermos visualizando a grade oficial ('PUBLICADA') e houver uma emergência ativa, mescla os dias afetados
+      if (instancia === "PUBLICADA" && configEmerg?.situacaoAtivaId) {
+        const sitAtiva = configEmerg.situacoes.find(s => s.id === configEmerg.situacaoAtivaId)
+        if (sitAtiva && sitAtiva.diasAfetados.length > 0) {
+          const itensEmerg = await getGradeHorarios(undefined, sitAtiva.instanciaKey).catch(() => [])
+          itensFinais = obterGradeCompostaEmergencia(gradeData, itensEmerg, sitAtiva.diasAfetados)
+        }
+      }
+
+      setItensGrade(itensFinais)
       setDisciplinas(discData)
       setTurmasCadastradas(turmasData)
       setIsGradePublicada(visivel)
@@ -556,9 +581,21 @@ export default function QuadroHorariosPage() {
     setModalImpressaoAberto(true)
   }
 
-  function handleConfirmarImpressao(modo: "TODOS" | "PROFESSOR", prof?: string) {
-    setModoImpressao(modo)
-    if (prof) setProfessorImpressao(prof)
+  async function handleConfirmarImpressao(opcoes: OpcoesImpressaoConfirmadas) {
+    if (opcoes.modo === "EMERGENCIA") {
+      const instanciaAlvo = opcoes.instanciaEmergencia || "EMERGENCIA_1"
+      try {
+        const itensEmerg = await getGradeHorarios(undefined, instanciaAlvo)
+        setItensImpressaoEmergencia(itensEmerg)
+      } catch (e) {
+        console.warn(e)
+      }
+    } else {
+      setItensImpressaoEmergencia(null)
+    }
+
+    setModoImpressao(opcoes.modo)
+    setConfigImpressao(opcoes)
     setModalImpressaoAberto(false)
     setTimeout(() => {
       window.print()
@@ -574,6 +611,101 @@ export default function QuadroHorariosPage() {
             ? "flex flex-col gap-2 max-w-7xl mx-auto pb-6"
             : "flex flex-col gap-4 max-w-7xl mx-auto pb-10"
       }`}>
+        {/* BANNER DE ALERTA QUANDO UMA SITUAÇÃO EMERGENCIAL ESTIVER EM VIGOR */}
+        {configEmergencia?.situacaoAtivaId && (
+          <div className="flex items-center justify-between gap-3 px-3.5 py-2 rounded-2xl bg-amber-500/15 border border-amber-500/35 text-amber-950 dark:text-amber-200 shadow-xs print:hidden select-none">
+            <div className="flex items-center gap-2.5 flex-wrap text-xs">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-amber-600 text-white font-black text-[11px] shadow-2xs">
+                <Flame className="h-3.5 w-3.5 animate-pulse" />
+                HORÁRIO EMERGENCIAL EM VIGOR
+              </span>
+              <span className="font-extrabold text-foreground text-xs sm:text-sm">
+                {configEmergencia.situacoes.find(s => s.id === configEmergencia.situacaoAtivaId)?.titulo}
+              </span>
+              <span className="text-[11px] text-muted-foreground font-medium">
+                • Válido para:{" "}
+                <strong className="text-amber-800 dark:text-amber-300 font-bold">
+                  {configEmergencia.situacoes
+                    .find(s => s.id === configEmergencia.situacaoAtivaId)
+                    ?.diasAfetados.map(d => NOMES_DIAS[d]?.split('-')[0])
+                    .join(", ")}
+                </strong>{" "}
+                (outros dias mantêm horário normal oficial)
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {canEdit && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setModalEmergenciaAberto(true)}
+                  className="h-7 px-2.5 text-xs font-bold border-amber-500/40 text-foreground hover:bg-amber-500/10"
+                >
+                  Configurar
+                </Button>
+              )}
+              {canEdit && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="destructive"
+                  onClick={async () => {
+                    await ativarSituacaoEmergencia(null)
+                    toast.success("🚨 Horário de emergência encerrado! Grade normal oficial restabelecida.")
+                    await carregarDados("PUBLICADA")
+                  }}
+                  className="h-7 px-3 text-xs font-black gap-1.5 shadow-xs"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  <span>Voltar ao Normal</span>
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* BANNER QUANDO EDITANDO UM SLOT DE EMERGÊNCIA NO QUADRO */}
+        {String(instanciaAtiva).startsWith("EMERGENCIA_") && (
+          <div className="flex items-center justify-between gap-3 px-3.5 py-2 rounded-2xl bg-purple-500/15 border border-purple-500/35 text-purple-950 dark:text-purple-200 shadow-xs print:hidden select-none">
+            <div className="flex items-center gap-2 text-xs flex-wrap">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-purple-600 text-white font-black text-[11px]">
+                <Edit3 className="h-3 w-3" />
+                EDITANDO EMERGÊNCIA
+              </span>
+              <span className="font-extrabold text-foreground">
+                {instanciaAtivaTitulo || `Slot ${instanciaAtiva}`}
+              </span>
+              <span className="text-[11px] text-muted-foreground">
+                (As alterações salvas afetam apenas este slot e NÃO alteram a grade oficial)
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setModalEmergenciaAberto(true)}
+                className="h-7 px-2.5 text-xs font-bold border-purple-500/40"
+              >
+                Gerenciar 5 Situações
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  setInstanciaAtiva("PUBLICADA")
+                  carregarDados("PUBLICADA")
+                }}
+                className="h-7 px-2.5 text-xs font-bold bg-purple-700 hover:bg-purple-800 text-white"
+              >
+                Sair da Edição
+              </Button>
+            </div>
+          </div>
+        )}
         {/* ========================================================================= */}
         {/* MODO SANFONA: CONTROLES CONTRAÍDOS (OCUPA APENAS UMA LINHA ESTREITA)       */}
         {/* ========================================================================= */}
@@ -978,6 +1110,29 @@ export default function QuadroHorariosPage() {
                       <Edit3 className="h-3.5 w-3.5" />
                       <span>Edição (Rascunho)</span>
                     </button>
+
+                    {/* Botão de Emergência Rápido no Seletor */}
+                    <button
+                      type="button"
+                      onClick={() => setModalEmergenciaAberto(true)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                        configEmergencia?.situacaoAtivaId
+                          ? "bg-amber-600 text-white font-black animate-pulse shadow-xs"
+                          : String(instanciaAtiva).startsWith("EMERGENCIA_")
+                          ? "bg-purple-600 text-white font-black shadow-xs"
+                          : "text-amber-700 dark:text-amber-300 hover:bg-amber-500/10"
+                      }`}
+                      title="Gerenciar os 5 slots de horários de emergência e faltas docentes"
+                    >
+                      <Flame className="h-3.5 w-3.5" />
+                      <span>
+                        {configEmergencia?.situacaoAtivaId
+                          ? `🚨 Emergência (${configEmergencia.situacaoAtivaId})`
+                          : String(instanciaAtiva).startsWith("EMERGENCIA_")
+                          ? "Editando Emergência"
+                          : "Emergências (5)"}
+                      </span>
+                    </button>
                   </div>
                 )}
 
@@ -1152,6 +1307,27 @@ export default function QuadroHorariosPage() {
                     >
                       <Radio className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                       <span>Radar Janelas</span>
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setModalEmergenciaAberto(true)}
+                      className={`h-7 px-2.5 gap-1.5 text-xs font-bold transition-all ${
+                        configEmergencia?.situacaoAtivaId
+                          ? "bg-amber-600 text-white hover:bg-amber-700 shadow-xs font-extrabold"
+                          : "text-orange-700 dark:text-orange-300 hover:bg-orange-100/70 dark:hover:bg-orange-950/50"
+                      }`}
+                      title="Configurar horários de emergência para faltas de professores (5 situações flexíveis)"
+                    >
+                      <Flame className="h-3.5 w-3.5 text-orange-500" />
+                      <span>Emergências (5)</span>
+                      {configEmergencia?.situacaoAtivaId && (
+                        <span className="text-[9px] bg-red-600 text-white px-1.5 py-0.2 rounded-md font-black">
+                          NO AR
+                        </span>
+                      )}
                     </Button>
                   </div>
 
@@ -1825,19 +2001,80 @@ export default function QuadroHorariosPage() {
         textoVigencia={textoVigencia}
         fonteSelecionada={fonteGrade}
         onFonteChange={handleTrocarFonte}
+        visualizacaoAtual={{
+          abaAtiva,
+          turmaFiltro,
+          turmasCustomizadas,
+          turmasAtuais: turmasAtuaisAba,
+          diasFiltro,
+          professorDestaque,
+          professorSelecionadoIndividual
+        }}
+        turmasIntegral={turmasIntegral}
+        turmasNoturno={turmasNoturno}
+        configEmergencia={configEmergencia}
         onConfirmarImpressao={handleConfirmarImpressao}
+      />
+
+      {/* MODAL DE HORÁRIOS TEMPORÁRIOS / EMERGENCIAIS (5 SITUAÇÕES FLEXÍVEIS) */}
+      <HorarioEmergencialModal
+        open={modalEmergenciaAberto}
+        onOpenChange={setModalEmergenciaAberto}
+        onAbrirEdicaoEmergencia={(instanciaKey, titulo) => {
+          setInstanciaAtiva(instanciaKey)
+          setInstanciaAtivaTitulo(titulo)
+          carregarDados(instanciaKey)
+        }}
+        onEmergenciaAtivada={async () => {
+          await carregarDados("PUBLICADA")
+        }}
+        onEmergenciaDesativada={async () => {
+          await carregarDados("PUBLICADA")
+        }}
+        onAbrirImpressaoEmergencia={async (instanciaKey, titulo, diasAfetados, motivo) => {
+          try {
+            const itensEmerg = await getGradeHorarios(undefined, instanciaKey)
+            setItensImpressaoEmergencia(itensEmerg)
+            setModoImpressao("EMERGENCIA")
+            setConfigImpressao({
+              modo: "EMERGENCIA",
+              instanciaEmergencia: instanciaKey,
+              tituloEmergencia: titulo,
+              motivoEmergencia: motivo,
+              dias: diasAfetados && diasAfetados.length > 0 ? diasAfetados : [...DIAS_SEMANA],
+              somenteAulasEmergencia: true
+            })
+            setTimeout(() => {
+              window.print()
+            }, 250)
+          } catch (e) {
+            console.error("Erro ao preparar impressão emergencial:", e)
+            toast.error("Erro ao preparar impressão da emergência.")
+          }
+        }}
       />
     </div>
 
     {/* RENDERIZADOR DEDICADO DE IMPRESSÃO / PDF (Visível apenas em @media print) */}
     <ImpressaoGradeCompleta
       modo={modoImpressao}
-      professorSelecionado={professorImpressao || professorSelecionadoIndividual}
+      dadosImpressao={configImpressao || undefined}
+      professorSelecionado={configImpressao?.professor || professorSelecionadoIndividual}
       textoVigencia={textoVigencia}
       turmasIntegral={turmasIntegral}
       turmasNoturno={turmasNoturno}
-      itensGrade={itensGrade}
+      itensGrade={itensImpressaoEmergencia || itensGrade}
       isRascunho={instanciaAtiva === "RASCUNHO"}
+      isEmergencia={modoImpressao === "EMERGENCIA" || Boolean(configEmergencia?.situacaoAtivaId) || String(instanciaAtiva).startsWith("EMERGENCIA_")}
+      tituloEmergencia={
+        configImpressao?.tituloEmergencia ||
+        (configEmergencia?.situacaoAtivaId
+          ? configEmergencia.situacoes.find(s => s.id === configEmergencia.situacaoAtivaId)?.titulo
+          : instanciaAtivaTitulo || (String(instanciaAtiva).startsWith("EMERGENCIA_") ? `Slot ${instanciaAtiva}` : undefined))
+      }
+      motivoEmergencia={configImpressao?.motivoEmergencia}
+      somenteAulasEmergencia={configImpressao?.somenteAulasEmergencia || modoImpressao === "EMERGENCIA"}
+      diasEmergencia={configImpressao?.dias}
       idFonte={fonteGrade}
     />
   </>

@@ -7,7 +7,8 @@ import {
   getEstiloBadgeCor,
   normalizarNomeTurma,
   TamanhoFonteRascunho,
-  OPCOES_TAMANHO_FONTE_RASCUNHO
+  OPCOES_TAMANHO_FONTE_RASCUNHO,
+  filtrarTurmasGrade
 } from "@/services/gradeHorarios"
 import { CelulaEditorPopover } from "./CelulaEditorPopover"
 import { Disciplina } from "@/services/disciplinas"
@@ -133,22 +134,9 @@ export function GradeMatrizTurno({
     return DIAS_SEMANA.filter(d => diasFiltro.includes(d))
   }, [diasFiltro])
 
-  // Filtragem flexível de turmas
+  // Filtragem flexível de turmas unificada
   const turmasFiltradas = useMemo(() => {
-    if (turmaFiltro === "CUSTOM" && turmasCustomizadas && turmasCustomizadas.length > 0) {
-      return turmas.filter(t => turmasCustomizadas.includes(t))
-    }
-    if (turmaFiltro === "SERIE_1") {
-      return turmas.filter(t => t.startsWith("1º") || t.startsWith("1ª") || t.includes("1"))
-    }
-    if (turmaFiltro === "SERIE_2") {
-      return turmas.filter(t => t.startsWith("2º") || t.startsWith("2ª") || t.includes("2"))
-    }
-    if (turmaFiltro === "SERIE_3") {
-      return turmas.filter(t => t.startsWith("3º") || t.startsWith("3ª") || t.includes("3"))
-    }
-    if (!turmaFiltro || turmaFiltro === "TODAS") return turmas
-    return turmas.filter(t => t === turmaFiltro)
+    return filtrarTurmasGrade(turmas, turmaFiltro, turmasCustomizadas)
   }, [turmas, turmaFiltro, turmasCustomizadas])
 
   // Largura dinâmica responsiva das colunas de turma para melhor conforto visual

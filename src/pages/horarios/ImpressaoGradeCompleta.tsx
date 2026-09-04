@@ -10,32 +10,61 @@ import {
   getFontFamilyById
 } from "@/services/gradeHorarios"
 
+export interface DadosImpressaoConfig {
+  turno?: "INTEGRAL_COMPLETO" | "MANHA" | "TARDE" | "NOTURNO"
+  turmas?: string[]
+  dias?: string[]
+  professor?: string
+  filtroDescricaoTurmas?: string
+  filtroDescricaoDias?: string
+  filtroDescricaoTurno?: string
+  tituloEmergencia?: string
+  motivoEmergencia?: string
+  instanciaEmergencia?: string
+  somenteAulasEmergencia?: boolean
+}
+
 interface ImpressaoGradeCompletaProps {
-  modo: "TODOS" | "PROFESSOR"
+  modo: "ATUAL" | "TURNO" | "TODOS" | "PROFESSOR" | "EMERGENCIA"
+  dadosImpressao?: DadosImpressaoConfig
   professorSelecionado?: string
   textoVigencia: string
   turmasIntegral: string[]
   turmasNoturno: string[]
   itensGrade: GradeHorarioItem[]
   isRascunho?: boolean
+  isEmergencia?: boolean
+  tituloEmergencia?: string
+  motivoEmergencia?: string
+  diasEmergencia?: string[]
+  somenteAulasEmergencia?: boolean
   idFonte?: IdFonteGrade
 }
 
 export function ImpressaoGradeCompleta({
   modo,
+  dadosImpressao,
   professorSelecionado,
   textoVigencia,
   turmasIntegral,
   turmasNoturno,
   itensGrade,
   isRascunho,
+  isEmergencia,
+  tituloEmergencia,
+  motivoEmergencia,
+  diasEmergencia,
+  somenteAulasEmergencia,
   idFonte = "inter",
 }: ImpressaoGradeCompletaProps) {
-  // Mapa de itens para acesso O(1)
+  // Mapa de itens para acesso O(1), suportando lookup com ou sem segmento
   const mapaItens = new Map<string, GradeHorarioItem>()
   for (const item of itensGrade) {
     mapaItens.set(`${item.segmento}_${item.dia_semana}_${item.numero_aula}_${normalizarNomeTurma(item.turma_nome)}`, item)
     mapaItens.set(`${item.segmento}_${item.dia_semana}_${item.numero_aula}_${item.turma_nome}`, item)
+    // Lookup direto por dia e aula (fundamental para INTEGRAL_COMPLETO que reúne manhã e tarde)
+    mapaItens.set(`${item.dia_semana}_${item.numero_aula}_${normalizarNomeTurma(item.turma_nome)}`, item)
+    mapaItens.set(`${item.dia_semana}_${item.numero_aula}_${item.turma_nome}`, item)
   }
 
   const fontFamilyEfetiva = getFontFamilyById(idFonte)
@@ -45,17 +74,53 @@ export function ImpressaoGradeCompleta({
     subtitulo: string,
     segmento: string,
     turmas: string[],
-    aulas: { numero: number; rotulo: string }[]
+    aulas: { numero: number; rotulo: string }[],
+    diasCustom?: string[],
+    filtroTurmasTexto?: string,
+    filtroDiasTexto?: string,
+    profDestaque?: string
   ) {
+    const diasParaExibir = (diasCustom && diasCustom.length > 0)
+      ? DIAS_SEMANA.filter(d => diasCustom.includes(d))
+      : DIAS_SEMANA
+
+    const totalLinhas = diasParaExibir.length * aulas.length
+    const totalColunas = turmas.length
+
+    // Altura dinâmica da linha para encaixe proporcional no A4 Paisagem
+    let alturaLinhaClasse = "h-[22px]"
+    if (totalLinhas <= 10) alturaLinhaClasse = "h-[34px]"
+    else if (totalLinhas <= 18) alturaLinhaClasse = "h-[28px]"
+    else if (totalLinhas <= 25) alturaLinhaClasse = "h-[22px]"
+    else if (totalLinhas <= 35) alturaLinhaClasse = "h-[16.5px]"
+    else alturaLinhaClasse = "h-[13px]"
+
+    // Tamanho dinâmico das fontes das células baseado nas colunas
+    const tamanhoDisciplina = totalColunas <= 3 
+      ? "text-[10px]" 
+      : totalColunas <= 5 
+        ? "text-[9px]" 
+        : totalLinhas > 35 
+          ? "text-[7px]" 
+          : "text-[8px]"
+
+    const tamanhoProfessor = totalColunas <= 3 
+      ? "text-[9px]" 
+      : totalColunas <= 5 
+        ? "text-[8px]" 
+        : totalLinhas > 35 
+          ? "text-[6.5px]" 
+          : "text-[7.5px]"
+
     return (
       <div 
         className="pagina-folha-a4-impressao text-black bg-white"
         style={{ fontFamily: fontFamilyEfetiva }}
       >
-        {/* Cabeçalho da Folha (Compacto para caber perfeitamente em 1 folha A4 paisagem) */}
+        {/* Cabeçalho da Folha A4 */}
         <div className="flex items-center justify-between border-b-2 border-black pb-1 mb-1">
-          <div>
-            <div className="flex items-center gap-2">
+          <div className="flex-1 pr-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-sm font-black tracking-tight uppercase text-black leading-tight">
                 EEMTI ANTONIETA SIQUEIRA • QUADRO DE HORÁRIOS
               </h1>
@@ -65,26 +130,48 @@ export function ImpressaoGradeCompleta({
                 </span>
               )}
             </div>
-            <h2 className="text-[11px] font-bold text-slate-800 leading-tight">
-              {tituloTurno} — <span className="font-normal text-slate-700">{subtitulo}</span>
-            </h2>
+
+            <div className="text-[11px] font-bold text-slate-800 leading-tight flex items-center gap-2 flex-wrap mt-0.5">
+              <span>{tituloTurno} — <span className="font-normal text-slate-700">{subtitulo}</span></span>
+              {filtroTurmasTexto && (
+                <span className="text-[9.5px] font-bold px-1.5 py-0.2 bg-slate-100 border border-black/60 rounded-xs">
+                  Turmas: {filtroTurmasTexto}
+                </span>
+              )}
+              {filtroDiasTexto && (
+                <span className="text-[9.5px] font-bold px-1.5 py-0.2 bg-slate-100 border border-black/60 rounded-xs">
+                  Dias: {filtroDiasTexto}
+                </span>
+              )}
+              {profDestaque && (
+                <span className="text-[9.5px] font-black px-1.5 py-0.2 bg-amber-100 border border-amber-800 rounded-xs">
+                  Destaque: {profDestaque}
+                </span>
+              )}
+              {isEmergencia && (
+                <span className="text-[9.5px] font-black px-1.5 py-0.2 bg-red-100 text-red-950 border border-red-800 rounded-xs">
+                  🚨 HORÁRIO EMERGENCIAL {tituloEmergencia ? `(${tituloEmergencia})` : 'TEMPORÁRIO'}
+                </span>
+              )}
+            </div>
           </div>
-          <div className="text-right">
+
+          <div className="text-right shrink-0">
             <span className="text-[11px] font-black text-black block leading-tight">
               {textoVigencia || "Válido a partir de 05/02/2026 • 1º Bimestre"}
             </span>
             <span className="text-[9px] text-slate-600 block leading-tight">
-              {isRascunho ? "Rascunho de Edição • " : ""}Gerado em: {new Date().toLocaleDateString("pt-BR")}
+              {isEmergencia ? "🚨 Horário de Emergência • " : isRascunho ? "Rascunho de Edição • " : ""}Gerado em: {new Date().toLocaleDateString("pt-BR")}
             </span>
           </div>
         </div>
 
-        {/* Tabela de Grade de Horários */}
+        {/* Tabela da Grade de Horários */}
         <div className="w-full border-2 border-black">
           <table className="w-full border-collapse text-left border-spacing-0 table-fixed">
             <thead>
               <tr className="bg-slate-200 text-black border-b-2 border-black text-center h-6">
-                <th className="border-r-2 border-black p-0.5 text-center font-black text-[10px] w-10">
+                <th className="border-r-2 border-black p-0.5 text-center font-black text-[10px] w-11">
                   DIA
                 </th>
                 <th className="border-r-2 border-black p-0.5 text-center font-black text-[9.5px] w-14">
@@ -93,19 +180,19 @@ export function ImpressaoGradeCompleta({
                 {turmas.map((turma) => (
                   <th
                     key={turma}
-                    className="border-r border-black p-0.5 text-center font-black text-[10px] uppercase"
+                    className="border-r border-black p-0.5 text-center font-black text-[10.5px] uppercase"
                   >
                     {turma}
                   </th>
                 ))}
-                <th className="border-l-2 border-black p-0.5 text-center font-black text-[10px] w-10">
+                <th className="border-l-2 border-black p-0.5 text-center font-black text-[10px] w-11">
                   DIA
                 </th>
               </tr>
             </thead>
 
             <tbody>
-              {DIAS_SEMANA.map((dia) => {
+              {diasParaExibir.map((dia) => {
                 return aulas.map((aula, aulaIdx) => {
                   const isPrimeira = aulaIdx === 0
                   const isUltima = aulaIdx === aulas.length - 1
@@ -113,7 +200,7 @@ export function ImpressaoGradeCompleta({
                   return (
                     <tr
                       key={`${dia}_${aula.numero}`}
-                      className={`h-[22px] ${isUltima ? "border-b-2 border-black" : "border-b border-black/40"}`}
+                      className={`${alturaLinhaClasse} ${isUltima ? "border-b-2 border-black" : "border-b border-black/40"}`}
                     >
                       {/* Coluna Dia Início */}
                       {isPrimeira && (
@@ -133,22 +220,28 @@ export function ImpressaoGradeCompleta({
                       {/* Células das Turmas */}
                       {turmas.map((turma) => {
                         const chaveNorm = `${segmento}_${dia}_${aula.numero}_${normalizarNomeTurma(turma)}`
-                        const item = mapaItens.get(chaveNorm)
+                        const chaveSimples = `${dia}_${aula.numero}_${normalizarNomeTurma(turma)}`
+                        const item = mapaItens.get(chaveNorm) || mapaItens.get(chaveSimples)
+                        
                         const cor = item?.cor_destaque || (item?.professor_nome ? obterCorEfetivaProfessor(item.professor_nome) : "")
                         const estilo = cor ? getEstiloBadgeCor(cor) : undefined
+
+                        const isProfDestaque = profDestaque && item?.professor_nome?.toUpperCase().trim() === profDestaque.toUpperCase().trim()
 
                         return (
                           <td
                             key={turma}
-                            className="border-r border-black p-0 text-center align-middle h-[22px] overflow-hidden"
+                            className={`border-r border-black p-0 text-center align-middle ${alturaLinhaClasse} overflow-hidden ${
+                              isProfDestaque ? "ring-2 ring-inset ring-black font-black" : ""
+                            }`}
                             style={item ? estilo : undefined}
                           >
                             {item ? (
-                              <div className="flex flex-col items-center justify-center leading-[1.05] text-black px-0.5">
-                                <span className="font-black text-[8px] truncate w-full tracking-tighter">
+                              <div className="flex flex-col items-center justify-center leading-[1.05] px-0.5">
+                                <span className={`font-black ${tamanhoDisciplina} truncate w-full tracking-tighter`}>
                                   {item.disciplina_nome}
                                 </span>
-                                <span className="font-bold text-[7.5px] truncate w-full opacity-90">
+                                <span className={`font-bold ${tamanhoProfessor} truncate w-full opacity-90 ${isProfDestaque ? "underline font-black" : ""}`}>
                                   {item.professor_nome}
                                 </span>
                               </div>
@@ -188,7 +281,10 @@ export function ImpressaoGradeCompleta({
     const estiloProf = getEstiloBadgeCor(corProf)
 
     return (
-      <div className="pagina-folha-a4-impressao font-sans text-black bg-white">
+      <div 
+        className="pagina-folha-a4-impressao text-black bg-white"
+        style={{ fontFamily: fontFamilyEfetiva }}
+      >
         {/* Cabeçalho */}
         <div className="flex items-center justify-between border-b-2 border-black pb-2 mb-3">
           <div>
@@ -255,11 +351,242 @@ export function ImpressaoGradeCompleta({
     )
   }
 
+  /**
+   * Tabela Oficial de Aulas de Emergência / Substituições (SEM CÉLULAS EM BRANCO)
+   * Imprime rigorosamente apenas as aulas cadastradas na situação emergencial escolhida.
+   */
+  function renderTabelaEmergenciaFocada(
+    tituloEmergenciaParam?: string,
+    motivoEmergenciaParam?: string,
+    diasParam?: string[]
+  ) {
+    const diasPermitidos: string[] = (diasParam && diasParam.length > 0) ? diasParam : Array.from(DIAS_SEMANA)
+
+    // Filtra exclusivamente itens que possuem aula válida e que pertencem aos dias afetados
+    const itensValidos = itensGrade.filter(item => {
+      const temDia = diasPermitidos.includes(item.dia_semana)
+      const temConteudo = Boolean(item.disciplina_nome?.trim() && item.professor_nome?.trim())
+      return temDia && temConteudo
+    })
+
+    const ordemDias: Record<string, number> = { SEG: 1, TER: 2, QUA: 3, QUI: 4, SEX: 5 }
+    const itensOrdenados = [...itensValidos].sort((a, b) => {
+      const diaDiff = (ordemDias[a.dia_semana] || 99) - (ordemDias[b.dia_semana] || 99)
+      if (diaDiff !== 0) return diaDiff
+      if (a.numero_aula !== b.numero_aula) return a.numero_aula - b.numero_aula
+      return a.turma_nome.localeCompare(b.turma_nome)
+    })
+
+    const diasFormatados = diasPermitidos.map(d => (NOMES_DIAS as Record<string, string>)[d]?.split('-')[0] || d).join(", ")
+    const totalAulas = itensOrdenados.length
+    const turmasAfetadas = Array.from(new Set(itensOrdenados.map(i => i.turma_nome))).sort()
+    const professoresEnvolvidos = Array.from(new Set(itensOrdenados.map(i => i.professor_nome))).sort()
+
+    return (
+      <div 
+        className="pagina-folha-a4-impressao text-black bg-white"
+        style={{ fontFamily: fontFamilyEfetiva }}
+      >
+        {/* Cabeçalho da Folha A4 de Emergência */}
+        <div className="flex items-center justify-between border-b-2 border-black pb-1.5 mb-2">
+          <div className="flex-1 pr-2">
+            <h1 className="text-sm font-black tracking-tight uppercase text-black leading-tight flex items-center gap-2">
+              <span>EEMTI ANTONIETA SIQUEIRA</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-xs bg-red-600 text-white font-black">
+                🚨 HORÁRIO EMERGENCIAL DE AULAS
+              </span>
+            </h1>
+            <div className="text-[11px] font-bold text-slate-800 flex items-center gap-2 mt-0.5 flex-wrap">
+              <span className="font-extrabold text-black">
+                {tituloEmergenciaParam || tituloEmergencia || "Ajuste de Aulas por Ausência Docente"}
+              </span>
+              {motivoEmergenciaParam && (
+                <span className="text-slate-700 italic border-l border-black/40 pl-2">
+                  Motivo: {motivoEmergenciaParam}
+                </span>
+              )}
+              <span className="border-l border-black/40 pl-2">
+                Dias Afetados: <strong>{diasFormatados}</strong>
+              </span>
+            </div>
+          </div>
+
+          <div className="text-right shrink-0">
+            <span className="text-[11px] font-black text-black block leading-tight">
+              {textoVigencia || "Vigência Emergencial"}
+            </span>
+            <span className="text-[9px] text-slate-600 block leading-tight">
+              Documento Provisório • Gerado em: {new Date().toLocaleDateString("pt-BR")}
+            </span>
+          </div>
+        </div>
+
+        {/* Listagem de Aulas de Emergência (Zero Células em Branco) */}
+        {totalAulas === 0 ? (
+          <div className="border-2 border-dashed border-slate-400 p-8 text-center text-xs text-slate-600 rounded-xs">
+            Nenhuma aula emergencial cadastrada para os dias selecionados ({diasFormatados}).
+          </div>
+        ) : (
+          <>
+            <div className="w-full border-2 border-black">
+              <table className="w-full border-collapse text-left border-spacing-0 table-fixed">
+                <thead>
+                  <tr className="bg-slate-200 text-black border-b-2 border-black text-center h-6 text-[10px] font-black">
+                    <th className="border-r border-black p-1 w-8 text-center">#</th>
+                    <th className="border-r border-black p-1 w-24 text-center">DIA</th>
+                    <th className="border-r border-black p-1 w-24 text-center">TURNO / HORÁRIO</th>
+                    <th className="border-r border-black p-1 w-20 text-center">TURMA</th>
+                    <th className="border-r border-black p-1 text-left px-2">DISCIPLINA</th>
+                    <th className="p-1 text-left px-2">PROFESSOR(A) ALOCADO</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {itensOrdenados.map((item, idx) => {
+                    const cor = item.cor_destaque || (item.professor_nome ? obterCorEfetivaProfessor(item.professor_nome) : "")
+                    const estilo = cor ? getEstiloBadgeCor(cor) : undefined
+                    const nomeDia = NOMES_DIAS[item.dia_semana] || item.dia_semana
+                    const turnoDesc = item.segmento === "NOTURNO" 
+                      ? "Noturno" 
+                      : item.numero_aula <= 5 ? "Manhã" : "Tarde"
+
+                    return (
+                      <tr 
+                        key={`${item.segmento}_${item.dia_semana}_${item.numero_aula}_${item.turma_nome}_${idx}`}
+                        className="border-b border-black/40 h-[26px] text-[10px]"
+                      >
+                        <td className="border-r border-black text-center font-bold text-slate-600 bg-slate-50">
+                          {idx + 1}
+                        </td>
+                        <td className="border-r border-black font-black text-center px-1 uppercase bg-slate-50">
+                          {nomeDia}
+                        </td>
+                        <td className="border-r border-black font-bold text-center px-1">
+                          {item.numero_aula}ª Aula ({turnoDesc})
+                        </td>
+                        <td className="border-r border-black font-black text-center px-1 text-[11px] bg-slate-100">
+                          {item.turma_nome}
+                        </td>
+                        <td className="border-r border-black font-extrabold px-2 truncate">
+                          {item.disciplina_nome}
+                        </td>
+                        <td 
+                          className="px-2 font-black align-middle"
+                          style={estilo}
+                        >
+                          <span className="truncate">{item.professor_nome}</span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Painel Resumo no Rodapé */}
+            <div className="flex items-center justify-between text-[9.5px] text-slate-800 mt-2 p-1.5 bg-slate-50 border border-black/30 rounded-xs">
+              <span>Total de aulas de emergência: <strong>{totalAulas} aulas</strong></span>
+              <span>Turmas atendidas: <strong>{turmasAfetadas.join(", ")}</strong></span>
+              <span>Docentes designados: <strong>{professoresEnvolvidos.join(", ")}</strong></span>
+            </div>
+          </>
+        )}
+      </div>
+    )
+  }
+
+  // Se for impressão de emergência focada (apenas as aulas cadastradas, sem células vazias)
+  const isImpressaoEmergenciaFocada = modo === "EMERGENCIA" || somenteAulasEmergencia || dadosImpressao?.somenteAulasEmergencia
+  if (isImpressaoEmergenciaFocada) {
+    return (
+      <div id="secao-impressao-horarios-root" className="hidden print:block w-full bg-white text-black">
+        {renderTabelaEmergenciaFocada(
+          dadosImpressao?.tituloEmergencia || tituloEmergencia,
+          dadosImpressao?.motivoEmergencia || motivoEmergencia,
+          dadosImpressao?.dias || diasEmergencia
+        )}
+      </div>
+    )
+  }
+
+  // Renderização baseada no Modo Selecionado
   return (
     <div id="secao-impressao-horarios-root" className="hidden print:block w-full bg-white text-black">
-      {modo === "PROFESSOR" ? (
-        renderTabelaProfessor(professorSelecionado || "PROFESSOR")
-      ) : (
+      {/* 1. MODO PROFESSOR */}
+      {modo === "PROFESSOR" && (
+        renderTabelaProfessor(dadosImpressao?.professor || professorSelecionado || "PROFESSOR")
+      )}
+
+      {/* 2. MODO VISUALIZAÇÃO ATUAL OU POR TURNO */}
+      {(modo === "ATUAL" || modo === "TURNO") && (() => {
+        const turno = dadosImpressao?.turno || "MANHA"
+        const turmasAlvo = dadosImpressao?.turmas && dadosImpressao.turmas.length > 0
+          ? dadosImpressao.turmas
+          : (turno === "NOTURNO" ? turmasNoturno : turmasIntegral)
+        const diasAlvo = dadosImpressao?.dias && dadosImpressao.dias.length > 0
+          ? dadosImpressao.dias
+          : ["SEG", "TER", "QUA", "QUI", "SEX"]
+
+        if (turno === "INTEGRAL_COMPLETO") {
+          return renderTabelaTurno(
+            "ENSINO INTEGRAL",
+            "Integral Completo (1ª a 9ª Aula)",
+            "INTEGRAL_COMPLETO",
+            turmasAlvo,
+            ESTRUTURA_AULAS.INTEGRAL_COMPLETO,
+            diasAlvo,
+            dadosImpressao?.filtroDescricaoTurmas,
+            dadosImpressao?.filtroDescricaoDias,
+            dadosImpressao?.professor
+          )
+        }
+
+        if (turno === "MANHA") {
+          return renderTabelaTurno(
+            "ENSINO INTEGRAL",
+            "Turno da Manhã (1ª a 5ª Aula)",
+            "INTEGRAL_MANHA",
+            turmasAlvo,
+            ESTRUTURA_AULAS.INTEGRAL_MANHA,
+            diasAlvo,
+            dadosImpressao?.filtroDescricaoTurmas,
+            dadosImpressao?.filtroDescricaoDias,
+            dadosImpressao?.professor
+          )
+        }
+
+        if (turno === "TARDE") {
+          return renderTabelaTurno(
+            "ENSINO INTEGRAL",
+            "Turno da Tarde (6ª a 9ª Aula)",
+            "INTEGRAL_TARDE",
+            turmasAlvo,
+            ESTRUTURA_AULAS.INTEGRAL_TARDE,
+            diasAlvo,
+            dadosImpressao?.filtroDescricaoTurmas,
+            dadosImpressao?.filtroDescricaoDias,
+            dadosImpressao?.professor
+          )
+        }
+
+        if (turno === "NOTURNO") {
+          return renderTabelaTurno(
+            "ENSINO NOTURNO",
+            "Turno da Noite (1ª a 4ª Aula)",
+            "NOTURNO",
+            turmasAlvo,
+            ESTRUTURA_AULAS.NOTURNO,
+            diasAlvo,
+            dadosImpressao?.filtroDescricaoTurmas,
+            dadosImpressao?.filtroDescricaoDias,
+            dadosImpressao?.professor
+          )
+        }
+
+        return null
+      })()}
+
+      {/* 3. MODO TODOS OS HORÁRIOS (GERAL - 3 PÁGINAS) */}
+      {modo === "TODOS" && (
         <>
           {/* PÁGINA 1: INTEGRAL • MANHÃ */}
           {renderTabelaTurno(

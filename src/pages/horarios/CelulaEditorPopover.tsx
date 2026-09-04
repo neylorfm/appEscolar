@@ -11,7 +11,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Check, Trash2, AlertTriangle, BookOpen, User, Palette } from "lucide-react"
 import { Disciplina } from "@/services/disciplinas"
-import { PALETA_50_CORES, obterCorEfetivaProfessor, getEstiloBadgeCor } from "@/services/gradeHorarios"
+import { 
+  PALETA_50_CORES, 
+  PALETA_CORES_CLARAS, 
+  PALETA_CORES_ESCURAS, 
+  obterCorEfetivaProfessor, 
+  getEstiloBadgeCor 
+} from "@/services/gradeHorarios"
 
 interface CelulaEditorPopoverProps {
   turmaNome: string
@@ -64,6 +70,13 @@ export function CelulaEditorPopover({
     obterCorEfetivaProfessor(professorAtual, corAtual, mapaCoresProfessores)
   )
   const [saving, setSaving] = useState(false)
+  const [abaPaleta, setAbaPaleta] = useState<"TODAS" | "CLARAS" | "ESCURAS">("TODAS")
+
+  const coresExibidas = useMemo(() => {
+    if (abaPaleta === "CLARAS") return PALETA_CORES_CLARAS
+    if (abaPaleta === "ESCURAS") return PALETA_CORES_ESCURAS
+    return PALETA_50_CORES
+  }, [abaPaleta])
 
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -283,22 +296,70 @@ export function CelulaEditorPopover({
               </div>
             </div>
 
-            {/* Amostras das 50 Cores da Paleta */}
-            <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto p-1 bg-background rounded-lg border border-border/60">
-              {PALETA_50_CORES.map((hex, idx) => (
-                <button
-                  key={`${hex}_${idx}`}
-                  type="button"
-                  onClick={() => setCorSelecionada(hex)}
-                  className={`w-5 h-5 rounded-md transition-transform border ${
-                    corSelecionada.toLowerCase() === hex.toLowerCase()
-                      ? "ring-2 ring-primary scale-110 shadow-xs"
-                      : "hover:scale-105 border-black/10"
-                  }`}
-                  style={{ backgroundColor: hex }}
-                  title={`Cor ${idx + 1}: ${hex}`}
-                />
-              ))}
+            {/* Seletor de Grupo de Contraste (Claras / Escuras) */}
+            <div className="flex items-center gap-1 p-0.5 bg-background rounded-lg border border-border/60 text-[10.5px]">
+              <button
+                type="button"
+                onClick={() => setAbaPaleta("TODAS")}
+                className={`flex-1 py-1 px-1.5 rounded-md font-bold transition-all ${
+                  abaPaleta === "TODAS"
+                    ? "bg-primary text-primary-foreground shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Todas (50)
+              </button>
+              <button
+                type="button"
+                onClick={() => setAbaPaleta("CLARAS")}
+                className={`flex-1 py-1 px-1.5 rounded-md font-bold transition-all ${
+                  abaPaleta === "CLARAS"
+                    ? "bg-primary text-primary-foreground shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                title="25 fundos claros com texto escuro de alto contraste"
+              >
+                ☀️ Claras (25)
+              </button>
+              <button
+                type="button"
+                onClick={() => setAbaPaleta("ESCURAS")}
+                className={`flex-1 py-1 px-1.5 rounded-md font-bold transition-all ${
+                  abaPaleta === "ESCURAS"
+                    ? "bg-primary text-primary-foreground shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                title="25 fundos escuros/vivos com texto branco de alto contraste"
+              >
+                🌙 Escuras (25)
+              </button>
+            </div>
+
+            {/* Amostras das Cores com indicação visual da cor da fonte ('A') */}
+            <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto p-1.5 bg-background rounded-lg border border-border/60">
+              {coresExibidas.map((hex, idx) => {
+                const estilo = getEstiloBadgeCor(hex)
+                const isSelected = corSelecionada.toLowerCase() === hex.toLowerCase()
+                return (
+                  <button
+                    key={`${hex}_${idx}`}
+                    type="button"
+                    onClick={() => setCorSelecionada(hex)}
+                    className={`w-6 h-6 rounded-md transition-all flex items-center justify-center font-black text-[10.5px] border select-none ${
+                      isSelected
+                        ? "ring-2 ring-primary ring-offset-1 scale-110 shadow-xs z-10 font-black"
+                        : "hover:scale-105 border-black/15 dark:border-white/15 opacity-90 hover:opacity-100"
+                    }`}
+                    style={{ 
+                      backgroundColor: hex,
+                      color: estilo.color
+                    }}
+                    title={`${hex} • Fundo com texto ${estilo.color === "#ffffff" ? "branco" : "escuro"}`}
+                  >
+                    A
+                  </button>
+                )
+              })}
             </div>
 
             {/* Pré-visualização do Card */}

@@ -87,6 +87,8 @@ function App() {
               <Route path="/" element={<AreaPublicaPage />} />
               <Route path="/publico" element={<AreaPublicaPage />} />
               <Route path="/area-publica" element={<AreaPublicaPage />} />
+              <Route path="/horarios-publicos" element={<AreaPublicaPage tabInicial="horarios" />} />
+              <Route path="/publico/horarios" element={<AreaPublicaPage tabInicial="horarios" />} />
 
               {/* Login dos Professores e Servidores */}
               <Route path="/login" element={<Login />} />

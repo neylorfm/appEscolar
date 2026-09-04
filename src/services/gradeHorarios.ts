@@ -1,6 +1,27 @@
 import { supabase } from '@/lib/supabase'
 
-export type InstanciaGrade = 'PUBLICADA' | 'RASCUNHO'
+export type InstanciaEmergencia = 'EMERGENCIA_1' | 'EMERGENCIA_2' | 'EMERGENCIA_3' | 'EMERGENCIA_4' | 'EMERGENCIA_5'
+
+export type InstanciaGrade = 'PUBLICADA' | 'RASCUNHO' | InstanciaEmergencia | string
+
+export interface SituacaoEmergencia {
+  id: number // 1 a 5
+  instanciaKey: InstanciaEmergencia
+  titulo: string
+  motivo?: string
+  diasAfetados: ("SEG" | "TER" | "QUA" | "QUI" | "SEX")[]
+  dataInicio?: string
+  dataFim?: string
+  textoVigencia?: string
+  ativa: boolean
+  totalAulas?: number
+  updatedAt?: string
+}
+
+export interface ConfiguracaoEmergencias {
+  situacaoAtivaId: number | null
+  situacoes: SituacaoEmergencia[]
+}
 
 export interface GradeHorarioItem {
   id?: string
@@ -68,13 +89,112 @@ export function normalizarNomeTurma(nome: string): string {
     .replace(/\s+/g, "")
 }
 
-// Paleta de 50 Cores Harmoniosas e Pastel (legíveis e diferenciadas para os professores)
+/**
+ * Filtra a lista de turmas com base no filtro selecionado (Série, Customizada ou Turma Específica)
+ */
+export function filtrarTurmasGrade(
+  turmas: string[],
+  turmaFiltro?: string,
+  turmasCustomizadas?: string[]
+): string[] {
+  if (turmaFiltro === "CUSTOM" && turmasCustomizadas && turmasCustomizadas.length > 0) {
+    return turmas.filter(t => turmasCustomizadas.includes(t))
+  }
+  if (turmaFiltro === "SERIE_1") {
+    return turmas.filter(t => t.startsWith("1º") || t.startsWith("1ª") || t.includes("1"))
+  }
+  if (turmaFiltro === "SERIE_2") {
+    return turmas.filter(t => t.startsWith("2º") || t.startsWith("2ª") || t.includes("2"))
+  }
+  if (turmaFiltro === "SERIE_3") {
+    return turmas.filter(t => t.startsWith("3º") || t.startsWith("3ª") || t.includes("3"))
+  }
+  if (!turmaFiltro || turmaFiltro === "TODAS") return turmas
+  return turmas.filter(t => t === turmaFiltro)
+}
+
+/**
+ * Retorna uma descrição textual amigável do filtro de turmas aplicado
+ */
+export function obterDescricaoFiltroTurmas(
+  turmaFiltro?: string,
+  turmasCustomizadas?: string[],
+  totalTurmas?: number
+): string {
+  if (turmaFiltro === "SERIE_1") return "1ºs Anos"
+  if (turmaFiltro === "SERIE_2") return "2ºs Anos"
+  if (turmaFiltro === "SERIE_3") return "3ºs Anos"
+  if (turmaFiltro === "CUSTOM") {
+    return turmasCustomizadas && turmasCustomizadas.length > 0
+      ? `Turmas Selecionadas (${turmasCustomizadas.join(', ')})`
+      : "Personalizadas"
+  }
+  if (turmaFiltro && turmaFiltro !== "TODAS") return `Turma ${turmaFiltro}`
+  return totalTurmas ? `Todas as Turmas (${totalTurmas})` : "Todas as Turmas"
+}
+
+// 25 Fundos Claros de Alto Contraste (combinados com texto escuro #0f172a)
+export const PALETA_CORES_CLARAS = [
+  "#fef08a", // 1. Amarelo Sol Claro
+  "#fed7aa", // 2. Pêssego Suave
+  "#fbcfe8", // 3. Rosa Bebê
+  "#e9d5ff", // 4. Lavanda Pastel
+  "#c7d2fe", // 5. Azul Periwinkle Claro
+  "#bae6fd", // 6. Azul Céu Claro
+  "#a5f3fc", // 7. Ciano Menta Claro
+  "#99f6e4", // 8. Turquesa Suave
+  "#bbf7d0", // 9. Menta Fresco
+  "#d9f99d", // 10. Lima Pastel
+  "#fef3c7", // 11. Creme Baunilha
+  "#ffedd5", // 12. Damasco Claro
+  "#fce7f3", // 13. Orquídea Clara
+  "#f3e8ff", // 14. Lilás Claro
+  "#e0e7ff", // 15. Gelo Azulado
+  "#e0f2fe", // 16. Azul Cristal
+  "#ccfbf1", // 17. Verde Água Pálido
+  "#dcfce7", // 18. Erva Doce
+  "#fef9c3", // 19. Amarelo Manteiga
+  "#f1f5f9", // 20. Cinza Platina Claro
+  "#cbd5e1", // 21. Ardósia Claro
+  "#e2e8f0", // 22. Nuvem Suave
+  "#fed7d7", // 23. Salmão Suave
+  "#d5f5e3", // 24. Celadon Claro
+  "#fdebd0", // 25. Trigo Suave
+]
+
+// 25 Fundos Escuros e Vivos de Alto Contraste (combinados com texto branco #ffffff)
+export const PALETA_CORES_ESCURAS = [
+  "#1e3a8a", // 26. Azul Marinho Real
+  "#14532d", // 27. Verde Floresta Profundo
+  "#7f1d1d", // 28. Vinho Bordô
+  "#581c87", // 29. Roxo Imperial
+  "#134e4a", // 30. Petróleo Escuro
+  "#831843", // 31. Magenta Framboesa Escuro
+  "#78350f", // 32. Âmbar Canela Queimado
+  "#1e293b", // 33. Grafite Noite
+  "#0f766e", // 34. Verde Teal Escuro
+  "#1d4ed8", // 35. Azul Cobalto Intenso
+  "#15803d", // 36. Verde Esmeralda Rico
+  "#b91c1c", // 37. Vermelho Rubi
+  "#6d28d9", // 38. Violeta Elétrico
+  "#0369a1", // 39. Azul Oceano
+  "#4338ca", // 40. Índigo Profundo
+  "#be123c", // 41. Rosa Carmim Intenso
+  "#a16207", // 42. Ocre Dourado Escuro
+  "#334155", // 43. Ardósia Escuro
+  "#047857", // 44. Jade Profundo
+  "#9a3412", // 45. Terracota Queimado
+  "#7c2d12", // 46. Chocolate Avermelhado
+  "#4c1d95", // 47. Ameixa Escuro
+  "#0e7490", // 48. Ciano Petróleo Profundo
+  "#155e75", // 49. Azul Mar Profundo
+  "#3b0764", // 50. Uva Intenso
+]
+
+// Paleta completa de 50 Cores de Alto Contraste Mútuo (25 Claras + 25 Escuras)
 export const PALETA_50_CORES = [
-  "#fff2cc", "#c9daf8", "#d9ead3", "#d0e0e3", "#f4cccc", "#ead1dc", "#fce5cd", "#d9d2e9", "#d0f0c0", "#fef3c7",
-  "#e0f2fe", "#dcfce7", "#e0e7ff", "#fce7f3", "#ffedd5", "#f3e8ff", "#ccfbf1", "#fee2e2", "#f1f5f9", "#fef9c3",
-  "#bae6fd", "#bbf7d0", "#c7d2fe", "#fbcfe8", "#fed7aa", "#e9d5ff", "#99f6e4", "#fecaca", "#e2e8f0", "#fef08a",
-  "#7dd3fc", "#86efac", "#a5b4fc", "#f472b6", "#fb923c", "#c084fc", "#5eead4", "#f87171", "#cbd5e1", "#fde047",
-  "#38bdf8", "#4ade80", "#818cf8", "#fb7185", "#f97316", "#a855f7", "#2dd4bf", "#ef4444", "#94a3b8", "#eab308"
+  ...PALETA_CORES_CLARAS,
+  ...PALETA_CORES_ESCURAS
 ]
 
 /**
@@ -281,7 +401,10 @@ export function obterCorEfetivaProfessor(
 }
 
 /**
- * Calcula estilo inline com fundo, texto escuro de alto contraste e borda a partir de um HEX
+ * Calcula estilo inline com fundo, texto adaptativo de alto contraste e borda a partir de um HEX
+ * Suporta combinações:
+ * - Fundo Claro -> Texto Escuro (#0f172a)
+ * - Fundo Escuro -> Texto Claro (#ffffff)
  */
 export function getEstiloBadgeCor(hexColor: string) {
   const hex = (hexColor || PALETA_50_CORES[0]).replace("#", "")
@@ -289,12 +412,14 @@ export function getEstiloBadgeCor(hexColor: string) {
   const g = parseInt(hex.substring(2, 4), 16) || 240
   const b = parseInt(hex.substring(4, 6), 16) || 240
 
-  // Luminância para contraste
+  // Luminância perceptual para contraste rigoroso (padrão WCAG)
   const luminancia = (0.299 * r + 0.587 * g + 0.114 * b) / 255
-  const isClaro = luminancia > 0.55
+  const isClaro = luminancia > 0.52
 
-  const textColor = isClaro ? "#1e293b" : "#ffffff"
-  const borderColor = isClaro ? `rgba(${Math.max(0, r - 50)}, ${Math.max(0, g - 50)}, ${Math.max(0, b - 50)}, 0.5)` : "rgba(255, 255, 255, 0.2)"
+  const textColor = isClaro ? "#0f172a" : "#ffffff"
+  const borderColor = isClaro 
+    ? `rgba(${Math.max(0, r - 70)}, ${Math.max(0, g - 70)}, ${Math.max(0, b - 70)}, 0.45)` 
+    : "rgba(255, 255, 255, 0.25)"
 
   return {
     backgroundColor: hexColor || PALETA_50_CORES[0],
@@ -1090,7 +1215,414 @@ export function analisarJanelasDocentes(itensGrade: GradeHorarioItem[]): JanelaD
 
   // Ordena por maior número de janelas e nome do professor
   return resultado.sort((a, b) => b.totalJanelas - a.totalJanelas || a.professor.localeCompare(b.professor))
+}// ============================================================================
+// SERVIÇOS DE HORÁRIOS TEMPORÁRIOS / EMERGENCIAIS (5 SITUAÇÕES FLEXÍVEIS)
+// ============================================================================
+
+export const SITUACOES_EMERGENCIA_PADRAO: SituacaoEmergencia[] = [
+  {
+    id: 1,
+    instanciaKey: 'EMERGENCIA_1',
+    titulo: 'Situação 1 - Emergência / Ausência Docente',
+    motivo: '',
+    diasAfetados: ['SEG', 'TER', 'QUA', 'QUI', 'SEX'],
+    textoVigencia: 'Horário Provisório de Emergência',
+    ativa: false,
+    totalAulas: 0
+  },
+  {
+    id: 2,
+    instanciaKey: 'EMERGENCIA_2',
+    titulo: 'Situação 2 - Emergência / Ausência Docente',
+    motivo: '',
+    diasAfetados: ['SEG', 'TER', 'QUA', 'QUI', 'SEX'],
+    textoVigencia: 'Horário Provisório de Emergência',
+    ativa: false,
+    totalAulas: 0
+  },
+  {
+    id: 3,
+    instanciaKey: 'EMERGENCIA_3',
+    titulo: 'Situação 3 - Emergência / Ausência Docente',
+    motivo: '',
+    diasAfetados: ['SEG', 'TER', 'QUA', 'QUI', 'SEX'],
+    textoVigencia: 'Horário Provisório de Emergência',
+    ativa: false,
+    totalAulas: 0
+  },
+  {
+    id: 4,
+    instanciaKey: 'EMERGENCIA_4',
+    titulo: 'Situação 4 - Emergência / Ausência Docente',
+    motivo: '',
+    diasAfetados: ['SEG', 'TER', 'QUA', 'QUI', 'SEX'],
+    textoVigencia: 'Horário Provisório de Emergência',
+    ativa: false,
+    totalAulas: 0
+  },
+  {
+    id: 5,
+    instanciaKey: 'EMERGENCIA_5',
+    titulo: 'Situação 5 - Emergência / Ausência Docente',
+    motivo: '',
+    diasAfetados: ['SEG', 'TER', 'QUA', 'QUI', 'SEX'],
+    textoVigencia: 'Horário Provisório de Emergência',
+    ativa: false,
+    totalAulas: 0
+  }
+]
+
+const CHAVE_STORAGE_EMERGENCIAS = 'grade_horarios_emergencias_config'
+
+/**
+ * Carrega a configuração das 5 situações emergenciais e identifica se há alguma ativa
+ */
+export async function getConfiguracaoEmergencias(): Promise<ConfiguracaoEmergencias> {
+  let situacoes = [...SITUACOES_EMERGENCIA_PADRAO]
+  let situacaoAtivaId: number | null = null
+
+  // 1. Tenta carregar do localStorage primeiro para resposta instantânea
+  try {
+    const rawLocal = localStorage.getItem(CHAVE_STORAGE_EMERGENCIAS)
+    if (rawLocal) {
+      const parsed = JSON.parse(rawLocal) as ConfiguracaoEmergencias
+      if (parsed && Array.isArray(parsed.situacoes)) {
+        situacoes = SITUACOES_EMERGENCIA_PADRAO.map(padrao => {
+          const encontrada = parsed.situacoes.find(s => s.id === padrao.id)
+          return encontrada ? { ...padrao, ...encontrada } : padrao
+        })
+        situacaoAtivaId = parsed.situacaoAtivaId ?? null
+      }
+    }
+  } catch (e) {
+    console.warn('Erro ao ler emergências do localStorage:', e)
+  }
+
+  // 2. Tenta sincronizar com Supabase se a tabela grade_horarios_emergencias existir
+  try {
+    const { data: dbData, error } = await supabase
+      .from('grade_horarios_emergencias')
+      .select('*')
+      .order('id', { ascending: true })
+
+    if (!error && dbData && dbData.length > 0) {
+      situacoes = SITUACOES_EMERGENCIA_PADRAO.map(padrao => {
+        const row = dbData.find((r: any) => r.id === padrao.id)
+        if (row) {
+          return {
+            id: row.id,
+            instanciaKey: row.instancia_key as InstanciaEmergencia,
+            titulo: row.titulo || padrao.titulo,
+            motivo: row.motivo || '',
+            diasAfetados: Array.isArray(row.dias_afetados) ? row.dias_afetados : padrao.diasAfetados,
+            textoVigencia: row.texto_vigencia || padrao.textoVigencia,
+            ativa: Boolean(row.ativa),
+            totalAulas: padrao.totalAulas
+          }
+        }
+        return padrao
+      })
+
+      const ativaDb = situacoes.find(s => s.ativa)
+      if (ativaDb) {
+        situacaoAtivaId = ativaDb.id
+      }
+    }
+  } catch (err) {
+    // Tabela opcional ou offline
+  }
+
+  // 3. Contabiliza a quantidade de aulas cadastradas em cada instância emergencial
+  try {
+    const { data: contagens, error: errCount } = await supabase
+      .from('grade_horarios')
+      .select('instancia')
+      .in('instancia', ['EMERGENCIA_1', 'EMERGENCIA_2', 'EMERGENCIA_3', 'EMERGENCIA_4', 'EMERGENCIA_5'])
+
+    if (!errCount && contagens) {
+      const freqMap: Record<string, number> = {}
+      for (const row of contagens) {
+        if (row.instancia) {
+          freqMap[row.instancia] = (freqMap[row.instancia] || 0) + 1
+        }
+      }
+      situacoes = situacoes.map(sit => ({
+        ...sit,
+        totalAulas: freqMap[sit.instanciaKey] || 0
+      }))
+    }
+  } catch {
+    // Ignora erro de contagem se offline
+  }
+
+  // Salva estado consolidado no cache local
+  const configConsolidada: ConfiguracaoEmergencias = {
+    situacaoAtivaId,
+    situacoes
+  }
+  try {
+    localStorage.setItem(CHAVE_STORAGE_EMERGENCIAS, JSON.stringify(configConsolidada))
+  } catch {}
+
+  return configConsolidada
 }
 
+/**
+ * Salva e persiste a configuração das 5 situações emergenciais
+ */
+export async function salvarConfiguracaoEmergencias(config: ConfiguracaoEmergencias): Promise<void> {
+  // Salva localmente
+  try {
+    localStorage.setItem(CHAVE_STORAGE_EMERGENCIAS, JSON.stringify(config))
+  } catch (e) {
+    console.error('Erro ao salvar emergências no cache local:', e)
+  }
 
+  // Tenta sincronizar com o Supabase
+  try {
+    for (const sit of config.situacoes) {
+      const ativa = config.situacaoAtivaId === sit.id
+      await supabase
+        .from('grade_horarios_emergencias')
+        .upsert({
+          id: sit.id,
+          instancia_key: sit.instanciaKey,
+          titulo: sit.titulo,
+          motivo: sit.motivo || null,
+          dias_afetados: sit.diasAfetados,
+          texto_vigencia: sit.textoVigencia || null,
+          ativa,
+          updated_at: new Date().toISOString()
+        })
+    }
 
+    // Atualiza id ativo em configuracoes_instituicao se aplicável
+    const { data: configInst } = await supabase
+      .from('configuracoes_instituicao')
+      .select('id')
+      .maybeSingle()
+
+    if (configInst?.id) {
+      await supabase
+        .from('configuracoes_instituicao')
+        .update({ grade_emergencia_ativa_id: config.situacaoAtivaId })
+        .eq('id', configInst.id)
+    }
+  } catch (err) {
+    console.warn('Aviso: Sincronização de emergências com banco remoto foi mantida em cache local.', err)
+  }
+}
+
+/**
+ * Ativa uma situação emergencial específica (1 a 5) ou desativa todas (null) para voltar ao horário normal
+ */
+export async function ativarSituacaoEmergencia(id: number | null): Promise<void> {
+  const config = await getConfiguracaoEmergencias()
+  config.situacaoAtivaId = id
+  config.situacoes = config.situacoes.map(sit => ({
+    ...sit,
+    ativa: id !== null && sit.id === id
+  }))
+  await salvarConfiguracaoEmergencias(config)
+}
+
+/**
+ * Clona todos os registros da grade oficial (PUBLICADA) para a instância emergencial selecionada
+ */
+export async function copiarGradeParaEmergencia(
+  instanciaDestino: string,
+  diasAfetados?: string[]
+): Promise<number> {
+  // 1. Busca todos os itens da grade publicada
+  const { data: itensPublicados, error: erroPublicados } = await supabase
+    .from('grade_horarios')
+    .select('*')
+    .eq('instancia', 'PUBLICADA')
+
+  if (erroPublicados) {
+    console.error('Erro ao buscar grade oficial para cópia emergencial:', erroPublicados)
+    throw new Error('Não foi possível carregar a grade oficial.')
+  }
+
+  // 2. Limpa os registros existentes na instância emergencial
+  const { error: erroDelete } = await supabase
+    .from('grade_horarios')
+    .delete()
+    .eq('instancia', instanciaDestino)
+
+  if (erroDelete) {
+    console.error(`Erro ao limpar instância ${instanciaDestino}:`, erroDelete)
+    throw new Error(`Falha ao preparar o slot de emergência ${instanciaDestino}.`)
+  }
+
+  if (!itensPublicados || itensPublicados.length === 0) {
+    return 0
+  }
+
+  // 3. Filtra apenas os dias especificados ou todos
+  const itensParaClonar = diasAfetados && diasAfetados.length > 0
+    ? itensPublicados.filter(item => diasAfetados.includes(item.dia_semana))
+    : itensPublicados
+
+  if (itensParaClonar.length === 0) {
+    return 0
+  }
+
+  // 4. Prepara os novos itens para inserção no slot emergencial
+  const novosItens = itensParaClonar.map(item => ({
+    instancia: instanciaDestino,
+    segmento: item.segmento,
+    dia_semana: item.dia_semana,
+    numero_aula: item.numero_aula,
+    turma_nome: item.turma_nome,
+    disciplina_nome: item.disciplina_nome,
+    disciplina_id: item.disciplina_id || null,
+    professor_nome: item.professor_nome,
+    professor_id: item.professor_id || null,
+    cor_destaque: item.cor_destaque || null
+  }))
+
+  const { error: erroInsert } = await supabase
+    .from('grade_horarios')
+    .insert(novosItens)
+
+  if (erroInsert) {
+    console.error(`Erro ao inserir itens na emergência ${instanciaDestino}:`, erroInsert)
+    throw new Error('Falha ao copiar horários para a situação emergencial.')
+  }
+
+  return novosItens.length
+}
+
+/**
+ * Remove todas as aulas alocadas em um determinado slot de emergência
+ */
+export async function limparGradeEmergencia(instanciaDestino: string): Promise<void> {
+  const { error } = await supabase
+    .from('grade_horarios')
+    .delete()
+    .eq('instancia', instanciaDestino)
+
+  if (error) {
+    console.error(`Erro ao limpar aulas da emergência ${instanciaDestino}:`, error)
+    throw new Error('Não foi possível resetar a grade de emergência.')
+  }
+}
+
+/**
+ * Mescla a grade oficial (PUBLICADA) com a grade de emergência ativa,
+ * substituindo apenas as aulas dos dias afetados pela emergência.
+ */
+export function obterGradeCompostaEmergencia(
+  itensPublicada: GradeHorarioItem[],
+  itensEmergencia: GradeHorarioItem[],
+  diasAfetados: string[]
+): GradeHorarioItem[] {
+  const mapa = new Map<string, GradeHorarioItem>()
+
+  // 1. Adiciona todas as aulas da grade oficial
+  for (const item of itensPublicada) {
+    const chave = `${item.segmento}_${item.dia_semana}_${item.numero_aula}_${normalizarNomeTurma(item.turma_nome)}`
+    mapa.set(chave, item)
+  }
+
+  // 2. Se o dia estiver nos diasAfetados, a grade de emergência substitui
+  // Remove itens da publicada nos dias afetados se a emergência for vazia para aquela turma/aula,
+  // ou substitui com a aula da emergência
+  const setDias = new Set(diasAfetados.map(d => d.toUpperCase()))
+
+  // Limpa dos dias afetados os itens da oficial
+  for (const [chave, item] of mapa.entries()) {
+    if (setDias.has(item.dia_semana.toUpperCase())) {
+      mapa.delete(chave)
+    }
+  }
+
+  // Insere os itens da emergência correspondentes aos dias afetados
+  for (const item of itensEmergencia) {
+    if (setDias.has(item.dia_semana.toUpperCase())) {
+      const chave = `${item.segmento}_${item.dia_semana}_${item.numero_aula}_${normalizarNomeTurma(item.turma_nome)}`
+      mapa.set(chave, item)
+    }
+  }
+
+  return Array.from(mapa.values())
+}
+
+/**
+ * Interface para os dados consolidados do Quadro de Horários na Área Pública (Alunos sem login)
+ */
+export interface DadosGradePublica {
+  visivel: boolean
+  motivoOculto?: string
+  vigencia: string
+  itens: GradeHorarioItem[]
+  turmas: string[]
+  isEmergenciaAtiva: boolean
+  situacaoEmergencia?: SituacaoEmergencia
+}
+
+/**
+ * Carrega a grade oficial consolidada para a Área Pública.
+ * Respeita a visibilidade pública, carrega a vigência oficial e, caso haja
+ * uma situação emergencial ativa, mescla automaticamente as aulas provisórias nos dias afetados.
+ */
+export async function carregarGradeHorariosPublica(): Promise<DadosGradePublica> {
+  // 1. Verifica se a grade está visível publicamente
+  const visivel = await getVisibilidadeGradeHorarios().catch(() => true)
+  if (!visivel) {
+    return {
+      visivel: false,
+      motivoOculto: "O quadro de horários está em processo de elaboração/atualização pela coordenação escolar.",
+      vigencia: "",
+      itens: [],
+      turmas: [],
+      isEmergenciaAtiva: false
+    }
+  }
+
+  // 2. Busca vigência oficial
+  const vigencia = await getVigenciaGrade('PUBLICADA').catch(() => "Válido a partir de 05/02/2026 • 1º Bimestre")
+
+  // 3. Busca configuração de emergências
+  const configEmergencia = await getConfiguracaoEmergencias().catch(() => null)
+
+  // 4. Busca os itens da grade publicada oficial
+  const itensPublicados = await getGradeHorarios(undefined, 'PUBLICADA').catch(() => [])
+
+  let itensFinais = itensPublicados
+  let situacaoAtiva: SituacaoEmergencia | undefined = undefined
+
+  if (configEmergencia?.situacaoAtivaId) {
+    const sit = configEmergencia.situacoes.find(s => s.id === configEmergencia.situacaoAtivaId)
+    if (sit && sit.diasAfetados && sit.diasAfetados.length > 0) {
+      situacaoAtiva = sit
+      const itensEmerg = await getGradeHorarios(undefined, sit.instanciaKey).catch(() => [])
+      if (itensEmerg.length > 0) {
+        itensFinais = obterGradeCompostaEmergencia(itensPublicados, itensEmerg, sit.diasAfetados)
+      }
+    }
+  }
+
+  // 5. Extrai todas as turmas únicas presentes
+  const turmasSet = new Set<string>()
+  for (const item of itensFinais) {
+    if (item.turma_nome?.trim()) {
+      turmasSet.add(normalizarNomeTurma(item.turma_nome))
+    }
+  }
+
+  // Ordenação natural de turmas (1º A, 1º B, 1º C, 2º A, ..., 3º A, ..., Noturno)
+  const turmasOrdenadas = Array.from(turmasSet).sort((a, b) => {
+    return a.localeCompare(b, 'pt-BR', { numeric: true, sensitivity: 'base' })
+  })
+
+  return {
+    visivel: true,
+    vigencia,
+    itens: itensFinais,
+    turmas: turmasOrdenadas,
+    isEmergenciaAtiva: Boolean(situacaoAtiva),
+    situacaoEmergencia: situacaoAtiva
+  }
+}
