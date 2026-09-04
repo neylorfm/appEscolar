@@ -15,12 +15,14 @@ CREATE TABLE IF NOT EXISTS public.grade_horarios_emergencias (
 ALTER TABLE public.grade_horarios_emergencias ENABLE ROW LEVEL SECURITY;
 
 -- Políticas de RLS
+DROP POLICY IF EXISTS "Permitir leitura de emergencias para autenticados" ON public.grade_horarios_emergencias;
 CREATE POLICY "Permitir leitura de emergencias para autenticados"
   ON public.grade_horarios_emergencias
   FOR SELECT
   TO authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Permitir atualizacao de emergencias para autenticados" ON public.grade_horarios_emergencias;
 CREATE POLICY "Permitir atualizacao de emergencias para autenticados"
   ON public.grade_horarios_emergencias
   FOR ALL
