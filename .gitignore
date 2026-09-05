@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Arquivos de instruções temporárias
+INSTRUCOES_EDITOR_FORMATACAO.md

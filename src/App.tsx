@@ -17,6 +17,8 @@ import { ThemeProvider } from "./components/ThemeProvider"
 import { QuickLinks } from "./pages/dashboard/QuickLinks"
 import { Avisos } from "./pages/dashboard/Avisos"
 import QuadroHorariosPage from "./pages/horarios/QuadroHorariosPage"
+import TutoriaisPage from "./pages/tutoriais/TutoriaisPage"
+import { TutoriaisSection } from "./components/tutoriais/TutoriaisSection"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { usuario, loading } = useAuth()
@@ -53,17 +55,20 @@ function LinksView() {
   const { usuario } = useAuth()
   
   return (
-    <div className="flex flex-col gap-6 max-w-4xl mx-auto pb-10">
+    <div className="flex flex-col gap-8 max-w-5xl mx-auto pb-10">
       <div>
         <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-slate-50">
           Olá, {usuario?.nome_completo?.split(' ')[0] || 'Bem-vindo'}!
         </h1>
         <p className="text-slate-500 dark:text-slate-400 mt-1.5 text-base sm:text-lg font-medium">
-          Confira os acessos rápidos e atalhos da instituição.
+          Confira os acessos rápidos, tutoriais e atalhos da instituição.
         </p>
       </div>
       
       <QuickLinks />
+
+      {/* Seção de Tutoriais (com expansão para Tela Cheia) */}
+      <TutoriaisSection />
     </div>
   )
 }
@@ -101,6 +106,7 @@ function App() {
               }>
                 <Route path="/links" element={<LinksView />} />
                 <Route path="/avisos" element={<AvisosView />} />
+                <Route path="/tutoriais" element={<TutoriaisPage />} />
                 <Route path="/horarios" element={<QuadroHorariosPage />} />
                 <Route path="/agendamentos" element={<Agendamentos />} />
                 <Route path="/avaliacoes">

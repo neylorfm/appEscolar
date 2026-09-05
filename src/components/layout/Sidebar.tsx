@@ -11,7 +11,8 @@ import {
   LogOut, 
   Building2, 
   BookOpen,
-  Globe 
+  Globe,
+  GraduationCap
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -32,6 +33,11 @@ const routes = [
     path: "/avisos",
     name: "Avisos Internos",
     icon: Megaphone,
+  },
+  {
+    path: "/tutoriais",
+    name: "Tutoriais",
+    icon: GraduationCap,
   },
   {
     path: "/",

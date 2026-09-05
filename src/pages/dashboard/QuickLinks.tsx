@@ -9,7 +9,8 @@ import {
   BarChart3, 
   ChevronRight, 
   Sparkles,
-  ExternalLink
+  ExternalLink,
+  GraduationCap
 } from "lucide-react"
 import * as LucideIcons from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
@@ -195,6 +196,27 @@ export function QuickLinks() {
                   </span>
                   <span className="text-[11px] text-muted-foreground mt-0.5">
                     Eventos e feriados
+                  </span>
+                </div>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground/70 group-hover:text-[#7f1d1d] dark:group-hover:text-[#f8b4bc] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+            </Link>
+
+            {/* Link Padrão 5: Tutoriais */}
+            <Link 
+              to="/tutoriais" 
+              className="flex items-center justify-between p-3 rounded-xl bg-background border border-border/70 hover:border-primary/50 hover:shadow-xs hover:bg-muted/20 transition-all group select-none"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="h-10 w-10 rounded-xl bg-[#f5eefb] text-[#6b21a8] dark:bg-[#6b21a8]/30 dark:text-[#d8b4fe] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <GraduationCap className="h-5 w-5" />
+                </div>
+                <div className="flex flex-col truncate">
+                  <span className="font-bold text-foreground text-sm leading-tight group-hover:text-[#7f1d1d] dark:group-hover:text-[#f8b4bc] transition-colors">
+                    Tutoriais
+                  </span>
+                  <span className="text-[11px] text-muted-foreground mt-0.5">
+                    Vídeos e capacitações da instituição
                   </span>
                 </div>
               </div>
